@@ -3,137 +3,152 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Стримерша — Twitch Clicker (Тир 1)</title>
+    <title>Стримерша — Путь раскрепощения</title>
   </head>
   <body>
     <div id="app">
-      <!-- Top Twitch Broadcast Header -->
-      <header class="topbar">
-        <div class="topbar-left">
-          <div class="channel-avatar-wrap">
-            <span class="live-dot-ring"></span>
-            <div class="channel-avatar">М</div>
-            <span class="live-pill">В ЭФИРЕ</span>
-          </div>
-          <div class="channel-meta">
-            <div class="channel-row">
-              <span class="channel-name">miya_nyash</span>
-              <span class="tier-badge">Тир 1 • Новичок</span>
-              <span class="category-tag">Just Chatting</span>
+      <!-- Centerpiece Full-Bleed Stream Stage -->
+      <main class="stage-shell">
+        <div id="stream-stage-host" class="stream-stage-host"></div>
+
+        <!-- Top-Left Live Channel & Boldness Arc Overlay -->
+        <div class="hud-top-left">
+          <div class="live-profile-pill">
+            <div class="channel-avatar-wrap">
+              <div class="channel-avatar">М</div>
+              <span class="live-pill">В ЭФИРЕ</span>
             </div>
-            <div id="stream-title" class="stream-title">
-              Первый стрим... жутко стесняюсь, зайдите поболтать плз 😳 | Тир 1
+            <div class="channel-meta">
+              <div class="channel-row">
+                <span class="channel-name">miya_nyash</span>
+                <span id="story-stage-badge" class="tier-badge">Этап 1 • Зажатая скромница</span>
+              </div>
+              <div id="stream-title" class="stream-title">
+                Первый стрим... жутко стесняюсь, поддержите новичка плз 😳
+              </div>
+              <div class="boldness-meter-row">
+                <span class="boldness-label">♥ Раскрепощённость</span>
+                <div class="boldness-track">
+                  <div id="boldness-fill" class="boldness-fill"></div>
+                </div>
+                <span id="boldness-pct" class="boldness-pct">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="speech-bubble" class="speech-bubble">
+            <div class="speech-speaker">Мия в эфире:</div>
+            <div id="speech-text" class="speech-text">
+              Ой... кто-то зашёл на стрим! П-привет, только не смотри слишком пристально... 😳
             </div>
           </div>
         </div>
 
-        <div class="topbar-stats">
-          <div class="stat-chip stat-viewers" title="Главный показатель прогрессии стрима">
-            <span class="viewer-dot"></span>
-            <div>
-              <div class="stat-label">Онлайн</div>
-              <div id="stat-viewers-val" class="stat-value">3</div>
+        <!-- Top-Center OBS Donation Alert -->
+        <div id="donation-alert" class="donation-alert hidden">
+          <div class="alert-title">★ ДОНАТ НА ЭКРАН ★</div>
+          <div id="donation-alert-amount" class="alert-amount">+45 ₽</div>
+          <div id="donation-alert-sub" class="alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
+        </div>
+
+        <!-- Top-Right Compact Stats & Viewer Milestone -->
+        <div class="hud-top-right">
+          <div class="stats-strip">
+            <div class="stat-chip stat-viewers">
+              <span class="viewer-dot"></span>
+              <div>
+                <div class="stat-label">Онлайн</div>
+                <div id="stat-viewers-val" class="stat-value">3</div>
+              </div>
+            </div>
+
+            <div class="stat-chip stat-balance">
+              <div>
+                <div class="stat-label">Баланс</div>
+                <div id="stat-balance-val" class="stat-value">0 ₽</div>
+              </div>
+            </div>
+
+            <div class="stat-chip">
+              <div>
+                <div class="stat-label">Доход</div>
+                <div id="stat-income-val" class="stat-value">+5 ₽ • 0/с</div>
+              </div>
+            </div>
+
+            <div class="stat-chip stat-hype">
+              <div class="hype-row">
+                <span class="stat-label">Хайп</span>
+                <span id="stat-hype-mult" class="hype-mult">x1.00</span>
+              </div>
+              <div class="hype-bar-track">
+                <div id="stat-hype-fill" class="hype-bar-fill"></div>
+              </div>
             </div>
           </div>
 
-          <div class="stat-chip stat-balance">
-            <span class="stat-emoji">💸</span>
-            <div>
-              <div class="stat-label">Донаты</div>
-              <div id="stat-balance-val" class="stat-value">0 ₽</div>
+          <div class="milestone-mini">
+            <div class="milestone-head">
+              <span id="milestone-title">Цель: 10 зрителей — страх уходит</span>
+              <span id="milestone-progress-label">3 / 10</span>
             </div>
-          </div>
-
-          <div class="stat-chip">
-            <span class="stat-emoji">⚡</span>
-            <div>
-              <div class="stat-label">Клик / Пассив</div>
-              <div id="stat-income-val" class="stat-value">+5 ₽ • 0 ₽/с</div>
-            </div>
-          </div>
-
-          <div class="stat-chip stat-hype">
-            <div class="hype-row">
-              <span class="stat-label">Хайп чата</span>
-              <span id="stat-hype-mult" class="hype-mult">x1.00</span>
-            </div>
-            <div class="hype-bar-track">
-              <div id="stat-hype-fill" class="hype-bar-fill"></div>
+            <div class="milestone-bar">
+              <div id="milestone-fill" class="milestone-fill"></div>
             </div>
           </div>
         </div>
-      </header>
 
-      <!-- Main Broadcast Content + Right Chat -->
-      <main class="workspace">
-        <section class="broadcast-column">
-          <div class="video-frame-outer">
-            <div id="stream-stage-host" class="stream-stage-host"></div>
-
-            <!-- Unobtrusive overlays placed strictly in upper corners away from heroine -->
-            <div id="speech-bubble" class="speech-bubble">
-              <div class="speech-speaker">Мия (в микрофон):</div>
-              <div id="speech-text" class="speech-text">
-                Ой... кто-то зашёл на стрим! П-привет, устраивайся поудобнее... 😳
-              </div>
-            </div>
-
-            <div id="milestone-box" class="milestone-box">
-              <div class="milestone-head">
-                <span>🎯 Цель онлайна</span>
-                <span id="milestone-progress-label">3 / 10</span>
-              </div>
-              <div id="milestone-title" class="milestone-title">Первая десятка в чате!</div>
-              <div class="milestone-bar">
-                <div id="milestone-fill" class="milestone-fill"></div>
-              </div>
-            </div>
-
-            <div id="donation-alert" class="donation-alert hidden">
-              <div class="alert-title">🔔 НОВЫЙ ДОНАТ НА ЭКРАН!</div>
-              <div id="donation-alert-amount" class="alert-amount">+45 ₽</div>
-              <div id="donation-alert-sub" class="alert-sub">«Ты супер милая, не стесняйся!»</div>
-            </div>
-          </div>
-
-          <!-- Stream Setup Upgrades Panel (Tier 1) -->
-          <section class="upgrades-dock">
-            <div class="dock-header">
-              <span class="dock-title">🛠️ Прокачка стрима (Тир 1 — Старт с домашней комнаты)</span>
-              <span class="dock-hint">Кликай по Мие в кадре — зарабатывай донаты и поднимай онлайн</span>
-            </div>
-            <div id="upgrades-grid" class="upgrades-grid"></div>
-          </section>
-        </section>
-
-        <!-- Right-hand Live Twitch Chat -->
-        <aside class="chat-panel">
-          <div class="chat-header">
-            <span>💬 ЧАТ СТРИМА</span>
-            <span id="chat-online-pill" class="chat-online-pill">👥 3</span>
-          </div>
-          <div id="chat-messages" class="chat-messages"></div>
-          <div class="chat-quick-bar">
-            <button id="btn-chat-compliment" class="quick-chat-btn" type="button">
-              😳 Комплимент
-            </button>
-            <button id="btn-chat-hearts" class="quick-chat-btn" type="button">
-              💜 Спам сердечек
-            </button>
-          </div>
-          <form id="chat-form" class="chat-form">
-            <input
-              id="chat-input"
-              class="chat-input"
-              type="text"
-              maxlength="90"
-              placeholder="Написать сообщение в чат..."
-              autocomplete="off"
-            />
-            <button class="chat-send-btn" type="submit">Чат</button>
-          </form>
+        <!-- Floating Transparent Stream Chat Overlay (Passive OBS Widget — no input, zero clutter!) -->
+        <aside class="obs-chat-overlay" aria-label="Чат на экране стрима">
+          <div id="chat-messages" class="obs-chat-feed"></div>
         </aside>
       </main>
+
+      <!-- Compact Tabbed Bottom Dock (Upgrades | Outfits | Boldness & Story) -->
+      <section id="bottom-dock" class="bottom-dock">
+        <div class="dock-tabs-bar">
+          <div class="dock-tabs">
+            <button class="dock-tab active" data-tab="upgrades" type="button">
+              🛠️ Улучшения сетапа
+            </button>
+            <button class="dock-tab" data-tab="outfits" type="button">
+              👗 Костюмы и смелость
+            </button>
+            <button class="dock-tab" data-tab="story" type="button">
+              🔥 Фансервис и сюжет
+            </button>
+          </div>
+          <button id="btn-toggle-dock" class="dock-collapse-btn" type="button">
+            Свернуть панель ▾
+          </button>
+        </div>
+
+        <div class="dock-body">
+          <!-- Tab 1: Setup Upgrades -->
+          <div id="tab-panel-upgrades" class="tab-panel active">
+            <div id="upgrades-grid" class="cards-row upgrades-grid"></div>
+          </div>
+
+          <!-- Tab 2: Outfits Wardrobe Progression -->
+          <div id="tab-panel-outfits" class="tab-panel">
+            <div id="outfits-grid" class="cards-row outfits-grid"></div>
+          </div>
+
+          <!-- Tab 3: Boldness Story Diary + Paid Fanservice Challenges -->
+          <div id="tab-panel-story" class="tab-panel">
+            <div class="story-split">
+              <div class="diary-card">
+                <div class="diary-header">
+                  <span id="diary-stage-pill" class="diary-pill">Дневник Мии • Этап 1</span>
+                  <span id="diary-headline" class="diary-headline">Дрожат коленки перед первой вебкой</span>
+                </div>
+                <p id="diary-thought" class="diary-thought"></p>
+              </div>
+              <div id="challenges-grid" class="challenges-grid"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

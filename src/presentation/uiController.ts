@@ -1,6 +1,13 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
 import { STREAM_TITLES_BY_BAND } from '../domain/dialogue.ts';
-import type { ComputedStats, GameState, UpgradeId } from '../domain/types.ts';
+import { STREAM_CHALLENGES, WARDROBE_OUTFITS } from '../domain/progression.ts';
+import type {
+  BottomTabId,
+  ChallengeId,
+  ComputedStats,
+  GameState,
+  UpgradeId,
+} from '../domain/types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
 
 function formatMoney(n: number): string {
@@ -9,7 +16,11 @@ function formatMoney(n: number): string {
 }
 
 export class UiController {
+  private readonly stageBadgeEl = document.getElementById('story-stage-badge')!;
   private readonly titleEl = document.getElementById('stream-title')!;
+  private readonly boldnessFillEl = document.getElementById('boldness-fill')!;
+  private readonly boldnessPctEl = document.getElementById('boldness-pct')!;
+
   private readonly viewersEl = document.getElementById('stat-viewers-val')!;
   private readonly balanceEl = document.getElementById('stat-balance-val')!;
   private readonly incomeEl = document.getElementById('stat-income-val')!;
@@ -27,36 +38,61 @@ export class UiController {
   private readonly alertAmountEl = document.getElementById('donation-alert-amount')!;
   private readonly alertSubEl = document.getElementById('donation-alert-sub')!;
 
-  private readonly upgradesGridEl = document.getElementById('upgrades-grid')!;
-  private readonly chatOnlineEl = document.getElementById('chat-online-pill')!;
   private readonly chatMessagesEl = document.getElementById('chat-messages')!;
+
+  private readonly bottomDockEl = document.getElementById('bottom-dock')!;
+  private readonly toggleDockBtn = document.getElementById('btn-toggle-dock')!;
+  private readonly upgradesGridEl = document.getElementById('upgrades-grid')!;
+  private readonly outfitsGridEl = document.getElementById('outfits-grid')!;
+  private readonly challengesGridEl = document.getElementById('challenges-grid')!;
+
+  private readonly diaryStagePillEl = document.getElementById('diary-stage-pill')!;
+  private readonly diaryHeadlineEl = document.getElementById('diary-headline')!;
+  private readonly diaryThoughtEl = document.getElementById('diary-thought')!;
 
   private alertTimer?: number;
   private speechPopTimer?: number;
-  private cardButtons = new Map<UpgradeId, HTMLButtonElement>();
+  private upgradeButtons = new Map<UpgradeId, HTMLButtonElement>();
+  private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
   public onBuyUpgrade?: (id: UpgradeId) => void;
-  public onPlayerChat?: (text: string) => void;
+  public onTriggerChallenge?: (id: ChallengeId) => void;
+  public onLayoutResize?: () => void;
 
   public init(): void {
+    this.setupTabs();
     this.buildUpgradeCards();
+    this.buildOutfitCards();
+    this.buildChallengeCards();
+  }
 
-    const form = document.getElementById('chat-form') as HTMLFormElement;
-    const input = document.getElementById('chat-input') as HTMLInputElement;
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const val = input.value.trim();
-      if (!val) return;
-      input.value = '';
-      this.onPlayerChat?.(val);
+  private setupTabs(): void {
+    const tabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.dock-tab'));
+    tabBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const target = btn.dataset.tab as BottomTabId;
+        this.switchTab(target);
+      });
     });
 
-    document.getElementById('btn-chat-compliment')?.addEventListener('click', () => {
-      this.onPlayerChat?.('Мия, ты нереально красивая, не стесняйся! 😳❤️');
+    this.toggleDockBtn.addEventListener('click', () => {
+      const collapsed = this.bottomDockEl.classList.toggle('collapsed');
+      this.toggleDockBtn.textContent = collapsed ? 'Развернуть меню ▴' : 'Свернуть панель ▾';
+      window.setTimeout(() => this.onLayoutResize?.(), 30);
     });
-    document.getElementById('btn-chat-hearts')?.addEventListener('click', () => {
-      this.onPlayerChat?.('💜💜💜 ЧАТИК ПОДДЕРЖИМ СТРИМЕРШУ 🔥🔥🔥');
+  }
+
+  public switchTab(tab: BottomTabId): void {
+    this.bottomDockEl.classList.remove('collapsed');
+    this.toggleDockBtn.textContent = 'Свернуть панель ▾';
+
+    document.querySelectorAll<HTMLButtonElement>('.dock-tab').forEach((b) => {
+      b.classList.toggle('active', b.dataset.tab === tab);
     });
+    document.querySelectorAll<HTMLElement>('.tab-panel').forEach((panel) => {
+      panel.classList.toggle('active', panel.id === `tab-panel-${tab}`);
+    });
+    window.setTimeout(() => this.onLayoutResize?.(), 20);
   }
 
   private buildUpgradeCards(): void {
@@ -68,16 +104,57 @@ export class UiController {
       btn.dataset.upgradeId = def.id;
       btn.addEventListener('click', () => this.onBuyUpgrade?.(def.id));
       this.upgradesGridEl.appendChild(btn);
-      this.cardButtons.set(def.id, btn);
+      this.upgradeButtons.set(def.id, btn);
     }
   }
 
-  public render(state: GameState, stats: ComputedStats): void {
+  private buildOutfitCards(): void {
+    this.outfitsGridEl.innerHTML = '';
+    for (const o of WARDROBE_OUTFITS) {
+      const card = document.createElement('div');
+      card.className = `outfit-card ${o.availableInCurrentBuild ? 'equipped' : 'locked'}`;
+      card.innerHTML = `
+        <div>
+          <div class="outfit-head">
+            <span class="outfit-name">${o.name}</span>
+            <span class="outfit-mult">x${o.incomeMultiplier.toFixed(2)} ₽</span>
+          </div>
+          <p class="outfit-desc">${o.storyDesc}</p>
+        </div>
+        <div class="outfit-req ${o.availableInCurrentBuild ? 'active-tag' : ''}">
+          ${
+            o.availableInCurrentBuild
+              ? '✓ Надето сейчас (Тир 1)'
+              : `🔒 Тир ${o.tier}: ${o.viewersRequired} онл. • ${o.boldnessRequired}% смелости • ${o.cost} ₽`
+          }
+        </div>
+      `;
+      this.outfitsGridEl.appendChild(card);
+    }
+  }
+
+  private buildChallengeCards(): void {
+    this.challengesGridEl.innerHTML = '';
+    for (const ch of STREAM_CHALLENGES) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'challenge-card';
+      btn.dataset.challengeId = ch.id;
+      btn.addEventListener('click', () => this.onTriggerChallenge?.(ch.id));
+      this.challengesGridEl.appendChild(btn);
+      this.challengeButtons.set(ch.id, btn);
+    }
+  }
+
+  public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
+    this.stageBadgeEl.textContent = stats.storyChapter.badgeTitle;
     this.titleEl.textContent = STREAM_TITLES_BY_BAND[stats.dialogueBand];
+    this.boldnessFillEl.style.width = `${stats.boldness}%`;
+    this.boldnessPctEl.textContent = `${Math.floor(stats.boldness)}%`;
+
     this.viewersEl.textContent = String(stats.onlineViewers);
-    this.chatOnlineEl.textContent = `👥 ${stats.onlineViewers}`;
     this.balanceEl.textContent = formatMoney(state.balance);
-    this.incomeEl.textContent = `+${stats.clickIncome} ₽ • ${stats.passivePerSec} ₽/с`;
+    this.incomeEl.textContent = `+${stats.clickIncome} ₽ • ${stats.passivePerSec}/с`;
     this.hypeMultEl.textContent = `x${stats.hypeMultiplier.toFixed(2)}`;
     this.hypeFillEl.style.width = `${Math.min(100, Math.max(0, state.hype))}%`;
 
@@ -85,39 +162,80 @@ export class UiController {
     const next = stats.nextMilestone;
     if (next) {
       this.milestoneLabelEl.textContent = `${stats.onlineViewers} / ${next.viewersRequired}`;
-      this.milestoneTitleEl.textContent = next.title;
+      this.milestoneTitleEl.textContent = `Цель: ${next.title}`;
       const pct = Math.min(100, Math.round((stats.onlineViewers / next.viewersRequired) * 100));
       this.milestoneFillEl.style.width = `${pct}%`;
     } else {
       const last = TIER1_MILESTONES[TIER1_MILESTONES.length - 1]!;
-      this.milestoneLabelEl.textContent = `${stats.onlineViewers} / ${last.viewersRequired} MAX`;
-      this.milestoneTitleEl.textContent = 'Все цели Тир-1 выполнены! 🔥';
+      this.milestoneLabelEl.textContent = `${stats.onlineViewers} MAX`;
+      this.milestoneTitleEl.textContent = `Пик Тир-1 (${last.viewersRequired}+ онл.) достигнут!`;
       this.milestoneFillEl.style.width = '100%';
     }
 
-    // Upgrade buttons
+    // Story diary
+    this.diaryStagePillEl.textContent = `Дневник Мии • Этап ${stats.storyChapter.stage}/4`;
+    this.diaryHeadlineEl.textContent = stats.storyChapter.headline;
+    this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
+
+    // Upgrade cards
     for (const def of TIER1_UPGRADES) {
-      const btn = this.cardButtons.get(def.id);
+      const btn = this.upgradeButtons.get(def.id);
       if (!btn) continue;
       const lvl = state.upgrades[def.id] ?? 0;
       const isMax = lvl >= def.maxLevel;
       const cost = getUpgradeCost(def, lvl);
       const canAfford = !isMax && state.balance >= cost;
 
-      btn.disabled = !canAfford && isMax;
+      btn.disabled = isMax;
       btn.classList.toggle('affordable', canAfford);
       btn.innerHTML = `
-        <div class="upg-left">
-          <div class="upg-icon">${def.icon}</div>
-          <div class="upg-info">
-            <div class="upg-name-row">
-              <span class="upg-name">${def.name}</span>
-              <span class="upg-lvl">ур. ${lvl}</span>
-            </div>
-            <div class="upg-bonuses">+${def.clickBonus} клик • +${def.passivePerSec}/с • +${def.viewersBonus} онл.</div>
+        <div class="upg-top">
+          <div class="upg-title-wrap">
+            <span class="upg-icon">${def.icon}</span>
+            <span class="upg-name">${def.name}</span>
           </div>
+          <span class="upg-lvl">ур.${lvl}</span>
         </div>
-        <div class="upg-cost">${isMax ? 'МАКС' : `${cost} ₽`}</div>
+        <div class="upg-bottom">
+          <span class="upg-bonuses">+${def.viewersBonus} онл • +${def.boldnessBonus}% смел</span>
+          <span class="upg-cost">${isMax ? 'МАКС' : `${cost} ₽`}</span>
+        </div>
+      `;
+    }
+
+    // Challenge cards
+    for (const ch of STREAM_CHALLENGES) {
+      const btn = this.challengeButtons.get(ch.id);
+      if (!btn) continue;
+      const lockedByViewers = stats.onlineViewers < ch.viewersRequired;
+      const cdLeftSec = Math.max(
+        0,
+        Math.ceil(((state.challengeCooldownUntilMs[ch.id] ?? 0) - nowMs) / 1000),
+      );
+      const ready = !lockedByViewers && cdLeftSec === 0;
+      const estReward = Math.max(15, Math.round(stats.clickIncome * ch.instantRewardMult));
+
+      btn.disabled = !ready;
+      btn.classList.toggle('ready', ready);
+
+      let statusLabel = `+${estReward} ₽`;
+      if (lockedByViewers) {
+        statusLabel = `🔒 ${ch.viewersRequired} онл.`;
+      } else if (cdLeftSec > 0) {
+        statusLabel = `⏳ ${cdLeftSec}с`;
+      }
+
+      btn.innerHTML = `
+        <div>
+          <div class="ch-top">
+            <span class="ch-name">${ch.icon} ${ch.name}</span>
+          </div>
+          <p class="ch-desc">${ch.desc}</p>
+        </div>
+        <div class="ch-foot">
+          <span class="ch-bold">+${ch.boldnessGain}% раскреп.</span>
+          <span class="ch-status">${statusLabel}</span>
+        </div>
       `;
     }
   }
@@ -138,7 +256,7 @@ export class UiController {
     window.clearTimeout(this.alertTimer);
     this.alertTimer = window.setTimeout(() => {
       this.alertBoxEl.classList.add('hidden');
-    }, 2600);
+    }, 2500);
   }
 
   public pushChatMessage(msg: ChatMessage): void {
@@ -163,9 +281,9 @@ export class UiController {
     row.appendChild(body);
 
     this.chatMessagesEl.appendChild(row);
-    while (this.chatMessagesEl.children.length > 70) {
+    // Keep only last 7 floating overlay messages so stream screen stays super clean!
+    while (this.chatMessagesEl.children.length > 7) {
       this.chatMessagesEl.removeChild(this.chatMessagesEl.firstChild!);
     }
-    this.chatMessagesEl.scrollTop = this.chatMessagesEl.scrollHeight;
   }
 }

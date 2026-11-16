@@ -179,12 +179,18 @@ export class StreamStage {
     const h = Math.max(180, hostEl.clientHeight);
     this.app.renderer.resize(w, h);
 
-    const scale = Math.min(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
+    // Fill width edge-to-edge when aspect is close to 16:9 while keeping 100% of heroine (head y=18..feet y=704) visible!
+    const fitScale = Math.min(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
+    const maxSafeScale = h / 736; // Never crop head (y=18) or bare toes (y=704)
+    const coverScale = Math.max(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
+    const scale = Math.min(coverScale, Math.max(fitScale, maxSafeScale));
+
     this.root.scale.set(scale);
     this.root.position.set(
       (w - StreamStage.VIRTUAL_W * scale) * 0.5,
       (h - StreamStage.VIRTUAL_H * scale) * 0.5,
     );
+    this.app.render();
   }
 
   public spawnTapBurst(

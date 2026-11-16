@@ -15,8 +15,15 @@ import {
   SAVE_STORAGE_KEY,
   serializeState,
   tickEconomy,
+  triggerStreamChallenge,
 } from '../domain/engine.ts';
-import type { GameState, TapZoneId, UpgradeId } from '../domain/types.ts';
+import type {
+  BottomTabId,
+  ChallengeId,
+  GameState,
+  TapZoneId,
+  UpgradeId,
+} from '../domain/types.ts';
 import type { HeroineRig } from '../heroine/HeroineRig.ts';
 import { StreamStage } from '../heroine/StreamStage.ts';
 import { UiController } from '../presentation/uiController.ts';
@@ -32,6 +39,8 @@ declare global {
       tapZone: (zone: TapZoneId) => void;
       addFunds: (amount: number) => void;
       buyUpgrade: (id: UpgradeId) => boolean;
+      runChallenge: (id: ChallengeId) => boolean;
+      switchTab: (tab: BottomTabId) => void;
       forceBlink: () => void;
       forceFluster: () => void;
       resetSave: () => void;
@@ -67,14 +76,13 @@ export async function bootstrapApp(): Promise<void> {
     state = outcome.state;
     ui.showSpeech(outcome.line);
 
-    // Chat reacts enthusiastically to taps
     if (state.totalTaps % 2 === 1 || outcome.triggeredDonationAlert) {
       ui.pushChatMessage(createZoneBurstMessage(zone, state.totalTaps));
     }
     if (outcome.triggeredDonationAlert) {
       ui.showDonationAlert(
         outcome.earned,
-        '«Не смущайся, ты лучшая! Держи на развитие стрима 💜»',
+        '«Не смущайся, ты невероятно горячая! Лови на развитие 💜»',
       );
       ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps));
     }
@@ -84,7 +92,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `🎉 Достигнута цель: ${m.title}! ${m.rewardText}`,
+        text: `🎉 ${m.title}! ${m.rewardText}`,
         isSystemHighlight: true,
       });
     }
@@ -101,46 +109,36 @@ export async function bootstrapApp(): Promise<void> {
     stage.rig.triggerTapReaction('chest');
     ui.showSpeech(UPGRADE_REACTION_LINES[id]);
     ui.pushChatMessage(createUpgradeChatMessage(id, state.totalTaps));
-    for (const m of res.newlyUnlockedMilestones) {
-      ui.pushChatMessage({
-        id: `ms_${m.id}`,
-        author: 'StreamBot',
-        color: '#c084fc',
-        badge: 'MOD',
-        text: `🎉 Достигнута цель: ${m.title}! ${m.rewardText}`,
-        isSystemHighlight: true,
-      });
-    }
     syncAll();
   };
 
-  ui.onPlayerChat = (text: string) => {
+  ui.onTriggerChallenge = (id: ChallengeId) => {
+    const res = triggerStreamChallenge(state, id);
+    if (!res.ok) return;
+    state = res.state;
+    stage.rig.triggerFluster(2100);
+    stage.rig.triggerTapReaction(res.zoneFocus);
+    stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
+    ui.showSpeech(res.line);
+    ui.showDonationAlert(res.reward, '🔥 Выполнен горячий челлендж чата!');
     ui.pushChatMessage({
-      id: `you_${Date.now()}`,
-      author: 'Ты (Зритель #1)',
-      color: '#a970ff',
-      badge: 'VIP',
-      text,
+      id: `ch_${Date.now()}`,
+      author: 'VIP_Donater',
+      color: '#ffd54f',
+      badge: 'DONATE',
+      text: res.chatBurst,
+      isSystemHighlight: true,
     });
-    stage.rig.triggerFluster(1600);
-    stage.rig.triggerTapReaction('head');
-    ui.showSpeech('Ой, я прочитала твоё сообщение в чате... с-спасибо большое, мне так приятно! 😳💜');
+    syncAll();
   };
 
-  // Seed initial cozy starter chat lines
-  ui.pushChatMessage({
-    id: 'welcome_1',
-    author: 'StreamBot',
-    color: '#c084fc',
-    badge: 'MOD',
-    text: 'Трансляция miya_nyash началась! Поддержи начинающую стримершу кликами и комплиментами 💜',
-    isSystemHighlight: true,
-  });
+  // Seed initial subtle floating stream chat
   ui.pushChatMessage(createAmbientChatMessage(3, 1));
   ui.pushChatMessage(createAmbientChatMessage(3, 2));
+  ui.pushChatMessage(createAmbientChatMessage(3, 3));
   syncAll();
 
-  // Uncapped elapsed-ms economy loop (250ms cadence)
+  // Uncapped elapsed-ms economy loop
   let lastEconomyMs = performance.now();
   window.setInterval(() => {
     const nowPerf = performance.now();
@@ -154,7 +152,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `🎉 Достигнута цель: ${m.title}! ${m.rewardText}`,
+        text: `🎉 ${m.title}! ${m.rewardText}`,
         isSystemHighlight: true,
       });
     }
@@ -162,10 +160,10 @@ export async function bootstrapApp(): Promise<void> {
   }, 250);
 
   // Ambient live chat ticker scaling with onlineViewers
-  let chatCounter = 3;
+  let chatCounter = 4;
   const scheduleNextAmbientChat = () => {
     const viewers = computeStats(state).onlineViewers;
-    const delayMs = Math.max(950, 3800 - Math.min(2600, viewers * 32));
+    const delayMs = Math.max(950, 3600 - Math.min(2400, viewers * 30));
     window.setTimeout(() => {
       chatCounter += 1;
       ui.pushChatMessage(createAmbientChatMessage(viewers, chatCounter));
@@ -174,7 +172,6 @@ export async function bootstrapApp(): Promise<void> {
   };
   scheduleNextAmbientChat();
 
-  // ?qa deterministic test & screenshot hooks
   if (isQa) {
     window.__pixiApp = stage.app;
     window.__heroineRig = stage.rig;
@@ -193,13 +190,25 @@ export async function bootstrapApp(): Promise<void> {
         }
       },
       addFunds: (amount: number) => {
-        state = { ...state, balance: state.balance + amount, totalEarned: state.totalEarned + amount };
+        state = {
+          ...state,
+          balance: state.balance + amount,
+          totalEarned: state.totalEarned + amount,
+        };
         syncAll();
       },
       buyUpgrade: (id: UpgradeId) => {
         const prev = state.upgrades[id];
         ui.onBuyUpgrade?.(id);
         return state.upgrades[id] > prev;
+      },
+      runChallenge: (id: ChallengeId) => {
+        const prevBold = state.boldness;
+        ui.onTriggerChallenge?.(id);
+        return state.boldness > prevBold;
+      },
+      switchTab: (tab: BottomTabId) => {
+        ui.switchTab(tab);
       },
       forceBlink: () => {
         stage.rig.triggerBlink();
