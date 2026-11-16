@@ -1,33 +1,27 @@
 {
-  "sceneWidth": 1376,
-  "sceneHeight": 768,
-  "heroinePlate": {
-    "file": "/art/heroine_t1_base.webp",
-    "width": 1024,
-    "height": 1526
+  "characterId": "miya_t1",
+  "plateSize": [1024, 1526],
+  "subGoalStages": {
+    "0": "/art/heroine_t1_s0.webp",
+    "1": "/art/heroine_t1_s1.webp",
+    "2": "/art/heroine_t1_s2.webp",
+    "3": "/art/heroine_t1_base.webp",
+    "4": "/art/heroine_t1_s4.webp"
   },
   "patches": {
     "blink": {
-      "file": "/art/patch_t1_blink.webp",
+      "url": "/art/patch_t1_blink.webp",
       "x": 338,
       "y": 61,
-      "width": 348,
-      "height": 397,
-      "shiftPx": [
-        -0.014,
-        0.467
-      ]
+      "w": 348,
+      "h": 397
     },
     "fluster": {
-      "file": "/art/patch_t1_fluster.webp",
+      "url": "/art/patch_t1_fluster.webp",
       "x": 338,
       "y": 61,
-      "width": 348,
-      "height": 397,
-      "shiftPx": [
-        -0.396,
-        0.202
-      ]
+      "w": 348,
+      "h": 397
     }
   }
 }

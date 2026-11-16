@@ -8,7 +8,7 @@ import {
   TextStyle,
   Texture,
 } from 'pixi.js';
-import type { TapZoneId } from '../domain/types.ts';
+import type { SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -72,13 +72,18 @@ export class StreamStage {
     hostEl.appendChild(this.app.canvas);
     this.app.stage.addChild(this.root);
 
-    const [bgTex, baseTex, blinkTex, flusterTex, fgDeskTex] = await Promise.all([
-      Assets.load<Texture>('/art/bg_room_t1.webp'),
-      Assets.load<Texture>('/art/heroine_t1_base.webp'),
-      Assets.load<Texture>('/art/patch_t1_blink.webp'),
-      Assets.load<Texture>('/art/patch_t1_fluster.webp'),
-      Assets.load<Texture>('/art/fg_desk_t1.webp'),
-    ]);
+    const [bgTex, s0Tex, s1Tex, s2Tex, s3Tex, s4Tex, blinkTex, flusterTex, fgDeskTex] =
+      await Promise.all([
+        Assets.load<Texture>('/art/bg_room_t1.webp'),
+        Assets.load<Texture>('/art/heroine_t1_s0.webp'),
+        Assets.load<Texture>('/art/heroine_t1_s1.webp'),
+        Assets.load<Texture>('/art/heroine_t1_s2.webp'),
+        Assets.load<Texture>('/art/heroine_t1_base.webp'),
+        Assets.load<Texture>('/art/heroine_t1_s4.webp'),
+        Assets.load<Texture>('/art/patch_t1_blink.webp'),
+        Assets.load<Texture>('/art/patch_t1_fluster.webp'),
+        Assets.load<Texture>('/art/fg_desk_t1.webp'),
+      ]);
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
@@ -119,9 +124,9 @@ export class StreamStage {
       .fill({ color: 0x1a1118, alpha: 0.36 });
     this.root.addChild(this.chairShadow);
 
-    // Layer 1: Heroine Rig (scaled so head is at y=18 and all 10 bare toes sit above desk plank at y=696!)
+    // Layer 1: Heroine Rig (5 Sub Goal strip-down stages aligned to 0.0px!)
     this.rig = new HeroineRig({
-      base: baseTex,
+      stages: [s0Tex, s1Tex, s2Tex, s3Tex, s4Tex],
       blink: blinkTex,
       fluster: flusterTex,
     });
@@ -179,6 +184,45 @@ export class StreamStage {
 
   public setRingLampLevel(level: number): void {
     this.lampLevel = level;
+  }
+
+  public setSubStage(stage: SubGoalStageIndex, celebrate = false, bannerLabel?: string): void {
+    const didChange = this.rig?.setSubStage(stage, celebrate);
+    if (celebrate && bannerLabel) {
+      this.spawnSubGoalBanner(bannerLabel);
+    }
+    if (didChange) {
+      this.app?.render();
+    }
+  }
+
+  private spawnSubGoalBanner(_labelText: string): void {
+    // Festive heart & star burst around Miya (no text over her body — top alert & desk subtitle carry the text!)
+    for (let i = 0; i < 10; i++) {
+      const hc = new Container();
+      const side = i % 2 === 0 ? -1 : 1;
+      hc.position.set(
+        StreamStage.VIRTUAL_W * 0.5 + side * (175 + Math.random() * 95),
+        250 + (Math.random() - 0.5) * 180,
+      );
+      const heartText = new Text({
+        text: i % 2 === 0 ? '♥' : '★',
+        style: new TextStyle({
+          fontSize: 22 + Math.random() * 12,
+          fill: i % 2 === 0 ? '#ff4da6' : '#ffd54f',
+        }),
+      });
+      heartText.anchor.set(0.5);
+      hc.addChild(heartText);
+      this.fxLayer.addChild(hc);
+      this.particles.push({
+        node: hc,
+        vx: side * (25 + Math.random() * 55),
+        vy: -70 - Math.random() * 65,
+        lifeMs: 0,
+        maxLifeMs: 1100 + Math.random() * 350,
+      });
+    }
   }
 
   public setDrawerOpen(open: boolean): void {

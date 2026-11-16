@@ -1,11 +1,13 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
-import { STREAM_TITLES_BY_BAND } from '../domain/dialogue.ts';
-import { STREAM_CHALLENGES, WARDROBE_OUTFITS } from '../domain/progression.ts';
+import { getStreamTitle } from '../domain/dialogue.ts';
+import { STREAM_CHALLENGES } from '../domain/progression.ts';
+import { getGiftSubPackCost, SUB_GOAL_STAGES } from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
   ComputedStats,
   GameState,
+  SubGoalStageIndex,
   UpgradeId,
 } from '../domain/types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
@@ -19,8 +21,20 @@ function formatMoney(n: number): string {
 export class UiController {
   private readonly stageBadgeEl = document.getElementById('story-stage-badge')!;
   private readonly titleEl = document.getElementById('stream-title')!;
+  private readonly subsValEl = document.getElementById('stat-subs-val')!;
   private readonly boldnessFillEl = document.getElementById('boldness-fill')!;
   private readonly boldnessPctEl = document.getElementById('boldness-pct')!;
+
+  private readonly obsSubgoalEl = document.getElementById('obs-subgoal')!;
+  private readonly subgoalTargetNameEl = document.getElementById('subgoal-target-name')!;
+  private readonly subgoalCountEl = document.getElementById('subgoal-count')!;
+  private readonly subgoalFillEl = document.getElementById('subgoal-fill')!;
+  private readonly giftBtn1El = document.getElementById('btn-gift-sub-1') as HTMLButtonElement;
+  private readonly giftBtn5El = document.getElementById('btn-gift-sub-5') as HTMLButtonElement;
+  private readonly giftBtn25El = document.getElementById('btn-gift-sub-25') as HTMLButtonElement;
+  private readonly giftCost1El = document.getElementById('gift-cost-1')!;
+  private readonly giftCost5El = document.getElementById('gift-cost-5')!;
+  private readonly giftCost25El = document.getElementById('gift-cost-25')!;
 
   private readonly viewersEl = document.getElementById('stat-viewers-val')!;
   private readonly balanceEl = document.getElementById('stat-balance-val')!;
@@ -41,6 +55,7 @@ export class UiController {
 
   private readonly chatMessagesEl = document.getElementById('chat-messages')!;
   private readonly upgAvailDotEl = document.getElementById('upg-avail-dot')!;
+  private readonly subAvailDotEl = document.getElementById('sub-avail-dot')!;
 
   private readonly tabDrawerEl = document.getElementById('tab-drawer')!;
   private readonly upgradesGridEl = document.getElementById('upgrades-grid')!;
@@ -56,14 +71,18 @@ export class UiController {
   private speechPopTimer?: number;
   private speechFadeTimer?: number;
   private upgradeButtons = new Map<UpgradeId, HTMLButtonElement>();
+  private outfitCards = new Map<SubGoalStageIndex, HTMLElement>();
   private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
   public onBuyUpgrade?: (id: UpgradeId) => void;
+  public onGiftSubs?: (count: 1 | 5 | 25) => void;
+  public onSelectSubStage?: (stage: SubGoalStageIndex) => void;
   public onTriggerChallenge?: (id: ChallengeId) => void;
   public onTabChange?: (tab: BottomTabId) => void;
 
   public init(): void {
     this.setupTabs();
+    this.setupGiftSubButtons();
     this.buildUpgradeCards();
     this.buildOutfitCards();
     this.buildChallengeCards();
@@ -74,12 +93,17 @@ export class UiController {
     }, 4200);
   }
 
+  private setupGiftSubButtons(): void {
+    this.giftBtn1El.addEventListener('click', () => this.onGiftSubs?.(1));
+    this.giftBtn5El.addEventListener('click', () => this.onGiftSubs?.(5));
+    this.giftBtn25El.addEventListener('click', () => this.onGiftSubs?.(25));
+  }
+
   private setupTabs(): void {
     const tabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.tw-tab'));
     tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         const clicked = btn.dataset.tab as BottomTabId;
-        // Clicking an already-open drawer tab toggles back to pure 'stream' view!
         if (clicked !== 'stream' && this.activeTab === clicked) {
           this.switchTab('stream');
         } else {
@@ -123,26 +147,13 @@ export class UiController {
 
   private buildOutfitCards(): void {
     this.outfitsGridEl.innerHTML = '';
-    for (const o of WARDROBE_OUTFITS) {
+    for (const st of SUB_GOAL_STAGES) {
       const card = document.createElement('div');
-      card.className = `outfit-card ${o.availableInCurrentBuild ? 'equipped' : 'locked'}`;
-      card.innerHTML = `
-        <div>
-          <div class="outfit-head">
-            <span class="outfit-name">${o.name}</span>
-            <span class="outfit-mult">x${o.incomeMultiplier.toFixed(2)} ₽</span>
-          </div>
-          <p class="outfit-desc">${o.storyDesc}</p>
-        </div>
-        <div class="outfit-req ${o.availableInCurrentBuild ? 'active-tag' : ''}">
-          ${
-            o.availableInCurrentBuild
-              ? '✓ Надето сейчас (Тир 1)'
-              : `Тир ${o.tier}: ${o.viewersRequired} онл. • ${o.boldnessRequired}% смелости • ${o.cost} ₽`
-          }
-        </div>
-      `;
+      card.className = 'outfit-card';
+      card.dataset.subStage = String(st.stage);
+      card.addEventListener('click', () => this.onSelectSubStage?.(st.stage));
       this.outfitsGridEl.appendChild(card);
+      this.outfitCards.set(st.stage, card);
     }
   }
 
@@ -161,9 +172,49 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.stageBadgeEl.textContent = stats.storyChapter.badgeTitle;
-    this.titleEl.textContent = STREAM_TITLES_BY_BAND[stats.dialogueBand];
+    this.titleEl.textContent = getStreamTitle(state.displayedSubStage, state.subscribers);
+    this.subsValEl.textContent = String(state.subscribers);
     this.boldnessFillEl.style.width = `${stats.boldness}%`;
     this.boldnessPctEl.textContent = `${Math.floor(stats.boldness)}%`;
+
+    // Top-Left OBS Sub Goal Bar
+    const nextGoal = stats.nextSubGoalDef;
+    const prevFloor = SUB_GOAL_STAGES[state.unlockedSubStage]?.subsRequired ?? 0;
+    if (nextGoal) {
+      this.obsSubgoalEl.classList.remove('completed');
+      this.subgoalTargetNameEl.textContent = nextGoal.shortGoalTitle;
+      this.subgoalCountEl.textContent = `${state.subscribers} / ${nextGoal.subsRequired}`;
+      const span = Math.max(1, nextGoal.subsRequired - prevFloor);
+      const pct = Math.min(100, Math.max(0, Math.round(((state.subscribers - prevFloor) / span) * 100)));
+      this.subgoalFillEl.style.width = `${pct}%`;
+    } else {
+      this.obsSubgoalEl.classList.add('completed');
+      this.subgoalTargetNameEl.textContent = 'Все слои сняты — Бралетт!';
+      this.subgoalCountEl.textContent = `${state.subscribers} сабов ★`;
+      this.subgoalFillEl.style.width = '100%';
+    }
+
+    const cost1 = getGiftSubPackCost(state.subscribers, 1);
+    const cost5 = getGiftSubPackCost(state.subscribers, 5);
+    const cost25 = getGiftSubPackCost(state.subscribers, 25);
+    this.giftCost1El.textContent = formatMoney(cost1);
+    this.giftCost5El.textContent = formatMoney(cost5);
+    this.giftCost25El.textContent = formatMoney(cost25);
+
+    const canGift1 = state.balance >= cost1;
+    const canGift5 = state.balance >= cost5;
+    const canGift25 = state.balance >= cost25;
+    this.giftBtn1El.disabled = !canGift1;
+    this.giftBtn5El.disabled = !canGift5;
+    this.giftBtn25El.disabled = !canGift25;
+    this.giftBtn1El.classList.toggle('affordable', canGift1);
+    this.giftBtn5El.classList.toggle('affordable', canGift5);
+    this.giftBtn25El.classList.toggle('affordable', canGift25);
+
+    this.subAvailDotEl.classList.toggle(
+      'hidden',
+      !canGift1 || nextGoal === null || this.activeTab === 'outfits',
+    );
 
     this.viewersEl.textContent = String(stats.onlineViewers);
     this.balanceEl.textContent = formatMoney(state.balance);
@@ -171,7 +222,7 @@ export class UiController {
     this.hypeMultEl.textContent = `x${stats.hypeMultiplier.toFixed(2)}`;
     this.hypeFillEl.style.width = `${Math.min(100, Math.max(0, state.hype))}%`;
 
-    // Milestone bar
+    // Viewer Milestone bar
     const next = stats.nextMilestone;
     if (next) {
       this.milestoneLabelEl.textContent = `/ ${next.viewersRequired}`;
@@ -190,6 +241,40 @@ export class UiController {
     this.diaryHeadlineEl.textContent = stats.storyChapter.headline;
     this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
 
+    // Sub Goal Outfit Stage Cards (0 / 10 / 50 / 200 / 500 subs)
+    for (const st of SUB_GOAL_STAGES) {
+      const card = this.outfitCards.get(st.stage);
+      if (!card) continue;
+      const unlocked = state.unlockedSubStage >= st.stage;
+      const equipped = state.displayedSubStage === st.stage;
+      card.className = `outfit-card ${equipped ? 'equipped' : unlocked ? 'unlocked' : 'locked'}`;
+
+      let statusHtml = '';
+      if (equipped) {
+        statusHtml = `✓ Сейчас в кадре (${st.subsRequired === 0 ? 'Старт' : `${st.subsRequired} сабов`})`;
+      } else if (unlocked) {
+        statusHtml = `Открыто (${st.subsRequired} сабов) • Нажмите, чтобы надеть`;
+      } else {
+        const missing = Math.max(1, st.subsRequired - state.subscribers);
+        statusHtml = `★ Цель: ${st.subsRequired} сабов (ещё ${missing})`;
+      }
+
+      const nextHtml = `
+        <div>
+          <div class="outfit-head">
+            <span class="outfit-name">${st.stage === 0 ? 'Старт: Худи + носочки' : `${st.subsRequired} сабов: ${st.shortGoalTitle}`}</span>
+            <span class="outfit-mult">x${st.incomeMultiplier.toFixed(2)}</span>
+          </div>
+          <p class="outfit-desc">${st.storyDesc}</p>
+        </div>
+        <div class="outfit-req ${equipped ? 'active-tag' : ''}">${statusHtml}</div>
+      `;
+      if (card.dataset.renderedHtml !== nextHtml) {
+        card.dataset.renderedHtml = nextHtml;
+        card.innerHTML = nextHtml;
+      }
+    }
+
     // Upgrade cards + notify dot when on 'stream' tab
     let anyAffordable = false;
     for (const def of TIER1_UPGRADES) {
@@ -203,7 +288,7 @@ export class UiController {
 
       btn.disabled = isMax;
       btn.classList.toggle('affordable', canAfford);
-      btn.innerHTML = `
+      const nextUpgHtml = `
         <div class="upg-top">
           <div class="upg-title-wrap">
             <span class="upg-icon">${def.icon}</span>
@@ -217,6 +302,10 @@ export class UiController {
           <span class="upg-cost">${isMax ? 'МАКС' : `${cost} ₽`}</span>
         </div>
       `;
+      if (btn.dataset.renderedHtml !== nextUpgHtml) {
+        btn.dataset.renderedHtml = nextUpgHtml;
+        btn.innerHTML = nextUpgHtml;
+      }
     }
     this.upgAvailDotEl.classList.toggle('hidden', !anyAffordable || this.activeTab === 'upgrades');
 
@@ -242,7 +331,7 @@ export class UiController {
         statusLabel = `${cdLeftSec}с`;
       }
 
-      btn.innerHTML = `
+      const nextChHtml = `
         <div>
           <div class="ch-name">${ch.icon} ${ch.name}</div>
           <p class="ch-desc">${ch.desc}</p>
@@ -252,6 +341,10 @@ export class UiController {
           <span class="ch-status">${statusLabel}</span>
         </div>
       `;
+      if (btn.dataset.renderedHtml !== nextChHtml) {
+        btn.dataset.renderedHtml = nextChHtml;
+        btn.innerHTML = nextChHtml;
+      }
     }
   }
 
@@ -265,17 +358,18 @@ export class UiController {
     }, 220);
     this.speechFadeTimer = window.setTimeout(() => {
       this.speechSubEl.classList.remove('visible');
-    }, 3600);
+    }, 3900);
   }
 
-  public showDonationAlert(amount: number, message: string): void {
-    this.alertAmountEl.textContent = `★ +${amount} ₽ ★`;
+  public showDonationAlert(amountLabel: string | number, message: string): void {
+    this.alertAmountEl.textContent =
+      typeof amountLabel === 'number' ? `★ +${amountLabel} ₽ ★` : amountLabel;
     this.alertSubEl.textContent = message;
     this.alertBoxEl.classList.remove('hidden');
     window.clearTimeout(this.alertTimer);
     this.alertTimer = window.setTimeout(() => {
       this.alertBoxEl.classList.add('hidden');
-    }, 2200);
+    }, 2400);
   }
 
   public pushChatMessage(msg: ChatMessage): void {

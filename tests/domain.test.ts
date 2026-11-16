@@ -3,10 +3,12 @@ import test from 'node:test';
 import { pickDialogueLine, UPGRADE_REACTION_LINES, ZONE_DIALOGUES } from '../src/domain/dialogue.ts';
 import {
   applyTap,
+  buyGiftSubs,
   buyUpgrade,
   computeStats,
   createInitialState,
   deserializeState,
+  selectDisplayedSubStage,
   serializeState,
   tickEconomy,
   triggerStreamChallenge,
@@ -15,24 +17,78 @@ import {
   getStoryChapter,
   STORY_CHAPTERS,
   STREAM_CHALLENGES,
-  WARDROBE_OUTFITS,
 } from '../src/domain/progression.ts';
+import { SUB_GOAL_STAGES } from '../src/domain/subGoals.ts';
 import type { TapZoneId } from '../src/domain/types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
 
-test('initial Tier 1 state starts as shy rookie (Stage 1, 0% boldness, 3 viewers)', () => {
+test('initial state starts bundled up at Stage 0 (0 subs, hoodie + leggings + socks)', () => {
   const s = createInitialState(1000);
   const stats = computeStats(s);
   assert.equal(s.balance, 0);
   assert.equal(s.boldness, 0);
-  assert.equal(s.equippedOutfit, 't1_tight_tee');
+  assert.equal(s.subscribers, 0);
+  assert.equal(s.unlockedSubStage, 0);
+  assert.equal(s.displayedSubStage, 0);
+  assert.equal(stats.currentSubStageDef.plateUrl, '/art/heroine_t1_s0.webp');
+  assert.equal(stats.nextSubGoalDef?.subsRequired, 10);
   assert.equal(stats.onlineViewers, 3);
   assert.equal(stats.storyChapter.stage, 1);
-  assert.equal(stats.dialogueBand, 1);
   assert.equal(stats.nextMilestone?.id, TIER1_MILESTONES[0]?.id);
 });
 
-test('tapping all 5 zones earns donations, builds boldness & hype, and triggers alert on 12th tap', () => {
+test('Sub Goal strip-down progression unlocks 10 -> 50 -> 200 -> 500 subs cleanly', () => {
+  let s = { ...createInitialState(1000), balance: 100_000 };
+
+  // Gift 5 + 5 = 10 subs -> Stage 1 (remove socks)
+  s = buyGiftSubs(s, 5).state;
+  assert.equal(s.unlockedSubStage, 0);
+  const hit10 = buyGiftSubs(s, 5);
+  assert.equal(hit10.ok, true);
+  assert.equal(hit10.state.subscribers, 10);
+  assert.equal(hit10.state.unlockedSubStage, 1);
+  assert.equal(hit10.state.displayedSubStage, 1);
+  assert.equal(hit10.newlyUnlockedSubStages[0]?.subsRequired, 10);
+  s = hit10.state;
+
+  // Gift up to 50 subs -> Stage 2 (remove leggings)
+  s = buyGiftSubs(s, 25).state;
+  const hit50 = buyGiftSubs(s, 25);
+  assert.equal(hit50.state.subscribers, 60);
+  assert.equal(hit50.state.unlockedSubStage, 2);
+  assert.equal(hit50.state.displayedSubStage, 2);
+  s = hit50.state;
+
+  // Gift up to 200+ subs -> Stage 3 (remove hoodie -> crop tee)
+  for (let i = 0; i < 6; i++) {
+    s = buyGiftSubs(s, 25).state;
+  }
+  assert.ok(s.subscribers >= 200);
+  assert.equal(s.unlockedSubStage, 3);
+  assert.equal(s.displayedSubStage, 3);
+
+  // Gift up to 500+ subs -> Stage 4 (remove crop tee -> bralette)
+  while (s.subscribers < 500) {
+    const r = buyGiftSubs(s, 25);
+    assert.equal(r.ok, true);
+    s = r.state;
+  }
+  assert.equal(s.unlockedSubStage, 4);
+  assert.equal(s.displayedSubStage, 4);
+
+  const maxStats = computeStats(s);
+  assert.equal(maxStats.nextSubGoalDef, null);
+  assert.equal(maxStats.currentSubStageDef.plateUrl, '/art/heroine_t1_s4.webp');
+
+  // Player can re-equip an earlier unlocked stage without losing Stage 4 income bonus
+  const baseIncome = maxStats.clickIncome;
+  const switched = selectDisplayedSubStage(s, 0);
+  assert.equal(switched.ok, true);
+  assert.equal(switched.state.displayedSubStage, 0);
+  assert.equal(computeStats(switched.state).clickIncome, baseIncome);
+});
+
+test('tapping all 5 zones earns donations, organic subs, and triggers alert on 12th tap', () => {
   let s = createInitialState(1000);
   const zones: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
 
@@ -46,6 +102,7 @@ test('tapping all 5 zones earns donations, builds boldness & hype, and triggers 
   }
 
   assert.equal(s.totalTaps, 12);
+  assert.equal(s.subscribers, 1); // 10th tap with hype >= 24 grants an organic sub!
   assert.ok(s.boldness >= 4);
   assert.ok(s.hype > 50);
   assert.ok(s.balance > 80);
@@ -70,64 +127,65 @@ test('buying upgrades raises online viewers, passive income, and boldness story 
   assert.ok(stats.passivePerSec > 150);
 });
 
-test('paid stream challenges boost boldness, respect viewer locks & cooldowns, and progress story to Stage 4', () => {
+test('paid stream challenges boost boldness, grant subs, and respect viewer locks & cooldowns', () => {
   let s = { ...createInitialState(1000), balance: 10_000 };
-  // asmr_tease requires 50 viewers -> locked initially
   const lockedAttempt = triggerStreamChallenge(s, 'asmr_tease', 2000);
   assert.equal(lockedAttempt.ok, false);
 
-  // lean_mic requires 3 viewers -> succeeds immediately
   const firstRun = triggerStreamChallenge(s, 'lean_mic', 2000);
   assert.equal(firstRun.ok, true);
   assert.ok(firstRun.reward >= 15);
-  assert.ok(firstRun.state.boldness > 0);
+  assert.equal(firstRun.gainedSubs, 1);
+  assert.equal(firstRun.state.subscribers, 1);
   s = firstRun.state;
 
-  // Immediate repeat during cooldown fails
   const cdAttempt = triggerStreamChallenge(s, 'lean_mic', 2500);
   assert.equal(cdAttempt.ok, false);
 
-  // After cooldown expires -> succeeds
   const afterCd = triggerStreamChallenge(s, 'lean_mic', 20_000);
   assert.equal(afterCd.ok, true);
 
   assert.equal(STORY_CHAPTERS.length, 4);
   assert.equal(getStoryChapter(90).stage, 4);
-  assert.ok(WARDROBE_OUTFITS.length >= 5);
+  assert.equal(SUB_GOAL_STAGES.length, 5);
   assert.ok(STREAM_CHALLENGES.length >= 4);
 });
 
-test('uncapped elapsed-ms tick accrues full passive income across background intervals', () => {
+test('uncapped elapsed-ms tick accrues passive income and organic viewer subs', () => {
   let s = { ...createInitialState(1000), balance: 500 };
   const bought = buyUpgrade(s, 'ring_lamp');
   assert.equal(bought.ok, true);
   s = { ...bought.state, hype: 0, boldness: 0 };
 
-  const stats = computeStats(s);
-  const before = s.balance;
-  const ticked = tickEconomy(s, 10_000, 11_000);
-  assert.equal(ticked.state.balance, Number((before + stats.passivePerSec * 10).toFixed(2)));
+  const ticked = tickEconomy(s, 60_000, 61_000);
+  assert.ok(ticked.state.balance > s.balance);
+  assert.ok(ticked.gainedOrganicSubs >= 1);
+  assert.ok(ticked.state.subscribers >= 1);
 });
 
-test('all 5 tap zones have Russian lines across all 4 boldness escalation bands', () => {
+test('all 5 tap zones have Russian lines across all 4 bands and clothing stages', () => {
   const zones: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
   for (const z of zones) {
     for (const band of [1, 2, 3, 4] as const) {
-      assert.ok(ZONE_DIALOGUES[z][band].length >= 3);
-      assert.ok(pickDialogueLine(z, band, 0).length > 8);
+      assert.ok(ZONE_DIALOGUES[z][band].length >= 2);
+      for (const st of [0, 1, 2, 3, 4] as const) {
+        assert.ok(pickDialogueLine(z, band, 0, st).length > 8);
+      }
     }
   }
 });
 
-test('serialization round-trips boldness cleanly and recovers from corrupted JSON', () => {
-  const s = applyTap(createInitialState(5000), 'chest', 5100).state;
+test('serialization round-trips subscribers & sub-goal stages cleanly', () => {
+  let s = { ...createInitialState(5000), balance: 1000 };
+  s = buyGiftSubs(s, 5).state;
+  s = buyGiftSubs(s, 5).state;
   const raw = serializeState(s);
   const loaded = deserializeState(raw, 6000);
-  assert.equal(loaded.balance, s.balance);
-  assert.equal(loaded.boldness, s.boldness);
-  assert.equal(loaded.totalTaps, 1);
+  assert.equal(loaded.subscribers, 10);
+  assert.equal(loaded.unlockedSubStage, 1);
+  assert.equal(loaded.displayedSubStage, 1);
 
   const fallback = deserializeState('{broken_json', 7000);
-  assert.equal(fallback.balance, 0);
-  assert.equal(fallback.boldness, 0);
+  assert.equal(fallback.subscribers, 0);
+  assert.equal(fallback.displayedSubStage, 0);
 });

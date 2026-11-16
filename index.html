@@ -11,7 +11,30 @@
       <main class="stage-shell">
         <div id="stream-stage-host" class="stream-stage-host"></div>
 
-        <!-- Brief Top-Center Streamlabs Donation Toast (only appears for 2s on big donations) -->
+        <!-- Authentic Top-Left OBS Sub Goal Bar (sits cleanly on left bedroom wall, never touches Miya!) -->
+        <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель платных подписок">
+          <div class="subgoal-top-row">
+            <span class="subgoal-tag">★ SUB GOAL</span>
+            <span id="subgoal-target-name" class="subgoal-target-name">Снять носочки</span>
+            <span id="subgoal-count" class="subgoal-count">0 / 10</span>
+          </div>
+          <div class="subgoal-track">
+            <div id="subgoal-fill" class="subgoal-fill"></div>
+          </div>
+          <div class="subgoal-actions">
+            <button id="btn-gift-sub-1" class="gift-sub-btn" type="button">
+              ★ Подарить саб • <span id="gift-cost-1">18 ₽</span>
+            </button>
+            <button id="btn-gift-sub-5" class="gift-sub-btn gift-sub-pack" type="button">
+              x5 • <span id="gift-cost-5">90 ₽</span>
+            </button>
+            <button id="btn-gift-sub-25" class="gift-sub-btn gift-sub-whale" type="button">
+              x25 • <span id="gift-cost-25">450 ₽</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Brief Top-Center Streamlabs Donation Toast (only appears for 2s on big donations/unlocks) -->
         <div id="donation-alert" class="donation-alert hidden">
           <div class="alert-amount" id="donation-alert-amount">★ +45 ₽ ★</div>
           <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
@@ -25,7 +48,7 @@
         <!-- Frameless Voice Subtitle along the Wooden Desk Edge (below feet, auto-fades!) -->
         <div id="speech-subtitle" class="speech-subtitle visible">
           <span class="sub-name">Мия:</span>
-          <span id="speech-text">«Ой... кто-то зашёл на стрим! П-привет, только не смотри так пристально...»</span>
+          <span id="speech-text">«Ой... кто-то зашёл! Я тут в худи и носочках, но если наберёте Sub Goal — буду снимать лишнее...»</span>
         </div>
       </main>
 
@@ -48,13 +71,15 @@
                     d="M8 1l2.1 1.6 2.6-.3.8 2.5 2.2 1.4-1 2.4 1 2.4-2.2 1.4-.8 2.5-2.6-.3L8 16l-2.1-1.6-2.6.3-.8-2.5L.3 10.8l1-2.4-1-2.4L2.5 4.6l.8-2.5 2.6.3L8 1zm-.9 9.7l4.3-4.3-1.1-1.1-3.2 3.2-1.6-1.6-1.1 1.1 2.7 2.7z"
                   />
                 </svg>
-                <span id="story-stage-badge" class="stage-pill">Этап 1 • Зажатая скромница</span>
+                <span id="story-stage-badge" class="stage-pill">Этап 1 • Закутанная скромница</span>
               </div>
               <div id="stream-title" class="stream-title">
-                Первый стрим... жутко стесняюсь, поддержите новичка плз
+                Первый стрим в худи и носочках... ★ SUB GOAL 0/10 — снимаю носочки!
               </div>
               <div class="channel-sub-row">
                 <span class="category-link">Just Chatting</span>
+                <span class="dot-sep">•</span>
+                <span class="subs-inline-pill">★ <strong id="stat-subs-val">0</strong> сабов</span>
                 <span class="dot-sep">•</span>
                 <span class="boldness-inline-label">♥ Раскрепощённость</span>
                 <div class="boldness-track">
@@ -72,7 +97,10 @@
               Улучшения
               <span id="upg-avail-dot" class="tab-notify-dot hidden"></span>
             </button>
-            <button class="tw-tab" data-tab="outfits" type="button">Костюмы</button>
+            <button class="tw-tab" data-tab="outfits" type="button">
+              Sub Goal • Одежда
+              <span id="sub-avail-dot" class="tab-notify-dot hidden"></span>
+            </button>
             <button class="tw-tab" data-tab="story" type="button">Фансервис и сюжет</button>
           </nav>
 
@@ -120,7 +148,7 @@
             <div id="upgrades-grid" class="upgrades-grid"></div>
           </div>
 
-          <!-- Tab: Outfits -->
+          <!-- Tab: Sub Goal Outfits -->
           <div id="tab-panel-outfits" class="tab-panel">
             <div id="outfits-grid" class="outfits-grid"></div>
           </div>
@@ -131,7 +159,7 @@
               <div class="diary-card">
                 <div class="diary-header">
                   <span id="diary-stage-pill" class="diary-pill">Дневник Мии • Этап 1/4</span>
-                  <span id="diary-headline" class="diary-headline">Дрожат коленки перед первой вебкой</span>
+                  <span id="diary-headline" class="diary-headline">Прячется в худи, легинсах и носочках</span>
                   <span id="milestone-title" class="diary-goal-tag"></span>
                 </div>
                 <p id="diary-thought" class="diary-thought"></p>

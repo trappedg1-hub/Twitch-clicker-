@@ -1,21 +1,26 @@
 import { type DialogueBand, pickDialogueLine } from './dialogue.ts';
+import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
-  getStoryChapter,
-  STREAM_CHALLENGES,
-  WARDROBE_OUTFITS,
-} from './progression.ts';
+  getGiftSubPackCost,
+  getGiftSubUnitCost,
+  getNextSubGoalDef,
+  getSubGoalStageForSubs,
+  SUB_GOAL_STAGES,
+} from './subGoals.ts';
 import type {
   ChallengeId,
   ComputedStats,
   GameState,
   MilestoneDef,
+  SubGoalStageDef,
+  SubGoalStageIndex,
   TapOutcome,
   TapZoneId,
   UpgradeId,
 } from './types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES, UPGRADE_MAP } from './upgrades.ts';
 
-export const SAVE_STORAGE_KEY = 'twitch_clicker_save_v2';
+export const SAVE_STORAGE_KEY = 'twitch_clicker_save_v3';
 
 const ZONE_CLICK_BONUS_MULT: Record<TapZoneId, number> = {
   head: 1.0,
@@ -32,8 +37,10 @@ export function createInitialState(nowMs = Date.now()): GameState {
     totalTaps: 0,
     hype: 0,
     boldness: 0,
-    equippedOutfit: 't1_tight_tee',
-    unlockedOutfits: ['t1_tight_tee'],
+    subscribers: 0,
+    organicSubProgress: 0,
+    unlockedSubStage: 0,
+    displayedSubStage: 0,
     challengeCooldownUntilMs: {},
     upgrades: {
       ring_lamp: 0,
@@ -65,15 +72,16 @@ export function computeStats(state: GameState): ComputedStats {
     }
   }
 
-  const outfitDef =
-    WARDROBE_OUTFITS.find((o) => o.id === state.equippedOutfit) ?? WARDROBE_OUTFITS[0]!;
-  const outfitMult = outfitDef.incomeMultiplier;
+  // Economy always rewards the highest unlocked Sub Goal stage even if re-wearing an earlier layer
+  const unlockedStageDef = SUB_GOAL_STAGES[state.unlockedSubStage] ?? SUB_GOAL_STAGES[0]!;
+  const currentSubStageDef = SUB_GOAL_STAGES[state.displayedSubStage] ?? unlockedStageDef;
+  const nextSubGoalDef = getNextSubGoalDef(state.unlockedSubStage);
+  const outfitMult = unlockedStageDef.incomeMultiplier;
 
   const effectiveBoldness = Math.max(
     0,
     Math.min(100, Number(Math.max(state.boldness, upgradeBoldnessFloor * 0.5).toFixed(1))),
   );
-  // Higher boldness directly attracts more viewers & higher donation generosity!
   const boldnessMult = 1 + (effectiveBoldness / 100) * 0.65;
   const clampedHype = Math.max(0, Math.min(100, state.hype));
   const hypeMultiplier = Number((1 + (clampedHype / 100) * 1.0).toFixed(2));
@@ -81,10 +89,11 @@ export function computeStats(state: GameState): ComputedStats {
   const hypeViewers = Math.floor((clampedHype / 100) * (4 + Math.sqrt(upgradeViewers + 1) * 2.5));
   const boldnessViewers = Math.floor((effectiveBoldness / 100) * 22);
   const tapOrganicViewers = Math.min(14, Math.floor(state.totalTaps / 16));
+  const subViewers = unlockedStageDef.viewersBonus + Math.floor(state.subscribers * 0.12);
 
   const onlineViewers = Math.max(
     3,
-    3 + upgradeViewers + hypeViewers + boldnessViewers + tapOrganicViewers,
+    3 + upgradeViewers + hypeViewers + boldnessViewers + tapOrganicViewers + subViewers,
   );
 
   const storyChapter = getStoryChapter(effectiveBoldness);
@@ -104,6 +113,9 @@ export function computeStats(state: GameState): ComputedStats {
     storyChapter,
     dialogueBand,
     nextMilestone,
+    currentSubStageDef,
+    nextSubGoalDef,
+    giftSubUnitCost: getGiftSubUnitCost(state.subscribers),
   };
 }
 
@@ -125,47 +137,160 @@ function checkMilestones(
   return { unlockedIds, newlyUnlocked };
 }
 
+function resolveSubGoalUnlocks(state: GameState): {
+  state: GameState;
+  newlyUnlockedSubStages: SubGoalStageDef[];
+} {
+  const targetStage = getSubGoalStageForSubs(state.subscribers);
+  if (targetStage <= state.unlockedSubStage) {
+    return { state, newlyUnlockedSubStages: [] };
+  }
+
+  const newlyUnlockedSubStages: SubGoalStageDef[] = [];
+  let addedBoldness = 0;
+  for (let s = (state.unlockedSubStage + 1) as SubGoalStageIndex; s <= targetStage; s = (s + 1) as SubGoalStageIndex) {
+    const def = SUB_GOAL_STAGES[s];
+    if (def) {
+      newlyUnlockedSubStages.push(def);
+      addedBoldness += def.boldnessBonus;
+    }
+    if (s === 4) break;
+  }
+
+  const nextState: GameState = {
+    ...state,
+    unlockedSubStage: targetStage,
+    displayedSubStage: targetStage, // Automatically strips down to the newly unlocked stage!
+    boldness: Math.min(100, Number((state.boldness + addedBoldness).toFixed(2))),
+    hype: 100,
+  };
+
+  return { state: nextState, newlyUnlockedSubStages };
+}
+
 export function applyTap(
   state: GameState,
   zone: TapZoneId,
   nowMs = Date.now(),
 ): TapOutcome {
   const nextHype = Math.min(100, state.hype + 6.5);
-  // Intimate/bold zones gradually desensitize her shyness and build boldness!
   const boldnessStep = zone === 'chest' || zone === 'feet' ? 0.45 : 0.3;
   const nextBoldness = Math.min(100, Number((state.boldness + boldnessStep).toFixed(2)));
+  const nextTaps = state.totalTaps + 1;
+
+  // Excited viewers organically subscribe every 10 taps once hype builds up!
+  const gainedOrganicSubs = nextTaps % 10 === 0 && nextHype >= 24 ? 1 : 0;
 
   const preState: GameState = {
     ...state,
     hype: nextHype,
     boldness: nextBoldness,
-    totalTaps: state.totalTaps + 1,
+    totalTaps: nextTaps,
+    subscribers: state.subscribers + gainedOrganicSubs,
     lastTickMs: nowMs,
   };
 
-  const stats = computeStats(preState);
+  const subResolved = resolveSubGoalUnlocks(preState);
+  const workingState = subResolved.state;
+
+  const stats = computeStats(workingState);
   const zoneMult = ZONE_CLICK_BONUS_MULT[zone] ?? 1.0;
-  const triggeredDonationAlert = preState.totalTaps % 12 === 0;
+  const triggeredDonationAlert = workingState.totalTaps % 12 === 0;
   const alertMult = triggeredDonationAlert ? 3.0 : 1.0;
   const earned = Math.max(1, Math.round(stats.clickIncome * zoneMult * alertMult));
 
-  const { unlockedIds, newlyUnlocked } = checkMilestones(preState, stats.onlineViewers);
+  const { unlockedIds, newlyUnlocked } = checkMilestones(workingState, stats.onlineViewers);
   const finalState: GameState = {
-    ...preState,
-    balance: Number((preState.balance + earned).toFixed(2)),
-    totalEarned: Number((preState.totalEarned + earned).toFixed(2)),
+    ...workingState,
+    balance: Number((workingState.balance + earned).toFixed(2)),
+    totalEarned: Number((workingState.totalEarned + earned).toFixed(2)),
     unlockedMilestones: unlockedIds,
-    peakViewers: Math.max(preState.peakViewers, stats.onlineViewers),
+    peakViewers: Math.max(workingState.peakViewers, stats.onlineViewers),
   };
 
-  const line = pickDialogueLine(zone, stats.dialogueBand, finalState.totalTaps);
+  const latestStageUnlock =
+    subResolved.newlyUnlockedSubStages[subResolved.newlyUnlockedSubStages.length - 1];
+  const line = latestStageUnlock
+    ? latestStageUnlock.unlockLine
+    : pickDialogueLine(zone, stats.dialogueBand, finalState.totalTaps, finalState.displayedSubStage);
+
   return {
     state: finalState,
     earned,
     zone,
     line,
     triggeredDonationAlert,
+    gainedOrganicSubs,
+    newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
     newlyUnlockedMilestones: newlyUnlocked,
+  };
+}
+
+export function buyGiftSubs(
+  state: GameState,
+  count: 1 | 5 | 25,
+): {
+  ok: boolean;
+  state: GameState;
+  cost: number;
+  addedSubs: number;
+  newlyUnlockedSubStages: SubGoalStageDef[];
+  newlyUnlockedMilestones: MilestoneDef[];
+} {
+  const cost = getGiftSubPackCost(state.subscribers, count);
+  if (state.balance < cost) {
+    return {
+      ok: false,
+      state,
+      cost,
+      addedSubs: 0,
+      newlyUnlockedSubStages: [],
+      newlyUnlockedMilestones: [],
+    };
+  }
+
+  const preState: GameState = {
+    ...state,
+    balance: Number((state.balance - cost).toFixed(2)),
+    subscribers: state.subscribers + count,
+    hype: Math.min(100, state.hype + Math.min(35, count * 6)),
+    boldness: Math.min(100, Number((state.boldness + Math.min(4, count * 0.35)).toFixed(2))),
+  };
+
+  const subResolved = resolveSubGoalUnlocks(preState);
+  const afterStats = computeStats(subResolved.state);
+  const { unlockedIds, newlyUnlocked } = checkMilestones(
+    subResolved.state,
+    afterStats.onlineViewers,
+  );
+
+  return {
+    ok: true,
+    cost,
+    addedSubs: count,
+    newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
+    newlyUnlockedMilestones: newlyUnlocked,
+    state: {
+      ...subResolved.state,
+      unlockedMilestones: unlockedIds,
+      peakViewers: Math.max(subResolved.state.peakViewers, afterStats.onlineViewers),
+    },
+  };
+}
+
+export function selectDisplayedSubStage(
+  state: GameState,
+  stage: SubGoalStageIndex,
+): { ok: boolean; state: GameState } {
+  if (stage < 0 || stage > state.unlockedSubStage) {
+    return { ok: false, state };
+  }
+  return {
+    ok: true,
+    state: {
+      ...state,
+      displayedSubStage: stage,
+    },
   };
 }
 
@@ -177,9 +302,11 @@ export function triggerStreamChallenge(
   ok: boolean;
   state: GameState;
   reward: number;
+  gainedSubs: number;
   line: string;
   chatBurst: string;
   zoneFocus: TapZoneId;
+  newlyUnlockedSubStages: SubGoalStageDef[];
   newlyUnlockedMilestones: MilestoneDef[];
 } {
   const def = STREAM_CHALLENGES.find((c) => c.id === challengeId);
@@ -188,9 +315,11 @@ export function triggerStreamChallenge(
       ok: false,
       state,
       reward: 0,
+      gainedSubs: 0,
       line: '',
       chatBurst: '',
       zoneFocus: 'chest',
+      newlyUnlockedSubStages: [],
       newlyUnlockedMilestones: [],
     };
   }
@@ -200,9 +329,11 @@ export function triggerStreamChallenge(
       ok: false,
       state,
       reward: 0,
+      gainedSubs: 0,
       line: '',
       chatBurst: '',
       zoneFocus: def.zoneFocus,
+      newlyUnlockedSubStages: [],
       newlyUnlockedMilestones: [],
     };
   }
@@ -212,19 +343,23 @@ export function triggerStreamChallenge(
       ok: false,
       state,
       reward: 0,
+      gainedSubs: 0,
       line: '',
       chatBurst: '',
       zoneFocus: def.zoneFocus,
+      newlyUnlockedSubStages: [],
       newlyUnlockedMilestones: [],
     };
   }
 
+  const gainedSubs = challengeId === 'asmr_tease' ? 3 : challengeId === 'tug_tee' ? 2 : 1;
   const reward = Math.max(15, Math.round(preStats.clickIncome * def.instantRewardMult));
   const nextBoldness = Math.min(100, Number((state.boldness + def.boldnessGain).toFixed(2)));
   const updated: GameState = {
     ...state,
     balance: Number((state.balance + reward).toFixed(2)),
     totalEarned: Number((state.totalEarned + reward).toFixed(2)),
+    subscribers: state.subscribers + gainedSubs,
     hype: Math.min(100, state.hype + 28),
     boldness: nextBoldness,
     challengeCooldownUntilMs: {
@@ -233,35 +368,53 @@ export function triggerStreamChallenge(
     },
   };
 
-  const afterStats = computeStats(updated);
-  const { unlockedIds, newlyUnlocked } = checkMilestones(updated, afterStats.onlineViewers);
+  const subResolved = resolveSubGoalUnlocks(updated);
+  const afterStats = computeStats(subResolved.state);
+  const { unlockedIds, newlyUnlocked } = checkMilestones(
+    subResolved.state,
+    afterStats.onlineViewers,
+  );
+  const latestUnlock =
+    subResolved.newlyUnlockedSubStages[subResolved.newlyUnlockedSubStages.length - 1];
 
   return {
     ok: true,
     reward,
-    line: def.reactionLine,
+    gainedSubs,
+    line: latestUnlock ? latestUnlock.unlockLine : def.reactionLine,
     chatBurst: def.chatBurst,
     zoneFocus: def.zoneFocus,
+    newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
     newlyUnlockedMilestones: newlyUnlocked,
     state: {
-      ...updated,
+      ...subResolved.state,
       unlockedMilestones: unlockedIds,
-      peakViewers: Math.max(updated.peakViewers, afterStats.onlineViewers),
+      peakViewers: Math.max(subResolved.state.peakViewers, afterStats.onlineViewers),
     },
   };
 }
 
 /**
- * Uncapped elapsed-ms idle tick so background tabs still accrue passive stream income cleanly.
+ * Uncapped elapsed-ms idle tick: accrues passive rubles AND organic viewer subscriptions.
  */
 export function tickEconomy(
   state: GameState,
   elapsedMs: number,
   nowMs = Date.now(),
-): { state: GameState; newlyUnlockedMilestones: MilestoneDef[] } {
+): {
+  state: GameState;
+  gainedOrganicSubs: number;
+  newlyUnlockedSubStages: SubGoalStageDef[];
+  newlyUnlockedMilestones: MilestoneDef[];
+} {
   const safeMs = Math.max(0, elapsedMs);
   if (safeMs === 0) {
-    return { state: { ...state, lastTickMs: nowMs }, newlyUnlockedMilestones: [] };
+    return {
+      state: { ...state, lastTickMs: nowMs },
+      gainedOrganicSubs: 0,
+      newlyUnlockedSubStages: [],
+      newlyUnlockedMilestones: [],
+    };
   }
 
   const dtSec = safeMs / 1000;
@@ -270,23 +423,40 @@ export function tickEconomy(
   const hypeDecay = dtSec * 3.8;
   const nextHype = Math.max(0, state.hype - hypeDecay);
 
+  // Viewers in chat organically subscribe faster when onlineViewers & chat_emotes upgrade grow
+  const emoteBoost = 1 + (state.upgrades.chat_emotes ?? 0) * 0.25;
+  const subRatePerSec =
+    (0.012 + Math.min(0.28, stats.onlineViewers * 0.0014) + (state.hype / 100) * 0.035) *
+    emoteBoost;
+  const rawSubProgress = state.organicSubProgress + subRatePerSec * dtSec;
+  const gainedOrganicSubs = Math.floor(rawSubProgress);
+  const remainderSubProgress = Number((rawSubProgress - gainedOrganicSubs).toFixed(4));
+
   const updated: GameState = {
     ...state,
     balance: Number((state.balance + passiveGain).toFixed(2)),
     totalEarned: Number((state.totalEarned + passiveGain).toFixed(2)),
+    subscribers: state.subscribers + gainedOrganicSubs,
+    organicSubProgress: remainderSubProgress,
     hype: nextHype,
     lastTickMs: nowMs,
   };
 
-  const afterStats = computeStats(updated);
-  const { unlockedIds, newlyUnlocked } = checkMilestones(updated, afterStats.onlineViewers);
+  const subResolved = resolveSubGoalUnlocks(updated);
+  const afterStats = computeStats(subResolved.state);
+  const { unlockedIds, newlyUnlocked } = checkMilestones(
+    subResolved.state,
+    afterStats.onlineViewers,
+  );
 
   return {
     state: {
-      ...updated,
+      ...subResolved.state,
       unlockedMilestones: unlockedIds,
-      peakViewers: Math.max(updated.peakViewers, afterStats.onlineViewers),
+      peakViewers: Math.max(subResolved.state.peakViewers, afterStats.onlineViewers),
     },
+    gainedOrganicSubs,
+    newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
     newlyUnlockedMilestones: newlyUnlocked,
   };
 }
@@ -356,14 +526,27 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
         }
       }
     }
+    const subscribers = Math.max(0, Math.floor(Number(parsed.subscribers) || 0));
+    const unlockedSubStage = getSubGoalStageForSubs(subscribers);
+    const rawDisplayed = Number(parsed.displayedSubStage);
+    const displayedSubStage: SubGoalStageIndex =
+      Number.isInteger(rawDisplayed) && rawDisplayed >= 0 && rawDisplayed <= unlockedSubStage
+        ? (rawDisplayed as SubGoalStageIndex)
+        : unlockedSubStage;
+
     return {
       balance: Math.max(0, parsed.balance),
       totalEarned: Math.max(0, Number(parsed.totalEarned) || 0),
       totalTaps: Math.max(0, Math.floor(Number(parsed.totalTaps) || 0)),
       hype: Math.max(0, Math.min(100, Number(parsed.hype) || 0)),
       boldness: Math.max(0, Math.min(100, Number(parsed.boldness) || 0)),
-      equippedOutfit: 't1_tight_tee',
-      unlockedOutfits: ['t1_tight_tee'],
+      subscribers,
+      organicSubProgress: Math.max(
+        0,
+        Math.min(0.9999, Number(parsed.organicSubProgress) || 0),
+      ),
+      unlockedSubStage,
+      displayedSubStage,
       challengeCooldownUntilMs: {},
       upgrades,
       unlockedMilestones: Array.isArray(parsed.unlockedMilestones)

@@ -6,10 +6,10 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import type { TapZoneId } from '../domain/types.ts';
+import type { SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
 
 export interface HeroineTextures {
-  base: Texture;
+  stages: readonly [Texture, Texture, Texture, Texture, Texture];
   blink: Texture;
   fluster: Texture;
 }
@@ -99,16 +99,20 @@ export class HeroineRig {
     value: 0,
   };
 
+  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture];
+  private currentStage: SubGoalStageIndex = 0;
+
   public onZoneTap?: (
     zone: TapZoneId,
     globalPoint: { x: number; y: number },
   ) => void;
 
   constructor(textures: HeroineTextures) {
+    this.stageTextures = textures.stages;
     this.view.addChild(this.bodyContainer);
 
     this.mesh = new MeshPlane({
-      texture: textures.base,
+      texture: textures.stages[0],
       verticesX: HeroineRig.SEG_X,
       verticesY: HeroineRig.SEG_Y,
     });
@@ -286,8 +290,25 @@ export class HeroineRig {
     posAttr.buffer.update();
   }
 
+  public setSubStage(stage: SubGoalStageIndex, celebrate = false): boolean {
+    const nextTex = this.stageTextures[stage] ?? this.stageTextures[0];
+    const changed = this.currentStage !== stage || this.mesh.texture !== nextTex;
+    this.currentStage = stage;
+    if (changed) {
+      this.mesh.texture = nextTex;
+    }
+    if (celebrate) {
+      this.chestVel -= 170;
+      this.hipVel -= 130;
+      this.chairRecoilVel += 58;
+      this.triggerFluster(2600);
+    }
+    return changed || celebrate;
+  }
+
   public getDebugSnapshot() {
     return {
+      subStage: this.currentStage,
       blinkAlpha: Number(this.blinkSprite.alpha.toFixed(3)),
       flusterAlpha: Number(this.flusterSprite.alpha.toFixed(3)),
       chestDisp: Number(this.chestDisp.toFixed(2)),

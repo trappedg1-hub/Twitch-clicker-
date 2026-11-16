@@ -1,5 +1,4 @@
 import type {
-  OutfitDef,
   StoryChapterDef,
   StreamChallengeDef,
 } from './types.ts';
@@ -8,110 +7,42 @@ export const STORY_CHAPTERS: readonly StoryChapterDef[] = [
   {
     stage: 1,
     minBoldness: 0,
-    badgeTitle: 'Этап 1 • Зажатая скромница',
-    headline: 'Дрожат коленки перед первой вебкой',
+    badgeTitle: 'Этап 1 • Закутанная скромница',
+    headline: 'Прячется в худи, легинсах и носочках',
     diaryThought:
-      '«Господи, зачем я надела эту тесную футболку... Ладошки потеют, но за квартиру платить нечем — придётся потерпеть взгляды чата...»',
+      '«Господи, как страшно включать вебку... Застегнула худи под самое горлышко, надела легинсы под шорты и тёплые носочки, лишь бы никто лишнего не увидел... но за квартиру платить нечем, придётся ставить Sub Goal!»',
   },
   {
     stage: 2,
     minBoldness: 25,
-    badgeTitle: 'Этап 2 • Вкус лёгких донатов',
-    headline: 'Поняла, за что зрители кидают деньги',
+    badgeTitle: 'Этап 2 • Первые снятые вещи',
+    headline: 'Носочки и легинсы уже летят в сторону за сабы',
     diaryThought:
-      '«Стоило чуть податься вперёд и не прикрывать вырез — как сразу полетели сотки и комплименты... Кажется, стесняться тут просто невыгодно~»',
+      '«Стоило снять носочки, а потом и легинсы за подписки — как чат буквально сошёл с ума и завалил меня рублями! Кажется, укутываться на Твиче просто невыгодно~»',
   },
   {
     stage: 3,
     minBoldness: 55,
-    badgeTitle: 'Этап 3 • Азартная кокетка',
-    headline: 'Сама провоцирует чат ради онлайна',
+    badgeTitle: 'Этап 3 • Долой жаркое худи!',
+    headline: 'Осталась в тесной кроп-тишке перед сотней глаз',
     diaryThought:
-      '«Сердце колотится уже не от страха, а от кайфа! Они готовы засыпать меня деньгами за каждый томный вздох и открытые ножки в кадре...»',
+      '«Сердце колотится уже не от страха, а от чистого кайфа! Когда я стянула худи на 200 сабах, счётчик онлайна пробил потолок... интересно, что будет на 500?~»',
   },
   {
     stage: 4,
     minBoldness: 82,
-    badgeTitle: 'Этап 4 • Горячая звезда эфира',
-    headline: 'Полное раскрепощение за топ-донаты',
+    badgeTitle: 'Этап 4 • Королева Sub Goal в бралетте',
+    headline: 'Полное раскрепощение ради топ-донатеров',
     diaryThought:
-      '«Где та тихоня, которая боялась включить камеру? Пусть смотрят во все глаза и открывают кошельки — дальше будет ещё откровеннее~ ★»',
-  },
-] as const;
-
-export const WARDROBE_OUTFITS: readonly OutfitDef[] = [
-  {
-    id: 't1_tight_tee',
-    tier: 1,
-    name: 'Тесная игровая микро-тишка',
-    tag: 'Тир 1 • Надето',
-    storyDesc:
-      'Старая домашняя тишка на два размера меньше и микро-шортики — первая робкая попытка зацепить зрителей фигурой.',
-    cost: 0,
-    viewersRequired: 1,
-    boldnessRequired: 0,
-    incomeMultiplier: 1.0,
-    availableInCurrentBuild: true,
-  },
-  {
-    id: 't2_offshoulder_crop',
-    tier: 2,
-    name: 'Сползающий кроп-лонгслив без белья',
-    tag: 'Тир 2 • Скоро',
-    storyDesc:
-      'Тонкий трикотаж с открытыми плечами, намекающий на полное отсутствие скованности перед камерой.',
-    cost: 3500,
-    viewersRequired: 60,
-    boldnessRequired: 40,
-    incomeMultiplier: 1.45,
-    availableInCurrentBuild: false,
-  },
-  {
-    id: 't2_bralette_set',
-    tier: 2,
-    name: 'Чёрный халтер-бралетт и микро-шортики',
-    tag: 'Тир 2 • Скоро',
-    storyDesc:
-      'Никаких лишних футболок: минимум ткани, кошачьи RGB-ушки и абсолютная уверенность в своей сексуальности.',
-    cost: 8500,
-    viewersRequired: 110,
-    boldnessRequired: 65,
-    incomeMultiplier: 2.0,
-    availableInCurrentBuild: false,
-  },
-  {
-    id: 't3_glossy_corset',
-    tier: 3,
-    name: 'Глянцевый боди-корсет искусительницы',
-    tag: 'Тир 3 • VIP-этап',
-    storyDesc:
-      'Откровенный косплей для закрытых ночных стримов с максимальным потоком крупных донатов.',
-    cost: 22000,
-    viewersRequired: 220,
-    boldnessRequired: 85,
-    incomeMultiplier: 3.1,
-    availableInCurrentBuild: false,
-  },
-  {
-    id: 't3_lace_nightie',
-    tier: 3,
-    name: 'Полупрозрачный шёлковый неглиже-сет',
-    tag: 'Тир 3 • Финал',
-    storyDesc:
-      'Пик раскрепощённости: поздний приватный вайб для самых щедрых спонсоров канала.',
-    cost: 55000,
-    viewersRequired: 400,
-    boldnessRequired: 95,
-    incomeMultiplier: 4.5,
-    availableInCurrentBuild: false,
+      '«Где та тихоня в полосатых носочках, которая тряслась перед камерой час назад? Сижу в одном чёрном бралетте, купаюсь в сабах и обожаю каждую секунду этого эфира~ ★»',
   },
 ] as const;
 
 export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
   {
     id: 'lean_mic',
-    name: 'Наклониться к вебке за донат',
-    desc: 'Податься грудью ближе к объективу — пульс чата и донаты взлетают',
+    name: 'Наклониться грудью к вебке',
+    desc: 'Податься вперёд к объективу — пульс чата, донаты и подписки взлетают',
     icon: '★',
     viewersRequired: 3,
     boldnessGain: 4.5,
@@ -119,59 +50,59 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     cooldownSec: 12,
     zoneFocus: 'chest',
     reactionLine:
-      'Т-так достаточно близко к камере?.. Вижу, как сразу полетели донатики, шалуны... ♥',
-    chatBurst: 'НАКЛОНИЛАСЬ!! :BOOBA: :BOOBA: ЧАТ ДЕРЖИМСЯ :Kreygasm:',
+      'Т-так достаточно близко к камере?.. Вижу, как сразу полетели донатики и новые сабки, шалуны... ♥',
+    chatBurst: 'НАКЛОНИЛАСЬ К ВЕБКЕ!! :BOOBA: :BOOBA: КИДАЕМ САБКИ :SubHype:',
   },
   {
     id: 'pose_feet',
-    name: 'Поиграть пальчиками стоп в кадре',
-    desc: 'Специально для ценителей в чате — смущённо показать педикюр поближе',
+    name: 'Дразнить ножками на краю кресла',
+    desc: 'Специально для ценителей в чате — пошевелить пальчиками ближе к кадру',
     icon: '♥',
-    viewersRequired: 10,
+    viewersRequired: 8,
     boldnessGain: 6.0,
-    instantRewardMult: 6,
+    instantRewardMult: 5.5,
     cooldownSec: 16,
     zoneFocus: 'feet',
     reactionLine:
-      'Кто бы мне вчера сказал, что мне будут кидать такие суммы просто за босые ножки на кресле~ ♥',
-    chatBurst: 'ФИОЛЕТОВЫЙ ПЕДИКЮР КРУПНЫМ ПЛАНОМ :Kreygasm: :SubHype: ЗАБИРАЙ ЗАРПЛАТУ!!',
+      'И-ик, вы серьёзно кидаете сабы каждый раз, когда я шевелю ступнями в кадре?! Ладно, смотрите~ ♥',
+    chatBurst: 'НОЖКИ В ФОКУСЕ!! :Kreygasm: :Kreygasm: ОФОРМЛЯЮ САБКУ :SubHype:',
   },
   {
     id: 'tug_tee',
-    name: '«Случайно» поправить тесную тишку',
-    desc: 'Натянуть ткань ещё плотнее на груди, дразня зрителей открытым животиком',
+    name: 'Поддразнить следующим Sub Goal',
+    desc: 'Кокетливо потянуть край одежды и напомнить чату про цель сабов',
     icon: '✦',
-    viewersRequired: 25,
+    viewersRequired: 18,
     boldnessGain: 8.5,
-    instantRewardMult: 9,
-    cooldownSec: 20,
+    instantRewardMult: 7.5,
+    cooldownSec: 22,
     zoneFocus: 'belly',
     reactionLine:
-      'Ой, хотела одёрнуть пониже, а вырез стал только откровеннее... ну и ладно, вам же так больше нравится~ ♥',
-    chatBurst: 'БЕДНАЯ ТИШКА НА ПРЕДЕЛЕ ПРОЧНОСТИ :BOOBA: :Pog: ЛУЧШИЙ СТРИМ!!',
+      'М-мх, тут становится так жарко... поможете добить полоску Sub Goal, чтобы я сняла лишнее?~ ♥',
+    chatBurst: 'ОНА ДРАЗНИТ ЧАТ!! :BOOBA: :Pog: СРОЧНО ДАРИМ САБЫ ДО ЦЕЛИ :SubHype:',
   },
   {
     id: 'asmr_tease',
-    name: 'Томный ASMR-вздох в микрофон',
-    desc: 'Влажный шёпот прямо в мембрану за жирный чек от топ-донатера',
-    icon: '♪',
-    viewersRequired: 50,
-    boldnessGain: 12.0,
-    instantRewardMult: 14,
-    cooldownSec: 25,
+    name: 'Шёпот в микрофон для спонсоров',
+    desc: 'Томно поблагодарить сабов прямо в поп-фильтр — волна мурашек по чату',
+    icon: '♦',
+    viewersRequired: 35,
+    boldnessGain: 11.0,
+    instantRewardMult: 10,
+    cooldownSec: 28,
     zoneFocus: 'head',
     reactionLine:
-      'Мм-х... спасибо за жирный донатик, котик~ За такие деньги я готова шептать тебе всю ночь... ♥',
-    chatBurst: 'МУРАШКИ ОТ ЭТОГО ВЗДОХА :Kreygasm: :miyaLove: КИДАЮ ЕЩЁ ПЯТИСОТКУ!!',
+      'Спасибо каждому котику за платную подписку... ш-ш-ш, сегодня я сниму для вас всё, что обещала~ ★ ♥',
+    chatBurst: 'УШИ ПЛАВЯТСЯ ОТ ШЁПОТА :Kreygasm: :miyaLove: +5 ПОДАРОЧНЫХ САБОВ В ЧАТ :SubHype:',
   },
 ] as const;
 
 export function getStoryChapter(boldness: number): StoryChapterDef {
-  let current = STORY_CHAPTERS[0]!;
+  let result = STORY_CHAPTERS[0]!;
   for (const ch of STORY_CHAPTERS) {
     if (boldness >= ch.minBoldness) {
-      current = ch;
+      result = ch;
     }
   }
-  return current;
+  return result;
 }

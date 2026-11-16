@@ -1,5 +1,7 @@
 export type TapZoneId = 'head' | 'chest' | 'belly' | 'legs' | 'feet';
 
+export type SubGoalStageIndex = 0 | 1 | 2 | 3 | 4;
+
 export type UpgradeId =
   | 'ring_lamp'
   | 'usb_mic_pop'
@@ -7,13 +9,6 @@ export type UpgradeId =
   | 'webcam_focus'
   | 'chat_emotes'
   | 'clips_boost';
-
-export type OutfitId =
-  | 't1_tight_tee'
-  | 't2_bralette_set'
-  | 't2_offshoulder_crop'
-  | 't3_glossy_corset'
-  | 't3_lace_nightie';
 
 export type ChallengeId =
   | 'lean_mic'
@@ -37,17 +32,27 @@ export interface UpgradeDef {
   boldnessBonus: number;
 }
 
-export interface OutfitDef {
-  id: OutfitId;
-  tier: 1 | 2 | 3;
-  name: string;
-  tag: string;
+export interface SubGoalReactionMsg {
+  author: string;
+  color: string;
+  badge?: 'MOD' | 'VIP' | 'SUB' | 'DONATE';
+  text: string;
+  isSystemHighlight?: boolean;
+}
+
+export interface SubGoalStageDef {
+  stage: SubGoalStageIndex;
+  subsRequired: number;
+  shortGoalTitle: string;
+  outfitName: string;
+  removedItemLabel: string;
   storyDesc: string;
-  cost: number;
-  viewersRequired: number;
-  boldnessRequired: number;
+  plateUrl: string;
   incomeMultiplier: number;
-  availableInCurrentBuild: boolean;
+  viewersBonus: number;
+  boldnessBonus: number;
+  unlockLine: string;
+  chatCascade: readonly SubGoalReactionMsg[];
 }
 
 export interface StreamChallengeDef {
@@ -85,8 +90,10 @@ export interface GameState {
   totalTaps: number;
   hype: number; // 0..100
   boldness: number; // 0..100 — шкала раскрепощённости героини
-  equippedOutfit: OutfitId;
-  unlockedOutfits: OutfitId[];
+  subscribers: number; // Платные подписчики канала (Sub Goal 10 / 50 / 200 / 500)
+  organicSubProgress: number; // 0..1 дробный прогресс органического саба от зрителей
+  unlockedSubStage: SubGoalStageIndex; // Максимальная пробитая цель сабов (0..4)
+  displayedSubStage: SubGoalStageIndex; // Какая стадия одежды сейчас надета на сцене (0..unlockedSubStage)
   challengeCooldownUntilMs: Partial<Record<ChallengeId, number>>;
   upgrades: Record<UpgradeId, number>;
   unlockedMilestones: string[];
@@ -103,6 +110,9 @@ export interface ComputedStats {
   storyChapter: StoryChapterDef;
   dialogueBand: 1 | 2 | 3 | 4;
   nextMilestone: MilestoneDef | null;
+  currentSubStageDef: SubGoalStageDef;
+  nextSubGoalDef: SubGoalStageDef | null;
+  giftSubUnitCost: number;
 }
 
 export interface TapOutcome {
@@ -111,5 +121,7 @@ export interface TapOutcome {
   zone: TapZoneId;
   line: string;
   triggeredDonationAlert: boolean;
+  gainedOrganicSubs: number;
+  newlyUnlockedSubStages: SubGoalStageDef[];
   newlyUnlockedMilestones: MilestoneDef[];
 }
