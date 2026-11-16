@@ -218,15 +218,15 @@ export class HeroineRig {
   private rebuildHitZones(): void {
     this.hitLayer.removeChildren().forEach((c) => c.destroy());
 
-    // Stage 5 has her giant bare soles propped forward on the desk (y=980..1505)!
+    // Stage 5 v2 has her TWO GIANT glossy bare soles propped forward right into the lens (y=860..1510)!
     const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] =
       this.currentStage === 5
         ? [
-            { id: 'head', x: 315, y: 55, w: 390, h: 385 },
-            { id: 'chest', x: 345, y: 465, w: 340, h: 255 },
-            { id: 'belly', x: 365, y: 720, w: 300, h: 155 },
-            { id: 'legs', x: 160, y: 865, w: 690, h: 260 },
-            { id: 'feet', x: 310, y: 1000, w: 390, h: 505 },
+            { id: 'head', x: 320, y: 55, w: 385, h: 390 },
+            { id: 'chest', x: 330, y: 450, w: 375, h: 245 },
+            { id: 'belly', x: 405, y: 695, w: 225, h: 175 },
+            { id: 'legs', x: 235, y: 690, w: 555, h: 280 },
+            { id: 'feet', x: 110, y: 865, w: 805, h: 645 },
           ]
         : [
             { id: 'legs', x: 110, y: 690, w: 805, h: 420 },

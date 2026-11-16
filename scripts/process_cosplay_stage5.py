@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Processes Stage 5 (1000 Subs — Mega Bunny-Maid Cosplay Stream with Feet Propped on Desk!)
+Processes Stage 5 v2 (1000 Subs — Mega-Fanservice French-Maid Bunny Bikini Cosplay
+with Arm Behind Head & Giant Foreshortened Bare Soles Resting on the Stream Desk!)
 and extracts subpixel-aligned Stage 5 facial expression patches:
 - public/art/heroine_t1_s5.webp         (resting sultry open-eyes Stage 5 plate)
-- public/art/patch_t1_s5_blink.webp     (gentle closed-eyes blink)
+- public/art/patch_t1_s5_blink.webp     (symmetrical both-eyes-closed blink)
 - public/art/patch_t1_s5_tease.webp     (cheeky peace-sign wink!)
-- public/art/patch_t1_s5_fluster.webp   (ticklish deep-blush gasp when soles are tapped!)
+- public/art/patch_t1_s5_fluster.webp   (misty-eyed deep-crimson breathless gasp!)
 """
 from pathlib import Path
 import cv2
@@ -17,7 +18,7 @@ RAW_DIR = ROOT / "art-studio" / "raw"
 OUT_DIR = ROOT / "public" / "art"
 QA_DIR = ROOT / ".qa-out"
 
-# Patch crop coordinates in the 1024x1536 target space for Stage 5 head
+# Patch crop coordinates in the 1024x1526 target space for Stage 5 v2 head
 S5_PX, S5_PY, S5_PW, S5_PH = 340, 128, 344, 332
 
 
@@ -27,10 +28,10 @@ def remove_plum_matte_s5(rgb_np: np.ndarray, target_size: tuple[int, int]) -> Im
 
     corners = np.concatenate(
         [
-            arr[0:40, 0:40].reshape(-1, 3),
-            arr[0:40, -40:].reshape(-1, 3),
-            arr[-40:, 0:40].reshape(-1, 3),
-            arr[-40:, -40:].reshape(-1, 3),
+            arr[0:36, 0:36].reshape(-1, 3),
+            arr[0:36, -36:].reshape(-1, 3),
+            arr[-36:, 0:36].reshape(-1, 3),
+            arr[-36:, -36:].reshape(-1, 3),
         ],
         axis=0,
     )
@@ -49,15 +50,15 @@ def remove_plum_matte_s5(rgb_np: np.ndarray, target_size: tuple[int, int]) -> Im
     border_labels.update(np.unique(labels[:, -1]))
     border_labels.discard(0)
 
-    # Also catch enclosed flat plum-backdrop loops under both bent arms & chair armrests!
+    # Catch enclosed flat plum-backdrop pockets (under raised left arm, between chair armrests & soles!)
     enclosed_bg_labels = set()
     for lbl in range(1, num_labels):
         if lbl in border_labels:
             continue
         area = stats[lbl, cv2.CC_STAT_AREA]
-        if area > 140:
+        if area > 110:
             comp_mask = labels == lbl
-            if float(np.std(dist[comp_mask])) < 3.4:
+            if float(np.std(dist[comp_mask])) < 3.5:
                 enclosed_bg_labels.add(lbl)
 
     all_bg_labels = border_labels | enclosed_bg_labels
@@ -73,14 +74,7 @@ def remove_plum_matte_s5(rgb_np: np.ndarray, target_size: tuple[int, int]) -> Im
     edge_zone = near_ext_bg & (~ext_bg) & ((r - g) > 6.0)
     alpha[edge_zone] = np.minimum(alpha[edge_zone], ramp[edge_zone])
 
-    # Subtle mesh translucency on dark chair backrest wings
-    yy, xx = np.mgrid[0:H0, 0:W0]
-    plum_cast = ((r - g) > 10.0) & ((b - g) > 5.0) & (dist < 52.0) & (alpha > 0.5) & (r < 95.0)
-    in_mesh_zone = (yy > int(H0 * 0.25)) & (yy < int(H0 * 0.56)) & ((xx < int(W0 * 0.34)) | (xx > int(W0 * 0.68)))
-    mesh_holes = plum_cast & in_mesh_zone
-    alpha[mesh_holes] = np.clip((dist[mesh_holes] - 14.0) / 38.0, 0.24, 0.88)
-
-    alpha = cv2.GaussianBlur(alpha, (0, 0), sigmaX=0.85, sigmaY=0.85)
+    alpha = cv2.GaussianBlur(alpha, (0, 0), sigmaX=0.8, sigmaY=0.8)
     alpha[ext_bg] = 0.0
 
     semi = (alpha > 0.02) & (alpha < 0.96)
@@ -88,11 +82,13 @@ def remove_plum_matte_s5(rgb_np: np.ndarray, target_size: tuple[int, int]) -> Im
     decontaminated = (arr - (1.0 - alpha[..., None]) * bg[None, None, :]) / safe_a
     out_rgb = np.where(semi[..., None], np.clip(decontaminated, 0, 255), arr)
 
-    # Physical 3D Desk Occlusion: chair hydraulic post (dark neutral grey at bottom center)
-    # goes UNDER the wooden desk while her pink bare heels rest ON TOP OF the wooden desk!
-    post_zone = (yy > int(H0 * 0.88)) & (xx > int(W0 * 0.44)) & (xx < int(W0 * 0.56))
-    dark_metal = (out_rgb[:, :, 0] < 85) & (out_rgb[:, :, 1] < 85) & (out_rgb[:, :, 2] < 92)
-    post_mask = post_zone & dark_metal
+    # Physical 3D Desk Occlusion: chair hydraulic post & neon post rim between her heels
+    # go UNDER the wooden desk while her giant glossy pink soles rest ON TOP OF the wooden desk!
+    yy, xx = np.mgrid[0:H0, 0:W0]
+    center_post_box = (yy > int(H0 * 0.848)) & (xx > int(W0 * 0.43)) & (xx < int(W0 * 0.59))
+    lever_zone = (yy > int(H0 * 0.855)) & (xx > int(W0 * 0.16)) & (xx < int(W0 * 0.28))
+    not_pink_sole = ~((out_rgb[:, :, 0] > 165) & ((out_rgb[:, :, 0] - out_rgb[:, :, 2]) > 25))
+    post_mask = center_post_box | (lever_zone & not_pink_sole)
     alpha[post_mask] = 0.0
     alpha = cv2.GaussianBlur(alpha, (0, 0), sigmaX=0.6, sigmaY=0.6)
     alpha[ext_bg | post_mask] = 0.0
@@ -106,29 +102,43 @@ def remove_plum_matte_s5(rgb_np: np.ndarray, target_size: tuple[int, int]) -> Im
 
 def build_s5_face_mask(w: int, h: int) -> np.ndarray:
     yy, xx = np.mgrid[0:h, 0:w]
-    cx = w * 0.495
-    cy = h * 0.56
-    rx = w * 0.265
+    cx = w * 0.505
+    cy = h * 0.61
+    rx = w * 0.255
     ry = h * 0.275
     dist = np.sqrt(((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2)
-    interior = np.clip((1.05 - dist) / 0.32, 0.0, 1.0).astype(np.float32)
+    interior = np.clip((1.05 - dist) / 0.30, 0.0, 1.0).astype(np.float32)
 
-    # Protect peace-sign fingertips touching right cheek (`x > 0.63*w, y > 0.44*h`)
-    interior[int(h * 0.46) :, int(w * 0.64) :] = 0.0
-    # Protect choker collar at very bottom
-    interior[int(h * 0.84) :, :] = 0.0
+    # Protect peace-sign fingertip touching her screen-left cheek (`x < 0.34*w, y > 0.45*h`)
+    interior[int(h * 0.48) :, : int(w * 0.34)] = 0.0
+    # Protect bell choker collar at very bottom
+    interior[int(h * 0.88) :, :] = 0.0
 
-    return cv2.GaussianBlur(interior, (25, 25), 7.5)
+    return cv2.GaussianBlur(interior, (23, 23), 7.0)
 
 
-def extract_s5_patch(base_rgba: np.ndarray, expr_raw: Path, target_size: tuple[int, int], face_mask: np.ndarray) -> Image.Image:
+def stitch_fluster_head_onto_base(base_full_im: Image.Image, head_crop_im: Image.Image) -> Image.Image:
+    """Places s5_v2_head_fluster.png back into exact (280, 120, 744, 584) box of base_full_im."""
+    out = base_full_im.copy()
+    box_w, box_h = 744 - 280, 584 - 120
+    resized_head = head_crop_im.convert("RGB").resize((box_w, box_h), Image.Resampling.LANCZOS)
+    out.paste(resized_head, (280, 120))
+    return out
+
+
+def extract_s5_patch(
+    base_rgba: np.ndarray,
+    expr_im: Image.Image,
+    name: str,
+    target_size: tuple[int, int],
+    face_mask: np.ndarray,
+) -> Image.Image:
     TW, TH = target_size
-    raw_im = Image.open(expr_raw).convert("RGB").resize((TW, TH), Image.Resampling.LANCZOS)
-    cand = np.array(raw_im)
+    cand = np.array(expr_im.convert("RGB").resize((TW, TH), Image.Resampling.LANCZOS))
     base_rgb = base_rgba[:, :, :3]
 
     # Subpixel align on upper bangs + headset band
-    ax1, ay1, ax2, ay2 = 360, 130, 660, 250
+    ax1, ay1, ax2, ay2 = 380, 150, 650, 275
     ref_gray = cv2.cvtColor(base_rgb[ay1:ay2, ax1:ax2], cv2.COLOR_RGB2GRAY).astype(np.float32)
     cand_gray = cv2.cvtColor(cand[ay1:ay2, ax1:ax2], cv2.COLOR_RGB2GRAY).astype(np.float32)
     (dx, dy), _ = cv2.phaseCorrelate(ref_gray, cand_gray)
@@ -136,7 +146,7 @@ def extract_s5_patch(base_rgba: np.ndarray, expr_raw: Path, target_size: tuple[i
     dy = float(np.clip(dy, -6.0, 6.0))
     M = np.float32([[1.0, 0.0, -dx], [0.0, 1.0, -dy]])
     aligned = cv2.warpAffine(cand, M, (TW, TH), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
-    print(f"  {expr_raw.name}: shift=({dx:+.2f}, {dy:+.2f})px")
+    print(f"  {name}: shift=({dx:+.2f}, {dy:+.2f})px")
 
     crop_rgb = aligned[S5_PY : S5_PY + S5_PH, S5_PX : S5_PX + S5_PW]
     base_a = base_rgba[S5_PY : S5_PY + S5_PH, S5_PX : S5_PX + S5_PW, 3].astype(np.float32) / 255.0
@@ -151,8 +161,13 @@ def main() -> None:
     target_size = Image.open(OUT_DIR / "heroine_t1_base.webp").size
     print("Target stage plate size:", target_size)
 
-    base_raw = np.array(Image.open(RAW_DIR / "t1_stage5_open_bold.png").convert("RGB"))
-    s5_rgba_im = remove_plum_matte_s5(base_raw, target_size)
+    open_bold_im = Image.open(RAW_DIR / "t1_stage5_v2_open_bold.png").convert("RGB")
+    blink_im = Image.open(RAW_DIR / "t1_stage5_v2_blink.png").convert("RGB")
+    tease_wink_im = Image.open(RAW_DIR / "t1_stage5_v2_base.png").convert("RGB")
+    fluster_head_im = Image.open(RAW_DIR / "s5_v2_head_fluster.png").convert("RGB")
+    fluster_full_im = stitch_fluster_head_onto_base(open_bold_im, fluster_head_im)
+
+    s5_rgba_im = remove_plum_matte_s5(np.array(open_bold_im), target_size)
     s5_out = OUT_DIR / "heroine_t1_s5.webp"
     s5_rgba_im.save(s5_out, "WEBP", quality=91, method=6)
     print(f"Saved {s5_out.name} ({s5_out.stat().st_size // 1024} KB)")
@@ -160,26 +175,15 @@ def main() -> None:
     s5_rgba_np = np.array(s5_rgba_im)
     face_mask = build_s5_face_mask(S5_PW, S5_PH)
 
-    rendered = [("open_bold", s5_rgba_im)]
-    p_left_wink = extract_s5_patch(s5_rgba_np, RAW_DIR / "t1_stage5_blink.png", target_size, face_mask)
-    p_right_wink = extract_s5_patch(s5_rgba_np, RAW_DIR / "t1_stage5_cosplay.png", target_size, face_mask)
-    p_fluster = extract_s5_patch(s5_rgba_np, RAW_DIR / "t1_stage5_fluster.png", target_size, face_mask)
-
-    # Combine left closed eye (from p_left_wink) + right closed eye (from p_right_wink) along nose bridge!
-    lw_np = np.array(p_left_wink).astype(np.float32)
-    rw_np = np.array(p_right_wink).astype(np.float32)
-    ramp_x = np.clip((np.arange(S5_PW, dtype=np.float32) - (S5_PW * 0.46)) / (S5_PW * 0.08), 0.0, 1.0)[None, :, None]
-    both_closed_rgb = np.clip(lw_np[:, :, :3] * (1.0 - ramp_x) + rw_np[:, :, :3] * ramp_x, 0, 255).astype(np.uint8)
-    both_closed_a = np.maximum(lw_np[:, :, 3], rw_np[:, :, 3]).astype(np.uint8)
-    p_true_blink = Image.fromarray(np.dstack([both_closed_rgb, both_closed_a]), mode="RGBA")
-
-    save_list = [
-        ("patch_t1_s5_blink.webp", p_true_blink),
-        ("patch_t1_s5_tease.webp", p_right_wink),
-        ("patch_t1_s5_fluster.webp", p_fluster),
+    patches = [
+        ("blink", blink_im, "patch_t1_s5_blink.webp"),
+        ("tease_wink", tease_wink_im, "patch_t1_s5_tease.webp"),
+        ("fluster_gasp", fluster_full_im, "patch_t1_s5_fluster.webp"),
     ]
 
-    for dst_name, p_im in save_list:
+    rendered = [("open_bold", s5_rgba_im)]
+    for label, src_im, dst_name in patches:
+        p_im = extract_s5_patch(s5_rgba_np, src_im, label, target_size, face_mask)
         dst = OUT_DIR / dst_name
         p_im.save(dst, "WEBP", quality=92, method=6)
         print(f"Saved {dst.name} ({dst.stat().st_size // 1024} KB)")
@@ -188,7 +192,7 @@ def main() -> None:
         comp.alpha_composite(p_im, (S5_PX, S5_PY))
         rendered.append((dst_name, comp))
 
-    # Build 4-up preview over actual room + desk (with Stage 5 feet resting ON TOP OF fg_desk_t1!)
+    # Build 4-up preview over actual room + desk (with Stage 5 giant soles resting ON TOP OF fg_desk_t1!)
     bg = Image.open(OUT_DIR / "bg_room_t1.webp").convert("RGBA")
     desk = Image.open(OUT_DIR / "fg_desk_t1.webp").convert("RGBA")
 
@@ -197,13 +201,13 @@ def main() -> None:
         scene = bg.copy()
         scene.alpha_composite(desk, (0, 0))
         scaled_char = full_char.resize(
-            (int(target_size[0] * 0.485), int(target_size[1] * 0.485)),
+            (int(target_size[0] * 0.4745), int(target_size[1] * 0.4745)),
             Image.Resampling.LANCZOS,
         )
         cx = int(688 - scaled_char.width / 2)
-        cy = int(761 - scaled_char.height)
+        cy = 32
         scene.alpha_composite(scaled_char, (cx, cy))
-        crop = scene.crop((410, 15, 965, 765)).resize((352, 430), Image.Resampling.LANCZOS)
+        crop = scene.crop((405, 15, 970, 765)).resize((352, 430), Image.Resampling.LANCZOS)
         strip.alpha_composite(crop, (4 + i * 360, 5))
 
     strip.save(QA_DIR / "qa_stage5_cosplay_4up.png")
