@@ -8,6 +8,7 @@ import {
 } from '../src/chat/chatEngine.ts';
 import type { TapZoneId } from '../src/domain/types.ts';
 import { TIER1_UPGRADES } from '../src/domain/upgrades.ts';
+import { renderChatTextWithEmotes } from '../src/presentation/twitchEmotes.ts';
 
 test('chat engine creates valid ambient, zone, donation, and upgrade messages', () => {
   const ambLow = createAmbientChatMessage(3, 1);
@@ -31,4 +32,12 @@ test('chat engine creates valid ambient, zone, donation, and upgrade messages', 
     assert.equal(up.isSystemHighlight, true);
     assert.ok(up.text.length > 5);
   }
+});
+
+test('renderChatTextWithEmotes replaces Twitch emote tokens with inline SVG and escapes HTML', () => {
+  const html = renderChatTextWithEmotes('чат <script> :BOOBA: вау :peepoShy:');
+  assert.ok(!html.includes('<script>'));
+  assert.ok(html.includes('&lt;script&gt;'));
+  assert.ok(html.includes('class="tw-emote"'));
+  assert.ok(html.includes('<svg'));
 });

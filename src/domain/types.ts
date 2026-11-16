@@ -21,7 +21,7 @@ export type ChallengeId =
   | 'tug_tee'
   | 'asmr_tease';
 
-export type BottomTabId = 'upgrades' | 'outfits' | 'story';
+export type BottomTabId = 'stream' | 'upgrades' | 'outfits' | 'story';
 
 export interface UpgradeDef {
   id: UpgradeId;

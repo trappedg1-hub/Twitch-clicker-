@@ -9,6 +9,7 @@ import type {
   UpgradeId,
 } from '../domain/types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
+import { renderChatTextWithEmotes } from './twitchEmotes.ts';
 
 function formatMoney(n: number): string {
   if (n >= 10_000) return `${(n / 1000).toFixed(1)}k ₽`;
@@ -27,7 +28,7 @@ export class UiController {
   private readonly hypeMultEl = document.getElementById('stat-hype-mult')!;
   private readonly hypeFillEl = document.getElementById('stat-hype-fill')!;
 
-  private readonly speechBubbleEl = document.getElementById('speech-bubble')!;
+  private readonly speechSubEl = document.getElementById('speech-subtitle')!;
   private readonly speechTextEl = document.getElementById('speech-text')!;
 
   private readonly milestoneLabelEl = document.getElementById('milestone-progress-label')!;
@@ -39,9 +40,9 @@ export class UiController {
   private readonly alertSubEl = document.getElementById('donation-alert-sub')!;
 
   private readonly chatMessagesEl = document.getElementById('chat-messages')!;
+  private readonly upgAvailDotEl = document.getElementById('upg-avail-dot')!;
 
-  private readonly bottomDockEl = document.getElementById('bottom-dock')!;
-  private readonly toggleDockBtn = document.getElementById('btn-toggle-dock')!;
+  private readonly tabDrawerEl = document.getElementById('tab-drawer')!;
   private readonly upgradesGridEl = document.getElementById('upgrades-grid')!;
   private readonly outfitsGridEl = document.getElementById('outfits-grid')!;
   private readonly challengesGridEl = document.getElementById('challenges-grid')!;
@@ -50,49 +51,61 @@ export class UiController {
   private readonly diaryHeadlineEl = document.getElementById('diary-headline')!;
   private readonly diaryThoughtEl = document.getElementById('diary-thought')!;
 
+  private activeTab: BottomTabId = 'stream';
   private alertTimer?: number;
   private speechPopTimer?: number;
+  private speechFadeTimer?: number;
   private upgradeButtons = new Map<UpgradeId, HTMLButtonElement>();
   private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
   public onBuyUpgrade?: (id: UpgradeId) => void;
   public onTriggerChallenge?: (id: ChallengeId) => void;
-  public onLayoutResize?: () => void;
+  public onTabChange?: (tab: BottomTabId) => void;
 
   public init(): void {
     this.setupTabs();
     this.buildUpgradeCards();
     this.buildOutfitCards();
     this.buildChallengeCards();
+
+    // Auto-fade initial subtitle after 4.2s so video stays 100% pure when idle
+    this.speechFadeTimer = window.setTimeout(() => {
+      this.speechSubEl.classList.remove('visible');
+    }, 4200);
   }
 
   private setupTabs(): void {
-    const tabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.dock-tab'));
+    const tabBtns = Array.from(document.querySelectorAll<HTMLButtonElement>('.tw-tab'));
     tabBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
-        const target = btn.dataset.tab as BottomTabId;
-        this.switchTab(target);
+        const clicked = btn.dataset.tab as BottomTabId;
+        // Clicking an already-open drawer tab toggles back to pure 'stream' view!
+        if (clicked !== 'stream' && this.activeTab === clicked) {
+          this.switchTab('stream');
+        } else {
+          this.switchTab(clicked);
+        }
       });
-    });
-
-    this.toggleDockBtn.addEventListener('click', () => {
-      const collapsed = this.bottomDockEl.classList.toggle('collapsed');
-      this.toggleDockBtn.textContent = collapsed ? 'Развернуть меню ▴' : 'Свернуть панель ▾';
-      window.setTimeout(() => this.onLayoutResize?.(), 30);
     });
   }
 
   public switchTab(tab: BottomTabId): void {
-    this.bottomDockEl.classList.remove('collapsed');
-    this.toggleDockBtn.textContent = 'Свернуть панель ▾';
-
-    document.querySelectorAll<HTMLButtonElement>('.dock-tab').forEach((b) => {
+    this.activeTab = tab;
+    document.querySelectorAll<HTMLButtonElement>('.tw-tab').forEach((b) => {
       b.classList.toggle('active', b.dataset.tab === tab);
     });
-    document.querySelectorAll<HTMLElement>('.tab-panel').forEach((panel) => {
-      panel.classList.toggle('active', panel.id === `tab-panel-${tab}`);
-    });
-    window.setTimeout(() => this.onLayoutResize?.(), 20);
+
+    if (tab === 'stream') {
+      this.tabDrawerEl.classList.add('hidden');
+      document.body.classList.remove('drawer-open');
+    } else {
+      this.tabDrawerEl.classList.remove('hidden');
+      document.body.classList.add('drawer-open');
+      document.querySelectorAll<HTMLElement>('.tab-panel').forEach((panel) => {
+        panel.classList.toggle('active', panel.id === `tab-panel-${tab}`);
+      });
+    }
+    this.onTabChange?.(tab);
   }
 
   private buildUpgradeCards(): void {
@@ -125,7 +138,7 @@ export class UiController {
           ${
             o.availableInCurrentBuild
               ? '✓ Надето сейчас (Тир 1)'
-              : `🔒 Тир ${o.tier}: ${o.viewersRequired} онл. • ${o.boldnessRequired}% смелости • ${o.cost} ₽`
+              : `Тир ${o.tier}: ${o.viewersRequired} онл. • ${o.boldnessRequired}% смелости • ${o.cost} ₽`
           }
         </div>
       `;
@@ -161,14 +174,14 @@ export class UiController {
     // Milestone bar
     const next = stats.nextMilestone;
     if (next) {
-      this.milestoneLabelEl.textContent = `${stats.onlineViewers} / ${next.viewersRequired}`;
-      this.milestoneTitleEl.textContent = `Цель: ${next.title}`;
+      this.milestoneLabelEl.textContent = `/ ${next.viewersRequired}`;
+      this.milestoneTitleEl.textContent = `• Цель: ${next.title}`;
       const pct = Math.min(100, Math.round((stats.onlineViewers / next.viewersRequired) * 100));
       this.milestoneFillEl.style.width = `${pct}%`;
     } else {
       const last = TIER1_MILESTONES[TIER1_MILESTONES.length - 1]!;
-      this.milestoneLabelEl.textContent = `${stats.onlineViewers} MAX`;
-      this.milestoneTitleEl.textContent = `Пик Тир-1 (${last.viewersRequired}+ онл.) достигнут!`;
+      this.milestoneLabelEl.textContent = 'MAX';
+      this.milestoneTitleEl.textContent = `• Пик Тир-1 (${last.viewersRequired}+ онл.)`;
       this.milestoneFillEl.style.width = '100%';
     }
 
@@ -177,7 +190,8 @@ export class UiController {
     this.diaryHeadlineEl.textContent = stats.storyChapter.headline;
     this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
 
-    // Upgrade cards
+    // Upgrade cards + notify dot when on 'stream' tab
+    let anyAffordable = false;
     for (const def of TIER1_UPGRADES) {
       const btn = this.upgradeButtons.get(def.id);
       if (!btn) continue;
@@ -185,6 +199,7 @@ export class UiController {
       const isMax = lvl >= def.maxLevel;
       const cost = getUpgradeCost(def, lvl);
       const canAfford = !isMax && state.balance >= cost;
+      if (canAfford) anyAffordable = true;
 
       btn.disabled = isMax;
       btn.classList.toggle('affordable', canAfford);
@@ -196,12 +211,14 @@ export class UiController {
           </div>
           <span class="upg-lvl">ур.${lvl}</span>
         </div>
+        <div class="upg-sub">${def.subtitle}</div>
         <div class="upg-bottom">
           <span class="upg-bonuses">+${def.viewersBonus} онл • +${def.boldnessBonus}% смел</span>
           <span class="upg-cost">${isMax ? 'МАКС' : `${cost} ₽`}</span>
         </div>
       `;
     }
+    this.upgAvailDotEl.classList.toggle('hidden', !anyAffordable || this.activeTab === 'upgrades');
 
     // Challenge cards
     for (const ch of STREAM_CHALLENGES) {
@@ -220,16 +237,14 @@ export class UiController {
 
       let statusLabel = `+${estReward} ₽`;
       if (lockedByViewers) {
-        statusLabel = `🔒 ${ch.viewersRequired} онл.`;
+        statusLabel = `${ch.viewersRequired} онл.`;
       } else if (cdLeftSec > 0) {
-        statusLabel = `⏳ ${cdLeftSec}с`;
+        statusLabel = `${cdLeftSec}с`;
       }
 
       btn.innerHTML = `
         <div>
-          <div class="ch-top">
-            <span class="ch-name">${ch.icon} ${ch.name}</span>
-          </div>
+          <div class="ch-name">${ch.icon} ${ch.name}</div>
           <p class="ch-desc">${ch.desc}</p>
         </div>
         <div class="ch-foot">
@@ -241,22 +256,26 @@ export class UiController {
   }
 
   public showSpeech(line: string): void {
-    this.speechTextEl.textContent = line;
-    this.speechBubbleEl.classList.add('pop');
+    this.speechTextEl.textContent = `«${line}»`;
+    this.speechSubEl.classList.add('visible', 'pop');
     window.clearTimeout(this.speechPopTimer);
+    window.clearTimeout(this.speechFadeTimer);
     this.speechPopTimer = window.setTimeout(() => {
-      this.speechBubbleEl.classList.remove('pop');
-    }, 240);
+      this.speechSubEl.classList.remove('pop');
+    }, 220);
+    this.speechFadeTimer = window.setTimeout(() => {
+      this.speechSubEl.classList.remove('visible');
+    }, 3600);
   }
 
   public showDonationAlert(amount: number, message: string): void {
-    this.alertAmountEl.textContent = `+${amount} ₽`;
+    this.alertAmountEl.textContent = `★ +${amount} ₽ ★`;
     this.alertSubEl.textContent = message;
     this.alertBoxEl.classList.remove('hidden');
     window.clearTimeout(this.alertTimer);
     this.alertTimer = window.setTimeout(() => {
       this.alertBoxEl.classList.add('hidden');
-    }, 2500);
+    }, 2200);
   }
 
   public pushChatMessage(msg: ChatMessage): void {
@@ -277,11 +296,10 @@ export class UiController {
     row.appendChild(author);
 
     const body = document.createElement('span');
-    body.textContent = msg.text;
+    body.innerHTML = renderChatTextWithEmotes(msg.text);
     row.appendChild(body);
 
     this.chatMessagesEl.appendChild(row);
-    // Keep only last 7 floating overlay messages so stream screen stays super clean!
     while (this.chatMessagesEl.children.length > 7) {
       this.chatMessagesEl.removeChild(this.chatMessagesEl.firstChild!);
     }

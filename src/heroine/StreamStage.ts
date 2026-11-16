@@ -48,6 +48,8 @@ export class StreamStage {
   private pointerNormX = 0;
   private pointerNormY = 0;
   private lampLevel = 0;
+  private drawerOpen = false;
+  private hostEl?: HTMLElement;
   private elapsedSec = 0;
   private resizeObserver?: ResizeObserver;
 
@@ -161,8 +163,13 @@ export class StreamStage {
       }
     });
 
+    this.hostEl = hostEl;
     this.fitStage(hostEl);
-    this.resizeObserver = new ResizeObserver(() => this.fitStage(hostEl));
+    let rafResize = 0;
+    this.resizeObserver = new ResizeObserver(() => {
+      window.cancelAnimationFrame(rafResize);
+      rafResize = window.requestAnimationFrame(() => this.fitStage(hostEl));
+    });
     this.resizeObserver.observe(hostEl);
 
     this.app.ticker.add((ticker) => {
@@ -174,23 +181,37 @@ export class StreamStage {
     this.lampLevel = level;
   }
 
-  private fitStage(hostEl: HTMLElement): void {
-    const w = Math.max(320, hostEl.clientWidth);
-    const h = Math.max(180, hostEl.clientHeight);
-    this.app.renderer.resize(w, h);
+  public setDrawerOpen(open: boolean): void {
+    this.drawerOpen = open;
+    if (this.hostEl) {
+      this.updateRootTransform(
+        Math.max(320, Math.round(this.hostEl.clientWidth)),
+        Math.max(180, Math.round(this.hostEl.clientHeight)),
+      );
+      this.app.render();
+    }
+  }
 
-    // Fill width edge-to-edge when aspect is close to 16:9 while keeping 100% of heroine (head y=18..feet y=704) visible!
+  private fitStage(hostEl: HTMLElement): void {
+    const w = Math.max(320, Math.round(hostEl.clientWidth));
+    const h = Math.max(180, Math.round(hostEl.clientHeight));
+    if (Math.round(this.app.screen.width) !== w || Math.round(this.app.screen.height) !== h) {
+      this.app.renderer.resize(w, h);
+    }
+    this.updateRootTransform(w, h);
+    this.app.render();
+  }
+
+  private updateRootTransform(w: number, h: number): void {
     const fitScale = Math.min(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
-    const maxSafeScale = h / 736; // Never crop head (y=18) or bare toes (y=704)
+    const maxSafeScale = h / 736;
     const coverScale = Math.max(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
     const scale = Math.min(coverScale, Math.max(fitScale, maxSafeScale));
 
     this.root.scale.set(scale);
-    this.root.position.set(
-      (w - StreamStage.VIRTUAL_W * scale) * 0.5,
-      (h - StreamStage.VIRTUAL_H * scale) * 0.5,
-    );
-    this.app.render();
+    const baseY = (h - StreamStage.VIRTUAL_H * scale) * 0.5;
+    const drawerShift = this.drawerOpen ? -42 : 0;
+    this.root.position.set((w - StreamStage.VIRTUAL_W * scale) * 0.5, baseY + drawerShift);
   }
 
   public spawnTapBurst(

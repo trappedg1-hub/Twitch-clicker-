@@ -62,6 +62,10 @@ export async function bootstrapApp(): Promise<void> {
   const stage = new StreamStage();
   await stage.mount(stageHost);
 
+  ui.onTabChange = (tab: BottomTabId) => {
+    stage.setDrawerOpen(tab !== 'stream');
+  };
+
   const syncAll = () => {
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
@@ -82,7 +86,7 @@ export async function bootstrapApp(): Promise<void> {
     if (outcome.triggeredDonationAlert) {
       ui.showDonationAlert(
         outcome.earned,
-        '«Не смущайся, ты невероятно горячая! Лови на развитие 💜»',
+        '«Не смущайся, ты невероятно горячая! Лови на развитие ♥»',
       );
       ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps));
     }
@@ -92,7 +96,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `🎉 ${m.title}! ${m.rewardText}`,
+        text: `Достигнута цель: ${m.title}! :Pog: :SubHype:`,
         isSystemHighlight: true,
       });
     }
@@ -120,7 +124,7 @@ export async function bootstrapApp(): Promise<void> {
     stage.rig.triggerTapReaction(res.zoneFocus);
     stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
     ui.showSpeech(res.line);
-    ui.showDonationAlert(res.reward, '🔥 Выполнен горячий челлендж чата!');
+    ui.showDonationAlert(res.reward, '★ Выполнен горячий челлендж чата! ★');
     ui.pushChatMessage({
       id: `ch_${Date.now()}`,
       author: 'VIP_Donater',
@@ -152,7 +156,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `🎉 ${m.title}! ${m.rewardText}`,
+        text: `Достигнута цель: ${m.title}! :Pog: :SubHype:`,
         isSystemHighlight: true,
       });
     }
