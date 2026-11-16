@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.vite/
+.qa-out/
+Unselected files/
+art-studio/
+assets/
+
+*.log
+.DS_Store

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Стримерша — Twitch Clicker (Тир 1)</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Top Twitch Broadcast Header -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="channel-avatar-wrap">
+            <span class="live-dot-ring"></span>
+            <div class="channel-avatar">М</div>
+            <span class="live-pill">В ЭФИРЕ</span>
+          </div>
+          <div class="channel-meta">
+            <div class="channel-row">
+              <span class="channel-name">miya_nyash</span>
+              <span class="tier-badge">Тир 1 • Новичок</span>
+              <span class="category-tag">Just Chatting</span>
+            </div>
+            <div id="stream-title" class="stream-title">
+              Первый стрим... жутко стесняюсь, зайдите поболтать плз 😳 | Тир 1
+            </div>
+          </div>
+        </div>
+
+        <div class="topbar-stats">
+          <div class="stat-chip stat-viewers" title="Главный показатель прогрессии стрима">
+            <span class="viewer-dot"></span>
+            <div>
+              <div class="stat-label">Онлайн</div>
+              <div id="stat-viewers-val" class="stat-value">3</div>
+            </div>
+          </div>
+
+          <div class="stat-chip stat-balance">
+            <span class="stat-emoji">💸</span>
+            <div>
+              <div class="stat-label">Донаты</div>
+              <div id="stat-balance-val" class="stat-value">0 ₽</div>
+            </div>
+          </div>
+
+          <div class="stat-chip">
+            <span class="stat-emoji">⚡</span>
+            <div>
+              <div class="stat-label">Клик / Пассив</div>
+              <div id="stat-income-val" class="stat-value">+5 ₽ • 0 ₽/с</div>
+            </div>
+          </div>
+
+          <div class="stat-chip stat-hype">
+            <div class="hype-row">
+              <span class="stat-label">Хайп чата</span>
+              <span id="stat-hype-mult" class="hype-mult">x1.00</span>
+            </div>
+            <div class="hype-bar-track">
+              <div id="stat-hype-fill" class="hype-bar-fill"></div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Broadcast Content + Right Chat -->
+      <main class="workspace">
+        <section class="broadcast-column">
+          <div class="video-frame-outer">
+            <div id="stream-stage-host" class="stream-stage-host"></div>
+
+            <!-- Unobtrusive overlays placed strictly in upper corners away from heroine -->
+            <div id="speech-bubble" class="speech-bubble">
+              <div class="speech-speaker">Мия (в микрофон):</div>
+              <div id="speech-text" class="speech-text">
+                Ой... кто-то зашёл на стрим! П-привет, устраивайся поудобнее... 😳
+              </div>
+            </div>
+
+            <div id="milestone-box" class="milestone-box">
+              <div class="milestone-head">
+                <span>🎯 Цель онлайна</span>
+                <span id="milestone-progress-label">3 / 10</span>
+              </div>
+              <div id="milestone-title" class="milestone-title">Первая десятка в чате!</div>
+              <div class="milestone-bar">
+                <div id="milestone-fill" class="milestone-fill"></div>
+              </div>
+            </div>
+
+            <div id="donation-alert" class="donation-alert hidden">
+              <div class="alert-title">🔔 НОВЫЙ ДОНАТ НА ЭКРАН!</div>
+              <div id="donation-alert-amount" class="alert-amount">+45 ₽</div>
+              <div id="donation-alert-sub" class="alert-sub">«Ты супер милая, не стесняйся!»</div>
+            </div>
+          </div>
+
+          <!-- Stream Setup Upgrades Panel (Tier 1) -->
+          <section class="upgrades-dock">
+            <div class="dock-header">
+              <span class="dock-title">🛠️ Прокачка стрима (Тир 1 — Старт с домашней комнаты)</span>
+              <span class="dock-hint">Кликай по Мие в кадре — зарабатывай донаты и поднимай онлайн</span>
+            </div>
+            <div id="upgrades-grid" class="upgrades-grid"></div>
+          </section>
+        </section>
+
+        <!-- Right-hand Live Twitch Chat -->
+        <aside class="chat-panel">
+          <div class="chat-header">
+            <span>💬 ЧАТ СТРИМА</span>
+            <span id="chat-online-pill" class="chat-online-pill">👥 3</span>
+          </div>
+          <div id="chat-messages" class="chat-messages"></div>
+          <div class="chat-quick-bar">
+            <button id="btn-chat-compliment" class="quick-chat-btn" type="button">
+              😳 Комплимент
+            </button>
+            <button id="btn-chat-hearts" class="quick-chat-btn" type="button">
+              💜 Спам сердечек
+            </button>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <input
+              id="chat-input"
+              class="chat-input"
+              type="text"
+              maxlength="90"
+              placeholder="Написать сообщение в чат..."
+              autocomplete="off"
+            />
+            <button class="chat-send-btn" type="submit">Чат</button>
+          </form>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

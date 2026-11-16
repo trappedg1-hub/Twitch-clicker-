@@ -1,0 +1,33 @@
+{
+  "sceneWidth": 1376,
+  "sceneHeight": 768,
+  "heroinePlate": {
+    "file": "/art/heroine_t1_base.webp",
+    "width": 1024,
+    "height": 1526
+  },
+  "patches": {
+    "blink": {
+      "file": "/art/patch_t1_blink.webp",
+      "x": 338,
+      "y": 61,
+      "width": 348,
+      "height": 397,
+      "shiftPx": [
+        -0.014,
+        0.467
+      ]
+    },
+    "fluster": {
+      "file": "/art/patch_t1_fluster.webp",
+      "x": 338,
+      "y": 61,
+      "width": 348,
+      "height": 397,
+      "shiftPx": [
+        -0.396,
+        0.202
+      ]
+    }
+  }
+}
