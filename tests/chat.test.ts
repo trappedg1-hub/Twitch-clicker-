@@ -6,6 +6,7 @@ import {
   createSubGoalCascadeMessages,
   createSubNotificationMessage,
   createUpgradeChatMessage,
+  createViralClipChatMessage,
   createZoneBurstMessage,
 } from '../src/chat/chatEngine.ts';
 import { SUB_GOAL_STAGES } from '../src/domain/subGoals.ts';
@@ -48,12 +49,19 @@ test('chat engine creates valid ambient, zone, sub notification, and cascade mes
   }
 });
 
-test('renderChatTextWithEmotes replaces Twitch emote tokens with real Twitch emote images and escapes HTML', () => {
-  const html = renderChatTextWithEmotes('чат <script> :BOOBA: вау :peepoShy: :monkaS: :EZ:');
+test('renderChatTextWithEmotes replaces all 12 Twitch emote tokens with real Twitch emote images and escapes HTML', () => {
+  const html = renderChatTextWithEmotes(
+    'чат <script> :BOOBA: :peepoShy: :monkaS: :EZ: :Nosebleed: :AWOOGA: :Overheat: :ClipIt:',
+  );
   assert.ok(!html.includes('<script>'));
   assert.ok(html.includes('&lt;script&gt;'));
   assert.ok(html.includes('/emotes/booba.webp'));
-  assert.ok(html.includes('/emotes/peeposhy.webp'));
-  assert.ok(html.includes('/emotes/monkas.webp'));
-  assert.ok(html.includes('/emotes/ez.webp'));
+  assert.ok(html.includes('/emotes/nosebleed.webp'));
+  assert.ok(html.includes('/emotes/awooga.webp'));
+  assert.ok(html.includes('/emotes/overheat.webp'));
+  assert.ok(html.includes('/emotes/clipit.webp'));
+
+  const clipMsg = createViralClipChatMessage('feet', 180, 2);
+  assert.equal(clipMsg.author, 'TwitchClips');
+  assert.ok(renderChatTextWithEmotes(clipMsg.text).includes('/emotes/clipit.webp'));
 });

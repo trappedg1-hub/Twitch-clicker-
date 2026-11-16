@@ -22,6 +22,10 @@ EMOTES = [
     ("emote_ez.png", "ez.webp"),
     ("emote_lul.png", "lul.webp"),
     ("emote_miyalove.png", "miyalove.webp"),
+    ("emote_nosebleed.png", "nosebleed.webp"),
+    ("emote_awooga.png", "awooga.webp"),
+    ("emote_overheat.png", "overheat.webp"),
+    ("emote_clipit.png", "clipit.webp"),
 ]
 
 

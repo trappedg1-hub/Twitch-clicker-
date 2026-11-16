@@ -32,14 +32,18 @@ await page.waitForFunction(() => Boolean(window.__qaScene && window.__pixiApp &&
 });
 await page.waitForTimeout(300);
 
-// Unlock all the way to 1000 subs -> Stage 5 Mega Cosplay (Feet propped on desk in camera!)
+// 1. Live Fanservice Fever Overheat + Viral Clip Chat + New Emotes + Ticklish Gasp!
 const summary = await page.evaluate(() => {
   const qa = window.__qaScene;
-  qa.addFunds(250000);
+  qa.addFunds(260000);
   for (let i = 0; i < 40; i++) {
     qa.giftSubs(25);
   }
+  qa.tapZone('chest');
+  qa.tapZone('legs');
+  qa.tapZone('belly');
   qa.tapZone('feet');
+  qa.forceEmotion('fluster');
   window.__qaFreezeTicker?.();
   return {
     state: qa.getState(),
@@ -47,23 +51,23 @@ const summary = await page.evaluate(() => {
   };
 });
 await page.waitForTimeout(350);
-await page.screenshot({ path: '.qa-out/live_v6_cosplay_feet_desk.png' });
+await page.screenshot({ path: '.qa-out/live_v7_fever_fanservice.png' });
 
-// Also capture the 3x2 Sub Goal Outfits drawer showing all 6 stages unlocked!
+// 2. Open Story & Fanservice Drawer (Diary + 3x2 6-Challenge Fanservice Deck!)
 await page.evaluate(() => {
   const qa = window.__qaScene;
-  qa.switchTab('outfits');
+  qa.switchTab('story');
   qa.forceEmotion('tease');
   window.__pixiApp.render();
 });
 await page.waitForTimeout(250);
-await page.screenshot({ path: '.qa-out/live_v6_outfits_3x2.png' });
+await page.screenshot({ path: '.qa-out/live_v7_story_challenges.png' });
 
 await browser.close();
 
-console.log('QA v6 Summary:', JSON.stringify(summary.rig), 'subs=', summary.state.subscribers);
+console.log('QA v7 Summary:', JSON.stringify(summary.rig), 'taps=', summary.state.totalTaps);
 if (errors.length > 0) {
   console.error('QA Errors:', errors);
   process.exit(1);
 }
-console.log('QA v6 PASSED with 0 console/page errors!');
+console.log('QA v7 PASSED with 0 console/page errors!');

@@ -5,9 +5,15 @@ import {
   createSubGoalCascadeMessages,
   createSubNotificationMessage,
   createUpgradeChatMessage,
+  createViralClipChatMessage,
   createZoneBurstMessage,
 } from '../chat/chatEngine.ts';
-import { UPGRADE_REACTION_LINES } from '../domain/dialogue.ts';
+import {
+  pickFeverOverheatLine,
+  pickIdleTeaseLine,
+  pickReactionCalloutTag,
+  UPGRADE_REACTION_LINES,
+} from '../domain/dialogue.ts';
 import {
   applyTap,
   buyGiftSubs,
@@ -66,6 +72,9 @@ export async function bootstrapApp(): Promise<void> {
     ? createInitialState()
     : deserializeState(localStorage.getItem(SAVE_STORAGE_KEY));
 
+  let lastPlayerInteractionMs = performance.now();
+  let idleTeaseCounter = 0;
+
   const ui = new UiController();
   ui.init();
 
@@ -75,12 +84,14 @@ export async function bootstrapApp(): Promise<void> {
   stage.setSubStage(state.displayedSubStage, false);
 
   ui.onTabChange = (tab: BottomTabId) => {
+    lastPlayerInteractionMs = performance.now();
     stage.setDrawerOpen(tab !== 'stream');
   };
 
   const syncAll = () => {
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
+    stage.setHypeLevel(state.hype);
     stage.rig.setBoldness(stats.boldness);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
@@ -93,6 +104,7 @@ export async function bootstrapApp(): Promise<void> {
     if (unlockedStages.length === 0) return;
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
+    stage.spawnReactionCallout(latest.removedItemLabel, true, latest.stage);
     ui.showSpeech(latest.unlockLine);
     ui.showDonationAlert(
       `★ SUB GOAL ${latest.subsRequired} САБОВ ПРОБИТ!`,
@@ -112,11 +124,29 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   stage.onHeroineTap = (zone: TapZoneId) => {
+    lastPlayerInteractionMs = performance.now();
     const outcome = applyTap(state, zone);
     state = outcome.state;
     const afterStats = computeStats(state);
     stage.rig.setBoldness(afterStats.boldness);
-    ui.showSpeech(outcome.line);
+
+    const isFever = state.hype >= 72;
+    const isFeverTrigger = isFever && state.totalTaps % 4 === 0;
+
+    if (isFeverTrigger) {
+      stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
+      ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps));
+    } else {
+      ui.showSpeech(outcome.line);
+    }
+
+    if (state.totalTaps % 2 === 0 || isFeverTrigger) {
+      stage.spawnReactionCallout(
+        pickReactionCalloutTag(zone, isFever, state.totalTaps),
+        isFeverTrigger,
+        state.totalTaps,
+      );
+    }
 
     if (outcome.gainedOrganicSubs > 0) {
       ui.pushChatMessage(
@@ -134,15 +164,20 @@ export async function bootstrapApp(): Promise<void> {
     if (outcome.newlyUnlockedSubStages.length > 0) {
       celebrateSubGoalUnlocks(outcome.newlyUnlockedSubStages);
     } else {
-      if (state.totalTaps % 2 === 1 || outcome.triggeredDonationAlert) {
+      if (isFeverTrigger || state.totalTaps % 7 === 0) {
+        ui.pushChatMessage(
+          createViralClipChatMessage(zone, afterStats.onlineViewers, state.totalTaps),
+        );
+      } else if (state.totalTaps % 2 === 1 || outcome.triggeredDonationAlert) {
         ui.pushChatMessage(
           createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps),
         );
       }
+
       if (outcome.triggeredDonationAlert) {
         ui.showDonationAlert(
-          `★ НОВЫЙ ДОНАТ +${outcome.earned} ₽`,
-          '«Лови донат в копилку на следующий Sub Goal! ♥»',
+          `★ ГОРЯЧИЙ ДОНАТ +${outcome.earned} ₽`,
+          '«Не прикрывайся, ты сводишь весь чат с ума! ♥»',
         );
         ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps));
       }
@@ -154,7 +189,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `Достигнута цель онлайна: ${m.title}! :Pog: :SubHype:`,
+        text: `Достигнута цель онлайна: ${m.title}! :Overheat: :Pog: :SubHype:`,
         isSystemHighlight: true,
       });
     }
@@ -164,6 +199,7 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   ui.onGiftSubs = (count: 1 | 5 | 25) => {
+    lastPlayerInteractionMs = performance.now();
     const res = buyGiftSubs(state, count);
     if (!res.ok) return;
     state = res.state;
@@ -175,22 +211,22 @@ export async function bootstrapApp(): Promise<void> {
     if (res.newlyUnlockedSubStages.length > 0) {
       celebrateSubGoalUnlocks(res.newlyUnlockedSubStages);
     } else {
-      // Embarrassed / panicked reaction as the Sub Goal creeps closer!
       const emo: Exclude<HeroineEmotion, 'neutral'> =
         afterStats.boldness < 50 ? 'shy' : afterStats.boldness < 78 ? 'fluster' : 'tease';
       stage.rig.triggerTapReaction('chest', emo);
+      stage.spawnReactionCallout(`+${count} САБ ♥`, count >= 5, state.subscribers);
       const shyLine = pickShySubGoalApproachLine(
         afterStats.nextSubGoalDef,
         state.subscribers + count,
       );
       ui.showSpeech(
         shyLine ??
-          `Ого, ещё +${count} подарочных сабов в чат! Спасибо огромное, спонсоры~ ★ ♥`,
+          `Ого, ещё +${count} подарочных сабов в чат! Вы меня совсем разбалуете, спонсоры~ ★ ♥`,
       );
       if (count >= 5) {
         ui.showDonationAlert(
           `★ ПОДАРЕНО ${count} ПОДПИСОК`,
-          `VIP_Sponsor ускоряет Sub Goal! Всего: ${state.subscribers} сабов`,
+          `VIP_Sponsor разгоняет фансервис! Всего: ${state.subscribers} сабов`,
         );
       }
     }
@@ -201,7 +237,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `Достигнута цель онлайна: ${m.title}! :Pog: :SubHype:`,
+        text: `Достигнута цель онлайна: ${m.title}! :AWOOGA: :Pog: :SubHype:`,
         isSystemHighlight: true,
       });
     }
@@ -209,6 +245,7 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   ui.onSelectSubStage = (targetStage: SubGoalStageIndex) => {
+    lastPlayerInteractionMs = performance.now();
     const res = selectDisplayedSubStage(state, targetStage);
     if (!res.ok) return;
     state = res.state;
@@ -217,6 +254,7 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   ui.onBuyUpgrade = (id: UpgradeId) => {
+    lastPlayerInteractionMs = performance.now();
     const res = buyUpgrade(state, id);
     if (!res.ok) return;
     state = res.state;
@@ -232,16 +270,25 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   ui.onTriggerChallenge = (id: ChallengeId) => {
+    lastPlayerInteractionMs = performance.now();
     const res = triggerStreamChallenge(state, id);
     if (!res.ok) return;
     state = res.state;
     const afterStats = computeStats(state);
     stage.rig.setBoldness(afterStats.boldness);
-    stage.rig.triggerTapReaction(
-      res.zoneFocus,
-      id === 'lean_mic' || id === 'pose_feet' ? 'tease' : 'bold',
-    );
+
+    if (id === 'arch_stretch' || id === 'lean_mic') {
+      stage.rig.triggerArchStretch('bold');
+    } else {
+      stage.rig.triggerTapReaction(
+        res.zoneFocus,
+        id === 'pose_feet' || id === 'asmr_tease' ? 'tease' : 'bold',
+      );
+    }
+
     stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
+    stage.spawnReactionCallout('ФАНСЕРВИС ★ ♥', true, Math.floor(res.reward));
+
     ui.pushChatMessage({
       id: `ch_${Date.now()}`,
       author: 'VIP_Donater',
@@ -250,14 +297,19 @@ export async function bootstrapApp(): Promise<void> {
       text: res.chatBurst,
       isSystemHighlight: true,
     });
+    window.setTimeout(() => {
+      ui.pushChatMessage(
+        createViralClipChatMessage(res.zoneFocus, afterStats.onlineViewers, Math.floor(res.reward)),
+      );
+    }, 380);
 
     if (res.newlyUnlockedSubStages.length > 0) {
       celebrateSubGoalUnlocks(res.newlyUnlockedSubStages);
     } else {
       ui.showSpeech(res.line);
       ui.showDonationAlert(
-        `★ ЧЕЛЛЕНДЖ ВЫПОЛНЕН +${res.reward} ₽`,
-        `Чат подарил ещё +${res.gainedSubs} саб за смелость!`,
+        `★ ФАНСЕРВИС-ЧЕЛЛЕНДЖ +${res.reward} ₽`,
+        `Чат в восторге и подарил +${res.gainedSubs} саб!`,
       );
     }
     syncAll();
@@ -269,7 +321,7 @@ export async function bootstrapApp(): Promise<void> {
   ui.pushChatMessage(createAmbientChatMessage(3, state.displayedSubStage, 3));
   syncAll();
 
-  // Uncapped elapsed-ms economy loop
+  // Uncapped elapsed-ms economy loop + spontaneous idle fourth-wall teasing!
   let lastEconomyMs = performance.now();
   window.setInterval(() => {
     const nowPerf = performance.now();
@@ -277,6 +329,15 @@ export async function bootstrapApp(): Promise<void> {
     lastEconomyMs = nowPerf;
     const res = tickEconomy(state, elapsed);
     state = res.state;
+
+    // If viewer has been silently staring at Miya for ~11s, she notices and teases!
+    if (!isQa && nowPerf - lastPlayerInteractionMs > 11000) {
+      lastPlayerInteractionMs = nowPerf;
+      idleTeaseCounter += 1;
+      const statsNow = computeStats(state);
+      stage.rig.triggerEmotion(statsNow.boldness < 45 ? 'shy' : 'tease', 2200);
+      ui.showSpeech(pickIdleTeaseLine(state.displayedSubStage, idleTeaseCounter));
+    }
 
     if (res.gainedOrganicSubs > 0) {
       ui.pushChatMessage(
@@ -292,7 +353,7 @@ export async function bootstrapApp(): Promise<void> {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: `Достигнута цель онлайна: ${m.title}! :Pog: :SubHype:`,
+        text: `Достигнута цель онлайна: ${m.title}! :AWOOGA: :Pog: :SubHype:`,
         isSystemHighlight: true,
       });
     }
@@ -303,7 +364,7 @@ export async function bootstrapApp(): Promise<void> {
   let chatCounter = 4;
   const scheduleNextAmbientChat = () => {
     const viewers = computeStats(state).onlineViewers;
-    const delayMs = Math.max(950, 3600 - Math.min(2400, viewers * 30));
+    const delayMs = Math.max(850, 3200 - Math.min(2200, viewers * 28));
     window.setTimeout(() => {
       chatCounter += 1;
       ui.pushChatMessage(createAmbientChatMessage(viewers, state.displayedSubStage, chatCounter));

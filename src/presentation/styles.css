@@ -1244,11 +1244,11 @@ body,
   color: #69f0ae;
 }
 
-/* Story & Fanservice Split */
+/* Story & Fanservice Split — Diary + 3x2 Fanservice Challenges */
 .story-split {
   width: 100%;
   display: grid;
-  grid-template-columns: 350px minmax(0, 1fr);
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 10px;
   align-items: stretch;
 }
@@ -1302,7 +1302,8 @@ body,
 
 .challenges-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 

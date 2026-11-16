@@ -3,6 +3,9 @@ import test from 'node:test';
 import {
   pickDialogueLine,
   pickEmotionForContext,
+  pickFeverOverheatLine,
+  pickIdleTeaseLine,
+  pickReactionCalloutTag,
   UPGRADE_REACTION_LINES,
   ZONE_DIALOGUES,
 } from '../src/domain/dialogue.ts';
@@ -201,6 +204,13 @@ test('all 5 tap zones have Russian lines, shy Sub Goal lines, and emotion progre
   assert.equal(pickEmotionForContext(5, 0, 1), 'shy');
   assert.equal(pickEmotionForContext(95, 4, 1), 'bold');
   assert.equal(pickEmotionForContext(95, 4, 3), 'tease');
+
+  for (const st of [0, 1, 2, 3, 4, 5] as const) {
+    assert.ok(pickIdleTeaseLine(st, 1).length > 15);
+    assert.ok(pickFeverOverheatLine('chest', st, 1).length > 15);
+  }
+  assert.ok(pickReactionCalloutTag('feet', true, 2).length > 4);
+  assert.equal(STREAM_CHALLENGES.length, 6);
 });
 
 test('serialization round-trips subscribers & sub-goal stages cleanly', () => {

@@ -97,11 +97,16 @@ export class HeroineRig {
   private elapsedSec = 0;
   private nextBlinkCountdownMs = 2600;
 
-  // Damped spring state for localized soft-body bounce
+  // Damped spring state for localized soft-body bounce, sway & bashful shiver
   private chestDisp = 0;
   private chestVel = 0;
   private hipDisp = 0;
   private hipVel = 0;
+  private swayDisp = 0;
+  private swayVel = 0;
+  private archDisp = 0;
+  private archVel = 0;
+  private shiverTimerMs = 0;
   private chairRecoilY = 0;
   private chairRecoilVel = 0;
 
@@ -260,25 +265,45 @@ export class HeroineRig {
         ? 'fluster'
         : pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter));
 
+    const swayDir = this.reactionCounter % 2 === 0 ? 1 : -1;
+
     if (zone === 'chest') {
-      this.chestVel -= 145;
-      this.chairRecoilVel += 42;
-      this.triggerEmotion(chosen, 1750);
-    } else if (zone === 'belly') {
-      this.chestVel -= 85;
-      this.hipVel -= 70;
-      this.chairRecoilVel += 35;
-      this.triggerEmotion(chosen, 1600);
-    } else if (zone === 'legs' || zone === 'feet') {
-      this.hipVel -= this.currentStage === 5 && zone === 'feet' ? 165 : 120;
-      this.chestVel -= 55;
-      this.chairRecoilVel += 48;
+      this.chestVel -= 165;
+      this.archVel += 85;
+      this.swayVel += swayDir * 42;
+      this.chairRecoilVel += 44;
       this.triggerEmotion(chosen, 1800);
+    } else if (zone === 'belly') {
+      this.chestVel -= 95;
+      this.hipVel -= 85;
+      this.swayVel += swayDir * 68;
+      this.shiverTimerMs = 420;
+      this.chairRecoilVel += 38;
+      this.triggerEmotion(chosen === 'bold' ? 'tease' : 'fluster', 1700);
+    } else if (zone === 'legs' || zone === 'feet') {
+      this.hipVel -= this.currentStage === 5 && zone === 'feet' ? 185 : 135;
+      this.chestVel -= 65;
+      this.swayVel += swayDir * 48;
+      if (zone === 'feet' || this.boldnessLevel < 45) {
+        this.shiverTimerMs = 460;
+      }
+      this.chairRecoilVel += 50;
+      this.triggerEmotion(chosen, 1850);
     } else {
-      this.chestVel -= 45;
+      this.chestVel -= 52;
+      this.swayVel += swayDir * 78;
       this.chairRecoilVel += 28;
-      this.triggerEmotion(this.currentStage === 5 ? 'tease' : chosen, 1500);
+      this.triggerEmotion(this.currentStage === 5 ? 'tease' : chosen, 1600);
     }
+  }
+
+  public triggerArchStretch(emo: Exclude<HeroineEmotion, 'neutral'> = 'bold'): void {
+    this.chestVel -= 210;
+    this.archVel += 160;
+    this.hipVel -= 95;
+    this.swayVel += (this.reactionCounter % 2 === 0 ? 1 : -1) * 65;
+    this.chairRecoilVel -= 35;
+    this.triggerEmotion(emo, 2400);
   }
 
   public triggerBlink(): void {
@@ -401,15 +426,38 @@ export class HeroineRig {
 
     [this.chestDisp, this.chestVel] = stepSpring(this.chestDisp, this.chestVel, 18.5, 0.24);
     [this.hipDisp, this.hipVel] = stepSpring(this.hipDisp, this.hipVel, 15.0, 0.28);
+    [this.swayDisp, this.swayVel] = stepSpring(this.swayDisp, this.swayVel, 11.5, 0.32);
+    [this.archDisp, this.archVel] = stepSpring(this.archDisp, this.archVel, 10.5, 0.36);
     [this.chairRecoilY, this.chairRecoilVel] = stepSpring(
       this.chairRecoilY,
       this.chairRecoilVel,
       20.0,
-      0.38,
+      0.4,
     );
+
+    // Physical safety clamps so rapid multi-taps / auto-clickers stay lush & anatomical!
+    this.chestVel = Math.max(-230, Math.min(230, this.chestVel));
+    this.chestDisp = Math.max(-26, Math.min(26, this.chestDisp));
+    this.hipVel = Math.max(-220, Math.min(220, this.hipVel));
+    this.hipDisp = Math.max(-28, Math.min(28, this.hipDisp));
+    this.swayVel = Math.max(-140, Math.min(140, this.swayVel));
+    this.swayDisp = Math.max(-16, Math.min(16, this.swayDisp));
+    this.archVel = Math.max(-170, Math.min(170, this.archVel));
+    this.archDisp = Math.max(-18, Math.min(22, this.archDisp));
+    this.chairRecoilVel = Math.max(-90, Math.min(90, this.chairRecoilVel));
+    this.chairRecoilY = Math.max(-10, Math.min(12, this.chairRecoilY));
+
+    if (this.shiverTimerMs > 0) {
+      this.shiverTimerMs = Math.max(0, this.shiverTimerMs - clampedDtMs);
+    }
+    const shiverWave =
+      this.shiverTimerMs > 0
+        ? Math.sin(this.elapsedSec * 58) * (this.shiverTimerMs / 460) * 3.2
+        : 0;
 
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
     this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY;
+    this.bodyContainer.x = shiverWave * 0.65;
 
     const posAttr = this.mesh.geometry.getAttribute('aPosition');
     const data = posAttr.buffer.data as Float32Array;
@@ -417,6 +465,18 @@ export class HeroineRig {
     const W = HeroineRig.PLATE_W;
     const H = HeroineRig.PLATE_H;
     const isS5 = this.currentStage === 5;
+
+    // Sync face patch sprites with upper-body sway!
+    const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
+    const headArchY = -this.archDisp * 0.25;
+    if (isS5) {
+      this.emotionSprite.position.set(340 + headSwayX, 128 + headArchY);
+      this.blinkSprite.position.set(340 + headSwayX, 128 + headArchY);
+    } else {
+      this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
+      this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);
+      this.blinkSprite.position.set(338 + headSwayX, 61 + headArchY);
+    }
 
     for (let i = 0; i < data.length; i += 2) {
       const rx = rest[i]!;
@@ -427,14 +487,25 @@ export class HeroineRig {
       let dx = 0;
       let dy = 0;
 
+      // Upper-body seductive sway & arch (head + shoulders + torso)
+      if (v < 0.62) {
+        const upperWeight = Math.cos((v / 0.62) * (Math.PI * 0.5));
+        dx += this.swayDisp * upperWeight;
+        dy -= this.archDisp * 0.35 * upperWeight;
+      }
+
       const cTop = isS5 ? 0.29 : 0.25;
       const cBot = isS5 ? 0.56 : 0.54;
       if (v > cTop && v < cBot && u > 0.26 && u < 0.76) {
         const wy = Math.sin(((v - cTop) / (cBot - cTop)) * Math.PI);
         const wx = Math.sin(((u - 0.26) / (0.76 - 0.26)) * Math.PI);
         const weight = wy * wx;
-        dy += (-2.8 * breathWave + this.chestDisp) * weight;
-        dx += (u - 0.51) * (3.6 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.22) * weight;
+        const lushExpand = this.archDisp * 0.55;
+        dy += (-2.8 * breathWave + this.chestDisp - lushExpand * 0.4) * weight;
+        dx +=
+          (u - 0.51) *
+          (3.6 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.24 + lushExpand * 0.65) *
+          weight;
       }
 
       // In Stage 5, extend soft-body jiggle all the way through her bare soles on the desk (v=0.56..0.99)!
@@ -444,8 +515,8 @@ export class HeroineRig {
         const wy = Math.sin(((v - lTop) / (lBot - lTop)) * Math.PI);
         const wx = Math.sin(((u - 0.14) / (0.86 - 0.14)) * Math.PI);
         const weight = wy * wx;
-        dy += this.hipDisp * (isS5 ? 0.85 : 0.75) * weight;
-        dx += (u - 0.5) * (-this.hipDisp * 0.22) * weight;
+        dy += this.hipDisp * (isS5 ? 0.88 : 0.75) * weight;
+        dx += ((u - 0.5) * (-this.hipDisp * 0.22) + shiverWave * 0.8) * weight;
       }
 
       data[i] = rx + dx;

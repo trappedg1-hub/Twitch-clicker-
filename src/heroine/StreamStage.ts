@@ -41,6 +41,7 @@ export class StreamStage {
   private readonly root = new Container();
   private bgSprite!: Sprite;
   private lampGlow = new Graphics();
+  private feverGlow = new Graphics();
   private chairShadow = new Graphics();
   private fgDeskSprite!: Sprite;
   private micLed = new Graphics();
@@ -48,10 +49,12 @@ export class StreamStage {
   private readonly fxLayer = new Container();
 
   private readonly particles: FloatingParticle[] = [];
+  private activeCalloutParticle?: FloatingParticle;
   private readonly motes: DustMote[] = [];
   private pointerNormX = 0;
   private pointerNormY = 0;
   private lampLevel = 0;
+  private hypeLevel = 0;
   private drawerOpen = false;
   private hostEl?: HTMLElement;
   private elapsedSec = 0;
@@ -125,6 +128,13 @@ export class StreamStage {
       .fill({ color: 0xffd6ec, alpha: 1 });
     this.lampGlow.alpha = 0.03;
     this.root.addChild(this.lampGlow);
+
+    // Hot pink/magenta fanservice fever aura when chat hype surges!
+    this.feverGlow
+      .circle(StreamStage.VIRTUAL_W * 0.5, StreamStage.VIRTUAL_H * 0.42, 430)
+      .fill({ color: 0xff3b9a, alpha: 1 });
+    this.feverGlow.alpha = 0;
+    this.root.addChild(this.feverGlow);
 
     // Ambient dust motes in warm floor-lamp light
     this.root.addChild(this.dustLayer);
@@ -217,6 +227,59 @@ export class StreamStage {
 
   public setRingLampLevel(level: number): void {
     this.lampLevel = level;
+  }
+
+  public setHypeLevel(hype: number): void {
+    this.hypeLevel = Math.max(0, Math.min(100, hype));
+  }
+
+  public spawnReactionCallout(tagText: string, isFever = false, sideSeed = 0): void {
+    // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
+    if (this.activeCalloutParticle) {
+      const idx = this.particles.indexOf(this.activeCalloutParticle);
+      if (idx !== -1) {
+        this.fxLayer.removeChild(this.activeCalloutParticle.node);
+        this.activeCalloutParticle.node.destroy({ children: true });
+        this.particles.splice(idx, 1);
+      }
+      this.activeCalloutParticle = undefined;
+    }
+
+    const side = sideSeed % 2 === 0 ? -1 : 1;
+    const container = new Container();
+    container.position.set(
+      StreamStage.VIRTUAL_W * 0.5 + side * 295,
+      225 + (sideSeed % 3) * 44,
+    );
+
+    const style = new TextStyle({
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+      fontSize: isFever ? 20 : 17.5,
+      fontWeight: '800',
+      fontStyle: 'italic',
+      fill: isFever ? '#ffd54f' : '#ff85c0',
+      stroke: { color: '#160921', width: 4.5 },
+      dropShadow: {
+        color: isFever ? '#ff2e88' : '#9147ff',
+        blur: 7,
+        distance: 0,
+        alpha: 0.85,
+      },
+    });
+    const label = new Text({ text: tagText, style });
+    label.anchor.set(0.5);
+    container.addChild(label);
+    this.fxLayer.addChild(container);
+
+    const p: FloatingParticle = {
+      node: container,
+      vx: side * 18,
+      vy: -42,
+      lifeMs: 0,
+      maxLifeMs: isFever ? 1100 : 880,
+    };
+    this.particles.push(p);
+    this.activeCalloutParticle = p;
   }
 
   public setSubStage(
@@ -389,9 +452,15 @@ export class StreamStage {
     this.micLed.x = this.pointerNormX * 7.5;
     this.micLed.alpha = 0.3 + 0.25 * Math.sin(this.elapsedSec * 3.2);
 
-    // Ring lamp subtle warm glow scales with upgrade level
+    // Ring lamp subtle warm glow scales with upgrade level + rosy Fever aura at high hype
     const targetGlow = Math.min(0.16, 0.025 + this.lampLevel * 0.012);
     this.lampGlow.alpha += (targetGlow - this.lampGlow.alpha) * 0.08;
+
+    const targetFever =
+      this.hypeLevel > 50
+        ? ((this.hypeLevel - 50) / 50) * (0.09 + 0.025 * Math.sin(this.elapsedSec * 5.0))
+        : 0;
+    this.feverGlow.alpha += (targetFever - this.feverGlow.alpha) * 0.1;
 
     // Floating dust motes
     for (const m of this.motes) {
@@ -407,6 +476,9 @@ export class StreamStage {
       p.lifeMs += safeDt;
       const t = p.lifeMs / p.maxLifeMs;
       if (t >= 1) {
+        if (this.activeCalloutParticle === p) {
+          this.activeCalloutParticle = undefined;
+        }
         this.fxLayer.removeChild(p.node);
         p.node.destroy({ children: true });
         this.particles.splice(i, 1);

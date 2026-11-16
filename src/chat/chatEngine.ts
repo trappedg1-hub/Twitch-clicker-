@@ -27,6 +27,10 @@ const VIEWER_NICKS: readonly { name: string; color: string; badge?: ChatMessage[
   { name: 'vlad_4k_monitor', color: '#80cbc4', badge: 'VIP' },
   { name: 'stepan_lurker', color: '#ce93d8' },
   { name: 'maksim_simp', color: '#ff5252', badge: 'SUB' },
+  { name: 'feet_inspector_77', color: '#f9a8d4', badge: 'VIP' },
+  { name: 'night_owl_msk', color: '#a5b4fc' },
+  { name: 'gachi_baron', color: '#fcd34d', badge: 'SUB' },
+  { name: 'clip_hunter_ru', color: '#67e8f9' },
 ];
 
 const AMBIENT_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
@@ -34,81 +38,130 @@ const AMBIENT_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
     'привет! так укуталась в худи и носочки, милота :peepoShy: :miyaLove:',
     'чат го накидаем 10 сабов чтобы сняла носочки!! :SubHype: :Pog:',
     'она реально паникует когда ползёт Sub Goal ахаха :monkaS: :LUL:',
-    'даже через худи видно какая у неё фигурка :BOOBA: :peepoShy:',
-    'ребят тут реальный Sub Goal на раздевание, остаёмся! :EZ: :Pog:',
+    'даже через худи видно какие там формы :BOOBA: :AWOOGA:',
+    'ребят тут реальный Sub Goal на раздевание, не переключаемся! :EZ: :ClipIt:',
+    'ключицы в вырезе худи уже сводят с ума :Nosebleed: :peepoShy:',
+    'ставлю сотку что к концу стрима она раскрепостится на все 100% :EZ: :Pog:',
   ],
   1: [
-    '10 сабов есть — босые ступни уже в кадре :Kreygasm: :miyaLove:',
+    '10 сабов есть — босые ступни уже в кадре :AWOOGA: :Kreygasm:',
     'педикюр огонь, чат жмём до 50 сабов на легинсы!! :SubHype: :Pog:',
-    'пальчики поджала от смущения ахах :peepoShy: :LUL:',
-    'скоро снимет легинсы, модеры не баньте :monkaS: :BOOBA:',
+    'пальчики поджала от смущения ахах, сохраняю клип :ClipIt: :peepoShy:',
+    'скоро снимет легинсы, модеры держите оборону :monkaS: :BOOBA:',
+    'ценители ножек уже окупили ей аренду квартиры :LUL: :miyaLove:',
+    'как же ей идёт краснеть босиком перед вебкой :Nosebleed: :Kreygasm:',
   ],
   2: [
-    'уютное худи с ключицами + полностью голые ляжки = лучший фетиш :BOOBA: :Kreygasm:',
-    'без легинсов вид стал в 10 раз горячее :BOOBA: :Pog:',
+    'уютное худи с ключицами + полностью голые ляжки = лучший фетиш :BOOBA: :AWOOGA:',
+    'без легинсов вид стал в 10 раз горячее, у меня перегрев :Overheat: :Nosebleed:',
     'ЧАТ ДАВИМ ДО 200 САБОВ, СНИМАЕМ ХУДИ!! :EZ: :SubHype:',
-    'фарфоровые коленки просто гипноз :Kreygasm: :miyaLove:',
+    'фарфоровые коленки и бёдра в свете лампы просто гипноз :Kreygasm: :ClipIt:',
+    'зашёл на 5 минут, сижу уже второй час без отрыва :AWOOGA: :LUL:',
+    'представьте что там спрятано под этим серым худи... :BOOBA: :Overheat:',
   ],
   3: [
-    'ПОД ХУДИ БЫЛА ТАКАЯ ТЕСНАЯ ТИШКА?! :BOOBA: :BOOBA: :Kreygasm:',
-    'животик и вырез просто космос, не зря били 200 сабов :Pog: :miyaLove:',
-    'Твич не забань пожалуйста, мы почти добили 500 сабов :monkaS: :BOOBA:',
-    'зашёл с рекомендаций, инста сабка :EZ: :Kreygasm:',
+    'ПОД ХУДИ БЫЛА ТАКАЯ ТЕСНАЯ КРОП-ТИШКА?! :BOOBA: :AWOOGA: :Nosebleed:',
+    'животик и глубокий вырез просто космос, не зря били 200 сабов :Overheat: :miyaLove:',
+    'Твич не забань пожалуйста, мы почти добили 500 сабов на бралетт :monkaS: :BOOBA:',
+    'зашёл с рекомендаций по клипу — инста платная сабка :EZ: :ClipIt: :SubHype:',
+    'как натягивается принт геймпада на каждом вдохе... спасите :Nosebleed: :Kreygasm:',
+    'одной рукой печатать в чате всё сложнее ахах :Overheat: :LUL:',
   ],
   4: [
-    '500 САБОВ!! ЧЁРНЫЙ БРАЛЕТТ В ЭФИРЕ!! :BOOBA: :BOOBA: :Kreygasm:',
+    '500 САБОВ!! ЧЁРНЫЙ БРАЛЕТТ В ПРЯМОМ ЭФИРЕ!! :BOOBA: :AWOOGA: :Nosebleed:',
     'чат там на 1000 сабов СЕКРЕТНЫЙ КОСПЛЕЙ С НОЖКАМИ НА СТОЛ!! жмём!! :EZ: :Pog:',
-    'из скромницы в носочках в самую горячую стримершу Твича :Kreygasm: :miyaLove:',
-    'добиваем 1000 сабов ради косплея Зайки!! :SubHype: :BOOBA:',
+    'из зажатой скромницы в носочках в королеву фансервиса :Overheat: :Kreygasm: :miyaLove:',
+    'добиваем 1000 сабов ради косплея Зайки с подвязкой!! :SubHype: :AWOOGA:',
+    'я уже 15 клипов нарезал с этим бралеттом :ClipIt: :Nosebleed:',
+    'пульс 160, вызывайте скорую в чат :Overheat: :BOOBA:',
   ],
   5: [
-    'БОСЫЕ ПЯТОЧКИ ПРЯМО НА СТОЛЕ В КАМЕРУ!! ЛУЧШИЙ РАКУРС В ИСТОРИИ :BOOBA: :Kreygasm:',
-    '1000 САБОВ НЕ ЗРЯ!! УШКИ ЗАЙКИ + ПОДВЯЗКА + СТУПНИ 4K :BOOBA: :BOOBA: :Pog:',
-    'Твич умоляю не бань этот шедевр :monkaS: :Kreygasm:',
-    'ценители ножек сегодня официально победили в этой жизни :EZ: :Kreygasm: :miyaLove:',
+    'БОСЫЕ ПЯТОЧКИ ПРЯМО НА СТОЛЕ В КАМЕРУ!! ЛУЧШИЙ РАКУРС В ИСТОРИИ :AWOOGA: :Nosebleed: :Kreygasm:',
+    '1000 САБОВ НЕ ЗРЯ!! УШКИ ЗАЙКИ + ЧОКЕР + ПОДВЯЗКА + СТУПНИ 4K :BOOBA: :Overheat: :ClipIt:',
+    'Твич умоляю не бань этот шедевр мирового искусства :monkaS: :Kreygasm:',
+    'ценители ножек сегодня официально победили в этой жизни :EZ: :AWOOGA: :miyaLove:',
+    'кружевная подвязка под мини-юбочкой и розовые пяточки у самой линзы... я в раю :Nosebleed: :Overheat:',
+    'ЭТОТ СТРИМ ВОЙДЁТ В ЗОЛОТОЙ ФОНД JUST CHATTING :Pog: :ClipIt: :SubHype:',
   ],
 };
 
 const ZONE_CHAT_REACTIONS: Record<TapZoneId, readonly string[]> = {
   head: [
-    'АХАХ как же она залилась краской :peepoShy: :miyaLove:',
-    'эти смущённые глазки просто нелегальны :Kreygasm:',
-    'посмотрите на этот румянец :peepoShy: :miyaLove:',
-    'ути какая няша на вебке :LUL: :miyaLove:',
+    'АХАХ как же она залилась краской и закусила губку :peepoShy: :AWOOGA:',
+    'эти томные глазки и румянец просто нелегальны :Nosebleed: :Kreygasm:',
+    'подмигнула прямо мне в душу, лови сабку :AWOOGA: :miyaLove:',
+    'сохранил этот взгляд на обои рабочего стола :ClipIt: :peepoShy:',
+    'голос сорвался на шёпот, мурашки по спине :Overheat: :Kreygasm:',
   ],
   chest: [
-    ':BOOBA: :BOOBA: оператор, лучший ракурс в мире!!',
-    'физика дыхания моё почтение :BOOBA: :Kreygasm:',
-    'чат, кидаем сабы активнее ради такого вида :SubHype: :BOOBA:',
-    'сердце остановилось на секунду :Kreygasm: :miyaLove:',
+    ':BOOBA: :AWOOGA: оператор, лучший ракурс во вселенной!!',
+    'ФИЗИКА ДЫХАНИЯ МОЁ ПОЧТЕНИЕ, ЧАТ ФИКСИРУЕМ :BOOBA: :Nosebleed: :ClipIt:',
+    'у меня монитор запотел от такого глубокого вдоха :Overheat: :Kreygasm:',
+    'чат, кидаем сабы активнее ради такого декольте :SubHype: :AWOOGA:',
+    'каждый раз когда она вздрагивает — +10 лет к жизни :BOOBA: :miyaLove:',
+    'модеры сами залипли и забыли про правила :monkaS: :LUL: :BOOBA:',
   ],
   belly: [
-    'какая тонкая талия :BOOBA: чатик фиксируем!!',
-    'она так мило вздрагивает от щекотки :peepoShy: :miyaLove:',
-    'в комнате резко потеплело :Kreygasm: :Pog:',
-    'фигура просто песочные часы :BOOBA: :miyaLove:',
+    'какая тонкая талия и животик :AWOOGA: :Nosebleed: чатик фиксируем!!',
+    'она так сладко ойкает и изгибается от щекотки :Overheat: :Kreygasm:',
+    'в комнате резко поднялась температура на 10 градусов :Overheat: :Pog:',
+    'фигура просто эталонные песочные часы из манхвы :BOOBA: :AWOOGA:',
+    'этот изгиб талии гипнотизирует сильнее маятника :Kreygasm: :miyaLove:',
   ],
   legs: [
-    'посадка с ножками в кресле — гипноз 10/10 :BOOBA: :Kreygasm:',
-    'спасибо тому кто попросил её откатиться от стола :Pog: :BOOBA:',
-    'даже простое офисное кресло с такими ножками — трон :Kreygasm:',
-    'невозможно оторваться от экрана :peepoShy: :miyaLove:',
+    'посадка с голыми ножками в кресле — чистый гипноз 10/10 :AWOOGA: :Nosebleed:',
+    'блеск кожи на бёдрах под кольцевой лампой сводит с ума :Overheat: :Kreygasm:',
+    'даже офисное кресло с такими ляжками выглядит как королевский трон :BOOBA: :EZ:',
+    'невозможно моргать, боюсь пропустить хоть секунду :ClipIt: :AWOOGA:',
+    'ляжки мечты, оформляю подарочные сабки без раздумий :SubHype: :miyaLove:',
   ],
   feet: [
-    'СТУПНИ В КАДРЕ :Kreygasm: ЧАТ СБОР ПО ТРЕВОГЕ :Pog:',
-    'ценители ножек сегодня закидывают весь Sub Goal :SubHype: :miyaLove:',
-    'как она смущается когда смотрят вниз ахах :peepoShy: :LUL:',
-    'лови сабку за ножки :SubHype: :Kreygasm:',
+    'СТУПНИ КРУПНЫМ ПЛАНОМ :AWOOGA: :Nosebleed: ЧАТ ОБЩИЙ СБОР!!',
+    'как она сжимает пальчики от щекотки — это сразу в клипы :ClipIt: :Kreygasm:',
+    'ценители босых ножек сегодня закидывают весь Sub Goal :EZ: :SubHype: :miyaLove:',
+    'аккуратный педикюр и розовые пяточки 100/10 :AWOOGA: :Overheat:',
+    'лови ещё донат за фансервис с ножками!! :SubHype: :Kreygasm:',
+  ],
+};
+
+const DONATION_TTS_LINES: readonly string[] = [
+  '«Не прикрывайся руками, ты невероятно сексуальная! Кидаю в копилку на Sub Goal! :AWOOGA: :SubHype:»',
+  '«Пошевели ещё раз пальчиками на камеру — и с меня пачка подарочных сабов! :Kreygasm: :miyaLove:»',
+  '«Твой смущённый вздох в микрофон растопил мне мозг, держи на косплей! :Nosebleed: :Overheat:»',
+  '«Наклонись за чашечкой ещё разок на бис плз, чат просит!! :BOOBA: :ClipIt:»',
+  '«Лучшая стримерша Твича, ни в чём себе не отказывай и снимай лишнее смелее! :EZ: :SubHype:»',
+];
+
+const VIRAL_CLIP_TITLES: Record<TapZoneId, readonly string[]> = {
+  head: [
+    'МИЯ ТОМНО ЗАКУСИЛА ГУБКУ В 1080p60',
+    'СМУЩЁННЫЙ ШЁПОТ МИИ СЛОМАЛ ЧАТ',
+  ],
+  chest: [
+    'ФИЗИКА НА ВДОХЕ!! ЧАТ УЛЕТЕЛ В КОСМОС',
+    'СЛУЧАЙНО НАКЛОНИЛАСЬ СЛИШКОМ БЛИЗКО К ВЕБКЕ',
+  ],
+  belly: [
+    'СЛАДКО ВЫГНУЛАСЬ ОТ ЩЕКОТКИ В ПРЯМОМ ЭФИРЕ',
+    'ТАЛИЯ И ЖИВОТИК КРУПНЫМ ПЛАНОМ',
+  ],
+  legs: [
+    'БЁДРА И ПОДВЯЗКА В СВЕТЕ КОЛЬЦЕВОЙ ЛАМПЫ',
+    'ПОМЕНЯЛА ПОЗУ В КРЕСЛЕ — ОНЛАЙН Х2',
+  ],
+  feet: [
+    'БОСЫЕ ПЯТОЧКИ ПРЯМО НА СТОЛЕ ПЕРЕД ЛИНЗОЙ 4K',
+    'СЖАЛА ПАЛЬЧИКИ ОТ ЩЕКОТКИ НА КАМЕРУ',
   ],
 };
 
 const UPGRADE_CHAT_REACTIONS: Record<UpgradeId, string> = {
-  ring_lamp: 'Оо, со светом кожа светится просто топ :Kreygasm: :miyaLove:',
-  usb_mic_pop: 'Звук кайф, теперь чистый влажный ASMR :Kreygasm: :peepoShy:',
-  obs_alerts: 'АХАХ как она подпрыгивает от саб-алертов :LUL: :BOOBA:',
-  webcam_focus: '1080p подъехало!! Чат протираем мониторы :BOOBA: :Pog:',
-  chat_emotes: 'УРА КАСТОМНЫЕ СМАЙЛЫ ДЛЯ САБОВ :miyaLove: :BOOBA: :SubHype:',
-  clips_boost: 'РЕЙД С РЕКОМЕНДАЦИЙ!! Добиваем Sub Goal :Pog: :SubHype:',
+  ring_lamp: 'Оо, с новым светом каждый изгиб и блик на коже светится как в манхве :AWOOGA: :Kreygasm:',
+  usb_mic_pop: 'Звук пушка, теперь слышно каждое горячее дыхание и влажный шёпот :Nosebleed: :Overheat:',
+  obs_alerts: 'АХАХ как же сладко она подпрыгивает от вибро-алертов :BOOBA: :ClipIt: :LUL:',
+  webcam_focus: 'Чёткость 1080p60!! Чат протираем запотевшие мониторы :AWOOGA: :BOOBA: :Pog:',
+  chat_emotes: 'УРА НОВЫЕ 7TV СМАЙЛЫ ФАНСЕРВИСА :AWOOGA: :Nosebleed: :Overheat: :miyaLove:',
+  clips_boost: 'РЕЙД С ВИРУСНОГО КЛИПА!! Добиваем Sub Goal всем чатом :ClipIt: :Pog: :SubHype:',
 };
 
 let seqCounter = 0;
@@ -146,7 +199,16 @@ export function createZoneBurstMessage(
       author: viewer.name,
       color: viewer.color,
       badge: viewer.badge,
-      text: 'полосатые носочки милые, но го 10 сабов чтобы сняла!! :SubHype: :peepoShy:',
+      text: 'полосатые носочки милые, но го 10 сабов чтобы увидеть голые пяточки!! :SubHype: :AWOOGA:',
+    };
+  }
+  if (zone === 'feet' && displayedStage === 5) {
+    return {
+      id: nextMsgId(),
+      author: 'feet_inspector_77',
+      color: '#f9a8d4',
+      badge: 'VIP',
+      text: 'ОБЕ БОСЫЕ СТУПНИ ПРЯМО НА СТОЛЕ У ОБЪЕКТИВА!! СОХРАНЯЮ В 4K :ClipIt: :AWOOGA: :Nosebleed:',
     };
   }
   if (zone === 'legs' && displayedStage <= 1) {
@@ -155,7 +217,7 @@ export function createZoneBurstMessage(
       author: viewer.name,
       color: viewer.color,
       badge: viewer.badge,
-      text: 'даже в плотных легинсах ляжки огонь, жмём 50 сабов! :BOOBA: :SubHype:',
+      text: 'даже в обтягивающих легинсах ляжки огонь, жмём 50 сабов! :BOOBA: :SubHype:',
     };
   }
   if (zone === 'chest' && displayedStage <= 2) {
@@ -164,7 +226,7 @@ export function createZoneBurstMessage(
       author: viewer.name,
       color: viewer.color,
       badge: viewer.badge,
-      text: 'интересно что там спрятано под этим серым худи... го 200 сабов! :BOOBA: :Pog:',
+      text: 'как натягивается худи на груди... срочно 200 сабов в чат!! :BOOBA: :Overheat:',
     };
   }
   const pool = ZONE_CHAT_REACTIONS[zone];
@@ -177,14 +239,34 @@ export function createZoneBurstMessage(
   };
 }
 
+export function createViralClipChatMessage(
+  zone: TapZoneId,
+  onlineViewers: number,
+  seed = seqCounter,
+): ChatMessage {
+  const clipper = VIEWER_NICKS[(seed * 5 + 3) % VIEWER_NICKS.length]!;
+  const titles = VIRAL_CLIP_TITLES[zone];
+  const title = titles[Math.abs(seed) % titles.length]!;
+  const views = Math.max(48, onlineViewers * (6 + (seed % 7)));
+  return {
+    id: nextMsgId(),
+    author: 'TwitchClips',
+    color: '#a78bfa',
+    badge: 'MOD',
+    text: `${clipper.name} сохранил клип «${title}» (${views} просм.) :ClipIt: :AWOOGA: :Nosebleed:`,
+    isSystemHighlight: true,
+  };
+}
+
 export function createDonationChatMessage(amount: number, seed = seqCounter): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 5 + 1) % VIEWER_NICKS.length]!;
+  const tts = DONATION_TTS_LINES[Math.abs(seed) % DONATION_TTS_LINES.length]!;
   return {
     id: nextMsgId(),
     author: viewer.name,
     color: '#ffd54f',
     badge: 'DONATE',
-    text: `задонатил ${amount} ₽: «Кидаю в копилку на Sub Goal! :miyaLove: :SubHype:»`,
+    text: `задонатил ${amount} ₽: ${tts}`,
     isSystemHighlight: true,
   };
 }
@@ -204,8 +286,8 @@ export function createSubNotificationMessage(
       badge: 'SUB',
       text:
         count === 1
-          ? `подарил подписку в чат! (Всего: ${totalSubs} сабов) :SubHype: :miyaLove:`
-          : `подарил ${count} ПОДПИСОК каналу! (Всего: ${totalSubs} сабов) :SubHype: :Pog:`,
+          ? `подарил подписку ради фансервиса! (Всего: ${totalSubs} сабов) :SubHype: :miyaLove:`
+          : `подарил ПАЧКУ ${count} ПОДПИСОК каналу! (Всего: ${totalSubs} сабов) :SubHype: :AWOOGA: :Pog:`,
       isSystemHighlight: count >= 5,
     };
   }
@@ -214,7 +296,7 @@ export function createSubNotificationMessage(
     author: viewer.name,
     color: '#c084fc',
     badge: 'SUB',
-    text: `оформил платную подписку Tier 1! (${totalSubs} сабов) :SubHype:`,
+    text: `оформил платную подписку Tier 1! (${totalSubs} сабов) :SubHype: :miyaLove:`,
   };
 }
 
@@ -246,7 +328,7 @@ export function createMilestoneChatMessage(title: string): ChatMessage {
     author: 'StreamBot',
     color: '#00e676',
     badge: 'MOD',
-    text: `★ РЕКОРД СТРИМА: ${title}! Чат сходит с ума :Pog: :SubHype:`,
+    text: `★ РЕКОРД СТРИМА: ${title}! Чат кипит от фансервиса :Overheat: :Pog: :SubHype:`,
     isSystemHighlight: true,
   };
 }

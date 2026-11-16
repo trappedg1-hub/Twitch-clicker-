@@ -16,7 +16,9 @@ export type ChallengeId =
   | 'lean_mic'
   | 'pose_feet'
   | 'tug_tee'
-  | 'asmr_tease';
+  | 'asmr_tease'
+  | 'arch_stretch'
+  | 'garter_flash';
 
 export type BottomTabId = 'stream' | 'upgrades' | 'outfits' | 'story';
 
