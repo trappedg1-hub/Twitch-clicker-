@@ -8,7 +8,11 @@ import {
   TextStyle,
   Texture,
 } from 'pixi.js';
-import type { SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
+import type {
+  HeroineEmotion,
+  SubGoalStageIndex,
+  TapZoneId,
+} from '../domain/types.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -72,18 +76,41 @@ export class StreamStage {
     hostEl.appendChild(this.app.canvas);
     this.app.stage.addChild(this.root);
 
-    const [bgTex, s0Tex, s1Tex, s2Tex, s3Tex, s4Tex, blinkTex, flusterTex, fgDeskTex] =
-      await Promise.all([
-        Assets.load<Texture>('/art/bg_room_t1.webp'),
-        Assets.load<Texture>('/art/heroine_t1_s0.webp'),
-        Assets.load<Texture>('/art/heroine_t1_s1.webp'),
-        Assets.load<Texture>('/art/heroine_t1_s2.webp'),
-        Assets.load<Texture>('/art/heroine_t1_base.webp'),
-        Assets.load<Texture>('/art/heroine_t1_s4.webp'),
-        Assets.load<Texture>('/art/patch_t1_blink.webp'),
-        Assets.load<Texture>('/art/patch_t1_fluster.webp'),
-        Assets.load<Texture>('/art/fg_desk_t1.webp'),
-      ]);
+    const [
+      bgTex,
+      s0Tex,
+      s1Tex,
+      s2Tex,
+      s3Tex,
+      s4Tex,
+      s5Tex,
+      blinkTex,
+      shyTex,
+      flusterTex,
+      teaseTex,
+      boldTex,
+      s5BlinkTex,
+      s5TeaseTex,
+      s5FlusterTex,
+      fgDeskTex,
+    ] = await Promise.all([
+      Assets.load<Texture>('/art/bg_room_t1.webp'),
+      Assets.load<Texture>('/art/heroine_t1_s0.webp'),
+      Assets.load<Texture>('/art/heroine_t1_s1.webp'),
+      Assets.load<Texture>('/art/heroine_t1_s2.webp'),
+      Assets.load<Texture>('/art/heroine_t1_base.webp'),
+      Assets.load<Texture>('/art/heroine_t1_s4.webp'),
+      Assets.load<Texture>('/art/heroine_t1_s5.webp'),
+      Assets.load<Texture>('/art/patch_t1_blink.webp'),
+      Assets.load<Texture>('/art/patch_t1_shy.webp'),
+      Assets.load<Texture>('/art/patch_t1_fluster.webp'),
+      Assets.load<Texture>('/art/patch_t1_tease.webp'),
+      Assets.load<Texture>('/art/patch_t1_bold.webp'),
+      Assets.load<Texture>('/art/patch_t1_s5_blink.webp'),
+      Assets.load<Texture>('/art/patch_t1_s5_tease.webp'),
+      Assets.load<Texture>('/art/patch_t1_s5_fluster.webp'),
+      Assets.load<Texture>('/art/fg_desk_t1.webp'),
+    ]);
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
@@ -124,11 +151,17 @@ export class StreamStage {
       .fill({ color: 0x1a1118, alpha: 0.36 });
     this.root.addChild(this.chairShadow);
 
-    // Layer 1: Heroine Rig (5 Sub Goal strip-down stages aligned to 0.0px!)
+    // Layer 1: Heroine Rig (6 Sub Goal stages including Stage 5 Cosplay Feet-on-Desk!)
     this.rig = new HeroineRig({
-      stages: [s0Tex, s1Tex, s2Tex, s3Tex, s4Tex],
+      stages: [s0Tex, s1Tex, s2Tex, s3Tex, s4Tex, s5Tex],
       blink: blinkTex,
+      shy: shyTex,
       fluster: flusterTex,
+      tease: teaseTex,
+      bold: boldTex,
+      s5Blink: s5BlinkTex,
+      s5Tease: s5TeaseTex,
+      s5Fluster: s5FlusterTex,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -186,8 +219,29 @@ export class StreamStage {
     this.lampLevel = level;
   }
 
-  public setSubStage(stage: SubGoalStageIndex, celebrate = false, bannerLabel?: string): void {
-    const didChange = this.rig?.setSubStage(stage, celebrate);
+  public setSubStage(
+    stage: SubGoalStageIndex,
+    celebrate = false,
+    bannerLabel?: string,
+    unlockEmotion?: Exclude<HeroineEmotion, 'neutral'>,
+  ): void {
+    const didChange = this.rig?.setSubStage(stage, celebrate, unlockEmotion);
+    if (didChange && this.rig && this.fgDeskSprite) {
+      // In Stage 5 Cosplay, her bare heels & soles rest ON TOP OF the wooden desk!
+      const deskIdx = this.root.getChildIndex(this.fgDeskSprite);
+      const rigIdx = this.root.getChildIndex(this.rig.view);
+      if (stage === 5) {
+        this.rig.view.y = 32;
+        if (rigIdx < deskIdx) {
+          this.root.setChildIndex(this.rig.view, deskIdx);
+        }
+      } else {
+        this.rig.view.y = 18;
+        if (rigIdx > deskIdx) {
+          this.root.setChildIndex(this.rig.view, deskIdx);
+        }
+      }
+    }
     if (celebrate && bannerLabel) {
       this.spawnSubGoalBanner(bannerLabel);
     }

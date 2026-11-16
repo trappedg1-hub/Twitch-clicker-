@@ -11,33 +11,74 @@
       <main class="stage-shell">
         <div id="stream-stage-host" class="stream-stage-host"></div>
 
-        <!-- Authentic Top-Left OBS Sub Goal Bar (sits cleanly on left bedroom wall, never touches Miya!) -->
-        <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель платных подписок">
-          <div class="subgoal-top-row">
-            <span class="subgoal-tag">★ SUB GOAL</span>
-            <span id="subgoal-target-name" class="subgoal-target-name">Снять носочки</span>
-            <span id="subgoal-count" class="subgoal-count">0 / 10</span>
+        <!-- Authentic Twitch / StreamElements OBS Creator Sub Goal Overlay (Top-Left) -->
+        <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель подписок канала">
+          <div class="tw-goal-header">
+            <div class="tw-goal-icon-badge" aria-hidden="true">
+              <svg viewBox="0 0 20 20" class="tw-star-svg">
+                <path
+                  fill="currentColor"
+                  d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
+                />
+              </svg>
+            </div>
+            <div class="tw-goal-titles">
+              <span class="tw-goal-kicker">SUB GOAL КАНАЛА</span>
+              <span id="subgoal-target-name" class="tw-goal-main">Снять носочки</span>
+            </div>
           </div>
-          <div class="subgoal-track">
-            <div id="subgoal-fill" class="subgoal-fill"></div>
+
+          <div class="tw-goal-bar-wrap">
+            <div id="subgoal-fill" class="tw-goal-bar-fill"></div>
+            <div class="tw-goal-bar-labels">
+              <span id="subgoal-count" class="tw-goal-nums">0 / 10 сабов</span>
+              <span id="subgoal-pct" class="tw-goal-pct">0%</span>
+            </div>
           </div>
-          <div class="subgoal-actions">
-            <button id="btn-gift-sub-1" class="gift-sub-btn" type="button">
-              ★ Подарить саб • <span id="gift-cost-1">18 ₽</span>
-            </button>
-            <button id="btn-gift-sub-5" class="gift-sub-btn gift-sub-pack" type="button">
-              x5 • <span id="gift-cost-5">90 ₽</span>
-            </button>
-            <button id="btn-gift-sub-25" class="gift-sub-btn gift-sub-whale" type="button">
-              x25 • <span id="gift-cost-25">450 ₽</span>
-            </button>
+
+          <div id="subgoal-steps-row" class="tw-goal-steps">
+            <span class="goal-step active" data-step="1">10 Носки</span>
+            <span class="goal-step" data-step="2">50 Легинсы</span>
+            <span class="goal-step" data-step="3">200 Худи</span>
+            <span class="goal-step" data-step="4">500 Тишка</span>
+            <span class="goal-step" data-step="5">1000 Косп.</span>
           </div>
         </div>
 
-        <!-- Brief Top-Center Streamlabs Donation Toast (only appears for 2s on big donations/unlocks) -->
-        <div id="donation-alert" class="donation-alert hidden">
-          <div class="alert-amount" id="donation-alert-amount">★ +45 ₽ ★</div>
-          <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
+        <!-- Authentic Top-Center Twitch / StreamElements Sub & Donation Alert Card -->
+        <div id="donation-alert" class="tw-alert-card hidden">
+          <div class="tw-alert-accent"></div>
+          <div class="tw-alert-body">
+            <div class="tw-alert-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" class="tw-star-svg">
+                <path
+                  fill="currentColor"
+                  d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
+                />
+              </svg>
+            </div>
+            <div class="tw-alert-text">
+              <div class="alert-amount" id="donation-alert-amount">★ НОВЫЙ ДОНАТ +45 ₽</div>
+              <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Authentic Top-Right Twitch Player Status Badges (LIVE + 1080p60 + Hype Train Pill) -->
+        <div class="tw-player-top-right" aria-label="Статус трансляции">
+          <div class="tw-hype-pill" title="Эмоция Мии и множитель хайпа чата">
+            <span id="mood-indicator-label" class="tw-mood-label">Смущается</span>
+            <span class="tw-hype-sep">•</span>
+            <span class="tw-hype-tag">ХАЙП <strong id="stat-hype-mult">x1.00</strong></span>
+            <div class="hype-bar-track">
+              <div id="stat-hype-fill" class="hype-bar-fill"></div>
+            </div>
+          </div>
+          <div class="tw-quality-badge">1080p60</div>
+          <div class="tw-live-corner-badge">
+            <span class="tw-live-dot"></span>
+            В ЭФИРЕ
+          </div>
         </div>
 
         <!-- Borderless Airy OBS Transparent Chat (no boxes, with custom Twitch emotes!) -->
@@ -48,7 +89,7 @@
         <!-- Frameless Voice Subtitle along the Wooden Desk Edge (below feet, auto-fades!) -->
         <div id="speech-subtitle" class="speech-subtitle visible">
           <span class="sub-name">Мия:</span>
-          <span id="speech-text">«Ой... кто-то зашёл! Я тут в худи и носочках, но если наберёте Sub Goal — буду снимать лишнее...»</span>
+          <span id="speech-text">«Ой... кто-то зашёл! Зачем я вообще согласилась на этот Sub Goal... т-только не дарите сабы слишком быстро!»</span>
         </div>
       </main>
 
@@ -59,7 +100,7 @@
           <div class="channel-info">
             <div class="avatar-ring-wrap">
               <img class="channel-avatar-img" src="/art/avatar_miya.webp" alt="miya_nyash" />
-              <span class="live-pill">В ЭФИРЕ</span>
+              <span class="live-pill">LIVE</span>
             </div>
 
             <div class="channel-text">
@@ -74,7 +115,7 @@
                 <span id="story-stage-badge" class="stage-pill">Этап 1 • Закутанная скромница</span>
               </div>
               <div id="stream-title" class="stream-title">
-                Первый стрим в худи и носочках... ★ SUB GOAL 0/10 — снимаю носочки!
+                Первый стрим, дико стесняюсь... ★ SUB GOAL 0/10 — снимаю носочки?!
               </div>
               <div class="channel-sub-row">
                 <span class="category-link">Just Chatting</span>
@@ -104,9 +145,31 @@
             <button class="tw-tab" data-tab="story" type="button">Фансервис и сюжет</button>
           </nav>
 
-          <!-- Right: Authentic Twitch Viewer Counter + Donation Wallet + Hype -->
+          <!-- Right: Authentic Twitch Gift-Sub Button Group + Viewer Counter + Wallet -->
           <div class="stream-metrics">
-            <div class="viewer-counter" title="Онлайн зрителей и прогресс до следующей цели">
+            <!-- Native Twitch #9147ff Gift a Sub Split-Button -->
+            <div class="tw-gift-group" role="group" aria-label="Подарить подписку каналу">
+              <button id="btn-gift-sub-1" class="tw-sub-btn-primary" type="button" title="Подарить 1 платную подписку в чат">
+                <svg class="tw-gift-svg" viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M16 6h-2.18A2.99 2.99 0 0014 5a3 3 0 00-4-2.83A3 3 0 006 5c0 .35.07.69.18 1H4a2 2 0 00-2 2v2c0 .55.45 1 1 1v6a2 2 0 002 2h10a2 2 0 002-2v-6c.55 0 1-.45 1-1V8a2 2 0 00-2-2zm-4-2a1 1 0 110 2h-1V5a1 1 0 011-1zM8 4a1 1 0 011 1v1H8a1 1 0 110-2zm1 13H5v-6h4v6zm0-8H4V8h5v1zm6 8h-4v-6h4v6zm1-8h-5V8h5v1z"
+                  />
+                </svg>
+                <span>Подарить саб</span>
+                <span id="gift-cost-1" class="tw-sub-price">18 ₽</span>
+              </button>
+              <button id="btn-gift-sub-5" class="tw-sub-btn-split" type="button" title="Саб-бомба: подарить 5 подписок">
+                <span>x5</span>
+                <small id="gift-cost-5">90 ₽</small>
+              </button>
+              <button id="btn-gift-sub-25" class="tw-sub-btn-split" type="button" title="Шейх-дроп: подарить 25 подписок">
+                <span>x25</span>
+                <small id="gift-cost-25">600 ₽</small>
+              </button>
+            </div>
+
+            <div class="viewer-counter" title="Зрители онлайн">
               <svg class="viewer-svg" viewBox="0 0 20 20" aria-hidden="true">
                 <path
                   fill="currentColor"
@@ -124,19 +187,12 @@
               </div>
             </div>
 
-            <div class="wallet-pill">
-              <span class="wallet-label">Донаты</span>
-              <span id="stat-balance-val" class="wallet-val">0 ₽</span>
-            </div>
-
-            <div class="income-pill">
-              <span id="stat-income-val" class="income-val">+5 ₽ • 0/с</span>
-              <div class="hype-inline">
-                <span id="stat-hype-mult" class="hype-mult">x1.00</span>
-                <div class="hype-bar-track">
-                  <div id="stat-hype-fill" class="hype-bar-fill"></div>
-                </div>
+            <div class="wallet-pill" title="Ваш баланс для улучшений и подарочных сабов">
+              <div class="wallet-top-line">
+                <span class="wallet-label">БАЛАНС</span>
+                <span id="stat-income-val" class="wallet-rate">+5 ₽</span>
               </div>
+              <span id="stat-balance-val" class="wallet-val">0 ₽</span>
             </div>
           </div>
         </div>

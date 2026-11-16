@@ -34,7 +34,7 @@ test('chat engine creates valid ambient, zone, sub notification, and cascade mes
     const cascade = createSubGoalCascadeMessages(st);
     assert.equal(cascade.length, 4);
     const rendered = renderChatTextWithEmotes(cascade[0]!.text);
-    assert.ok(rendered.includes('<svg'));
+    assert.ok(rendered.includes('class="tw-emote'));
   }
 
   const don = createDonationChatMessage(150, 4);
@@ -48,10 +48,12 @@ test('chat engine creates valid ambient, zone, sub notification, and cascade mes
   }
 });
 
-test('renderChatTextWithEmotes replaces Twitch emote tokens with inline SVG and escapes HTML', () => {
-  const html = renderChatTextWithEmotes('чат <script> :BOOBA: вау :peepoShy:');
+test('renderChatTextWithEmotes replaces Twitch emote tokens with real Twitch emote images and escapes HTML', () => {
+  const html = renderChatTextWithEmotes('чат <script> :BOOBA: вау :peepoShy: :monkaS: :EZ:');
   assert.ok(!html.includes('<script>'));
   assert.ok(html.includes('&lt;script&gt;'));
-  assert.ok(html.includes('class="tw-emote"'));
-  assert.ok(html.includes('<svg'));
+  assert.ok(html.includes('/emotes/booba.webp'));
+  assert.ok(html.includes('/emotes/peeposhy.webp'));
+  assert.ok(html.includes('/emotes/monkas.webp'));
+  assert.ok(html.includes('/emotes/ez.webp'));
 });

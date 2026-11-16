@@ -1,6 +1,8 @@
 export type TapZoneId = 'head' | 'chest' | 'belly' | 'legs' | 'feet';
 
-export type SubGoalStageIndex = 0 | 1 | 2 | 3 | 4;
+export type HeroineEmotion = 'neutral' | 'shy' | 'fluster' | 'tease' | 'bold';
+
+export type SubGoalStageIndex = 0 | 1 | 2 | 3 | 4 | 5;
 
 export type UpgradeId =
   | 'ring_lamp'
@@ -51,7 +53,9 @@ export interface SubGoalStageDef {
   incomeMultiplier: number;
   viewersBonus: number;
   boldnessBonus: number;
+  unlockEmotion: Exclude<HeroineEmotion, 'neutral'>;
   unlockLine: string;
+  shyApproachLines: readonly string[];
   chatCascade: readonly SubGoalReactionMsg[];
 }
 

@@ -1,17 +1,28 @@
 import {
   Container,
-   FederatedPointerEvent,
+  FederatedPointerEvent,
   Graphics,
   MeshPlane,
   Sprite,
   Texture,
 } from 'pixi.js';
-import type { SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
+import { pickEmotionForContext } from '../domain/dialogue.ts';
+import type {
+  HeroineEmotion,
+  SubGoalStageIndex,
+  TapZoneId,
+} from '../domain/types.ts';
 
 export interface HeroineTextures {
-  stages: readonly [Texture, Texture, Texture, Texture, Texture];
+  stages: readonly [Texture, Texture, Texture, Texture, Texture, Texture];
   blink: Texture;
+  shy: Texture;
   fluster: Texture;
+  tease: Texture;
+  bold: Texture;
+  s5Blink: Texture;
+  s5Tease: Texture;
+  s5Fluster: Texture;
 }
 
 interface EnvelopeState {
@@ -31,7 +42,6 @@ function stepEnvelope(env: EnvelopeState, dtMs: number): number {
   env.timerMs += dtMs;
   if (env.phase === 'attack') {
     const t = Math.min(1, env.timerMs / Math.max(1, env.attackMs));
-    // Smoothstep ease
     env.value = t * t * (3 - 2 * t);
     if (t >= 1) {
       env.phase = 'hold';
@@ -61,9 +71,23 @@ export class HeroineRig {
   private readonly bodyContainer = new Container();
   private readonly mesh: MeshPlane;
   private readonly restPositions: Float32Array;
+
+  private readonly boldRestSprite: Sprite;
+  private readonly emotionSprite: Sprite;
   private readonly blinkSprite: Sprite;
-  private readonly flusterSprite: Sprite;
   private readonly hitLayer = new Container();
+
+  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture, Texture];
+  private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
+  private readonly s5BlinkTex: Texture;
+  private readonly s5EmotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
+  private readonly uprightBlinkTex: Texture;
+
+  private currentStage: SubGoalStageIndex = 0;
+  private activeEmotion: Exclude<HeroineEmotion, 'neutral'> = 'shy';
+  private boldnessLevel = 0;
+  private reactionCounter = 0;
+  private nextAmbientMicroExprMs = 5200;
 
   public static readonly PLATE_W = 1024;
   public static readonly PLATE_H = 1526;
@@ -71,7 +95,7 @@ export class HeroineRig {
   private static readonly SEG_Y = 32;
 
   private elapsedSec = 0;
-  private nextBlinkCountdownMs = 2800;
+  private nextBlinkCountdownMs = 2600;
 
   // Damped spring state for localized soft-body bounce
   private chestDisp = 0;
@@ -84,23 +108,20 @@ export class HeroineRig {
   private readonly blinkEnv: EnvelopeState = {
     phase: 'idle',
     timerMs: 0,
-    attackMs: 95,
+    attackMs: 90,
     holdMs: 55,
-    releaseMs: 130,
+    releaseMs: 125,
     value: 0,
   };
 
-  private readonly flusterEnv: EnvelopeState = {
+  private readonly emotionEnv: EnvelopeState = {
     phase: 'idle',
     timerMs: 0,
-    attackMs: 110,
-    holdMs: 1450,
+    attackMs: 105,
+    holdMs: 1650,
     releaseMs: 320,
     value: 0,
   };
-
-  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture];
-  private currentStage: SubGoalStageIndex = 0;
 
   public onZoneTap?: (
     zone: TapZoneId,
@@ -109,6 +130,22 @@ export class HeroineRig {
 
   constructor(textures: HeroineTextures) {
     this.stageTextures = textures.stages;
+    this.uprightBlinkTex = textures.blink;
+    this.s5BlinkTex = textures.s5Blink;
+
+    this.emotionTextures = {
+      shy: textures.shy,
+      fluster: textures.fluster,
+      tease: textures.tease,
+      bold: textures.bold,
+    };
+    this.s5EmotionTextures = {
+      shy: textures.s5Fluster,
+      fluster: textures.s5Fluster,
+      tease: textures.s5Tease,
+      bold: textures.s5Tease,
+    };
+
     this.view.addChild(this.bodyContainer);
 
     this.mesh = new MeshPlane({
@@ -120,13 +157,21 @@ export class HeroineRig {
     this.restPositions = new Float32Array(posBuffer.data as Float32Array);
     this.bodyContainer.addChild(this.mesh);
 
-    // Subpixel-registered expression overlay patches (x=338, y=61 in 1024x1526 plate space)
-    this.flusterSprite = new Sprite(textures.fluster);
-    this.flusterSprite.position.set(338, 61);
-    this.flusterSprite.width = 348;
-    this.flusterSprite.height = 397;
-    this.flusterSprite.alpha = 0;
-    this.bodyContainer.addChild(this.flusterSprite);
+    // Resting confident allure layer that emerges smoothly at high boldness (stages 0..4)
+    this.boldRestSprite = new Sprite(textures.bold);
+    this.boldRestSprite.position.set(338, 61);
+    this.boldRestSprite.width = 348;
+    this.boldRestSprite.height = 397;
+    this.boldRestSprite.alpha = 0;
+    this.bodyContainer.addChild(this.boldRestSprite);
+
+    // Subpixel-registered active emotion patch
+    this.emotionSprite = new Sprite(textures.shy);
+    this.emotionSprite.position.set(338, 61);
+    this.emotionSprite.width = 348;
+    this.emotionSprite.height = 397;
+    this.emotionSprite.alpha = 0;
+    this.bodyContainer.addChild(this.emotionSprite);
 
     this.blinkSprite = new Sprite(textures.blink);
     this.blinkSprite.position.set(338, 61);
@@ -136,18 +181,55 @@ export class HeroineRig {
     this.bodyContainer.addChild(this.blinkSprite);
 
     this.bodyContainer.addChild(this.hitLayer);
-    this.setupHitZones();
+    this.rebuildHitZones();
   }
 
-  private setupHitZones(): void {
-    // Ordered back-to-front so broad legs zone sits beneath specific chest/belly/feet zones
-    const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] = [
-      { id: 'legs', x: 110, y: 690, w: 805, h: 420 },
-      { id: 'head', x: 335, y: 45, w: 360, h: 325 },
-      { id: 'chest', x: 355, y: 375, w: 345, h: 255 },
-      { id: 'belly', x: 405, y: 630, w: 245, h: 195 },
-      { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
-    ];
+  private applyPosePatchGeometry(): void {
+    if (this.currentStage === 5) {
+      this.emotionSprite.position.set(340, 128);
+      this.emotionSprite.width = 344;
+      this.emotionSprite.height = 332;
+      this.emotionSprite.texture = this.s5EmotionTextures[this.activeEmotion];
+
+      this.blinkSprite.position.set(340, 128);
+      this.blinkSprite.width = 344;
+      this.blinkSprite.height = 332;
+      this.blinkSprite.texture = this.s5BlinkTex;
+      this.boldRestSprite.visible = false;
+    } else {
+      this.emotionSprite.position.set(338, 61);
+      this.emotionSprite.width = 348;
+      this.emotionSprite.height = 397;
+      this.emotionSprite.texture = this.emotionTextures[this.activeEmotion];
+
+      this.blinkSprite.position.set(338, 61);
+      this.blinkSprite.width = 348;
+      this.blinkSprite.height = 397;
+      this.blinkSprite.texture = this.uprightBlinkTex;
+      this.boldRestSprite.visible = true;
+    }
+  }
+
+  private rebuildHitZones(): void {
+    this.hitLayer.removeChildren().forEach((c) => c.destroy());
+
+    // Stage 5 has her giant bare soles propped forward on the desk (y=980..1505)!
+    const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] =
+      this.currentStage === 5
+        ? [
+            { id: 'head', x: 315, y: 55, w: 390, h: 385 },
+            { id: 'chest', x: 345, y: 465, w: 340, h: 255 },
+            { id: 'belly', x: 365, y: 720, w: 300, h: 155 },
+            { id: 'legs', x: 160, y: 865, w: 690, h: 260 },
+            { id: 'feet', x: 310, y: 1000, w: 390, h: 505 },
+          ]
+        : [
+            { id: 'legs', x: 110, y: 690, w: 805, h: 420 },
+            { id: 'head', x: 335, y: 45, w: 360, h: 325 },
+            { id: 'chest', x: 355, y: 375, w: 345, h: 255 },
+            { id: 'belly', x: 405, y: 630, w: 245, h: 195 },
+            { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
+          ];
 
     for (const z of zones) {
       const g = new Graphics();
@@ -163,27 +245,39 @@ export class HeroineRig {
     }
   }
 
-  public triggerTapReaction(zone: TapZoneId): void {
-    // Inject localized soft-body spring impulse + expression response
+  public setBoldness(boldness: number): void {
+    this.boldnessLevel = Math.max(0, Math.min(100, boldness));
+  }
+
+  public triggerTapReaction(
+    zone: TapZoneId,
+    forcedEmotion?: Exclude<HeroineEmotion, 'neutral'>,
+  ): void {
+    this.reactionCounter += 1;
+    const chosen =
+      forcedEmotion ??
+      (this.currentStage === 5 && zone === 'feet'
+        ? 'fluster'
+        : pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter));
+
     if (zone === 'chest') {
       this.chestVel -= 145;
       this.chairRecoilVel += 42;
-      this.triggerFluster(1650);
+      this.triggerEmotion(chosen, 1750);
     } else if (zone === 'belly') {
       this.chestVel -= 85;
       this.hipVel -= 70;
       this.chairRecoilVel += 35;
-      this.triggerFluster(1500);
+      this.triggerEmotion(chosen, 1600);
     } else if (zone === 'legs' || zone === 'feet') {
-      this.hipVel -= 120;
+      this.hipVel -= this.currentStage === 5 && zone === 'feet' ? 165 : 120;
       this.chestVel -= 55;
       this.chairRecoilVel += 48;
-      this.triggerFluster(1600);
+      this.triggerEmotion(chosen, 1800);
     } else {
-      // head
       this.chestVel -= 45;
       this.chairRecoilVel += 28;
-      this.triggerFluster(1400);
+      this.triggerEmotion(this.currentStage === 5 ? 'tease' : chosen, 1500);
     }
   }
 
@@ -192,15 +286,61 @@ export class HeroineRig {
     this.blinkEnv.timerMs = 0;
   }
 
-  public triggerFluster(holdMs = 1500): void {
-    this.flusterEnv.holdMs = holdMs;
-    if (this.flusterEnv.phase === 'idle' || this.flusterEnv.phase === 'release') {
-      this.flusterEnv.phase = 'attack';
-      this.flusterEnv.timerMs = this.flusterEnv.value * this.flusterEnv.attackMs;
+  public triggerEmotion(
+    emotion: Exclude<HeroineEmotion, 'neutral'>,
+    holdMs = 1650,
+  ): void {
+    this.activeEmotion = emotion;
+    this.emotionSprite.texture =
+      this.currentStage === 5
+        ? this.s5EmotionTextures[emotion]
+        : this.emotionTextures[emotion];
+    this.emotionEnv.holdMs = holdMs;
+    if (this.emotionEnv.phase === 'idle' || this.emotionEnv.phase === 'release') {
+      this.emotionEnv.phase = 'attack';
+      this.emotionEnv.timerMs = this.emotionEnv.value * this.emotionEnv.attackMs;
     } else {
-      this.flusterEnv.phase = 'hold';
-      this.flusterEnv.timerMs = 0;
+      this.emotionEnv.phase = 'hold';
+      this.emotionEnv.timerMs = 0;
     }
+  }
+
+  public triggerFluster(holdMs = 1650): void {
+    const fallback = pickEmotionForContext(
+      this.boldnessLevel,
+      this.currentStage,
+      ++this.reactionCounter,
+    );
+    this.triggerEmotion(fallback, holdMs);
+  }
+
+  public setSubStage(
+    stage: SubGoalStageIndex,
+    celebrate = false,
+    unlockEmotion?: Exclude<HeroineEmotion, 'neutral'>,
+  ): boolean {
+    const nextTex = this.stageTextures[stage] ?? this.stageTextures[0];
+    const stageChanged = this.currentStage !== stage || this.mesh.texture !== nextTex;
+    const poseSwitched = (this.currentStage === 5) !== (stage === 5);
+    this.currentStage = stage;
+    if (stageChanged) {
+      this.mesh.texture = nextTex;
+      this.applyPosePatchGeometry();
+      if (poseSwitched) {
+        this.rebuildHitZones();
+      }
+    }
+    if (celebrate) {
+      this.chestVel -= 170;
+      this.hipVel -= 130;
+      this.chairRecoilVel += 58;
+      this.triggerEmotion(
+        unlockEmotion ??
+          pickEmotionForContext(this.boldnessLevel, stage, ++this.reactionCounter),
+        2800,
+      );
+    }
+    return stageChanged || celebrate;
   }
 
   public update(dtMs: number): void {
@@ -208,22 +348,45 @@ export class HeroineRig {
     const dt = clampedDtMs / 1000;
     this.elapsedSec += dt;
 
-    // 1. Random natural blink scheduler (2.2s - 5.6s)
+    // 1. Spontaneous micro-expressions while streaming live!
+    this.nextAmbientMicroExprMs -= clampedDtMs;
+    if (this.nextAmbientMicroExprMs <= 0) {
+      if (this.emotionEnv.phase === 'idle') {
+        const idleEmo =
+          this.currentStage === 5
+            ? 'tease'
+            : this.boldnessLevel < 30
+              ? 'shy'
+              : this.boldnessLevel < 65
+                ? 'tease'
+                : 'bold';
+        this.triggerEmotion(idleEmo, 1300);
+      }
+      this.nextAmbientMicroExprMs = 6500 + Math.random() * 5500;
+    }
+
+    // 2. Natural blink scheduler
     this.nextBlinkCountdownMs -= clampedDtMs;
     if (this.nextBlinkCountdownMs <= 0) {
-      if (this.flusterEnv.value < 0.25) {
+      if (this.emotionEnv.value < 0.2) {
         this.triggerBlink();
       }
       this.nextBlinkCountdownMs = 2200 + Math.random() * 3400;
     }
 
-    const flusterAlpha = stepEnvelope(this.flusterEnv, clampedDtMs);
+    const emoAlpha = stepEnvelope(this.emotionEnv, clampedDtMs);
     const rawBlinkAlpha = stepEnvelope(this.blinkEnv, clampedDtMs);
-    this.flusterSprite.alpha = flusterAlpha;
-    // Suppress open-eye blink overlay while fluster eyes are fully active so eyelids stay clean
-    this.blinkSprite.alpha = rawBlinkAlpha * (1 - flusterAlpha * 0.85);
 
-    // 2. Damped harmonic springs (chest bounce, thigh/hip bounce, chair micro-recoil)
+    const targetBoldRest =
+      this.currentStage < 5 && this.boldnessLevel >= 68
+        ? Math.min(0.96, (this.boldnessLevel - 68) / 26)
+        : 0;
+    this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha);
+    this.emotionSprite.alpha = emoAlpha;
+    this.blinkSprite.alpha =
+      rawBlinkAlpha * (1 - emoAlpha * 0.92) * (1 - this.boldRestSprite.alpha * 0.75);
+
+    // 3. Damped harmonic springs
     const stepSpring = (
       x: number,
       v: number,
@@ -245,16 +408,15 @@ export class HeroineRig {
       0.38,
     );
 
-    // 3. Whole-body subtle breathing bob + chair recoil (keeps head & face patches 100% locked!)
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
     this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY;
 
-    // 4. MeshPlane vertex deformation strictly BELOW v=0.25 (zero skull/face warp!)
     const posAttr = this.mesh.geometry.getAttribute('aPosition');
     const data = posAttr.buffer.data as Float32Array;
     const rest = this.restPositions;
     const W = HeroineRig.PLATE_W;
     const H = HeroineRig.PLATE_H;
+    const isS5 = this.currentStage === 5;
 
     for (let i = 0; i < data.length; i += 2) {
       const rx = rest[i]!;
@@ -265,23 +427,25 @@ export class HeroineRig {
       let dx = 0;
       let dy = 0;
 
-      // Chest + shoulders breathing & elastic jiggle envelope: v in [0.25..0.52], u in [0.28..0.74]
-      if (v > 0.25 && v < 0.54 && u > 0.26 && u < 0.76) {
-        const wy = Math.sin(((v - 0.25) / (0.54 - 0.25)) * Math.PI);
+      const cTop = isS5 ? 0.29 : 0.25;
+      const cBot = isS5 ? 0.56 : 0.54;
+      if (v > cTop && v < cBot && u > 0.26 && u < 0.76) {
+        const wy = Math.sin(((v - cTop) / (cBot - cTop)) * Math.PI);
         const wx = Math.sin(((u - 0.26) / (0.76 - 0.26)) * Math.PI);
         const weight = wy * wx;
-        // Breathing lifts & subtly expands ribcage/bust
         dy += (-2.8 * breathWave + this.chestDisp) * weight;
         dx += (u - 0.51) * (3.6 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.22) * weight;
       }
 
-      // Midriff + parted thighs/knees subtle elastic response: v in [0.46..0.88], u in [0.10..0.90]
-      if (v > 0.46 && v < 0.88 && u > 0.1 && u < 0.9) {
-        const wy = Math.sin(((v - 0.46) / (0.88 - 0.46)) * Math.PI);
-        const wx = Math.sin(((u - 0.1) / (0.9 - 0.1)) * Math.PI);
+      // In Stage 5, extend soft-body jiggle all the way through her bare soles on the desk (v=0.56..0.99)!
+      const lTop = isS5 ? 0.56 : 0.46;
+      const lBot = isS5 ? 0.99 : 0.88;
+      if (v > lTop && v < lBot && u > 0.14 && u < 0.86) {
+        const wy = Math.sin(((v - lTop) / (lBot - lTop)) * Math.PI);
+        const wx = Math.sin(((u - 0.14) / (0.86 - 0.14)) * Math.PI);
         const weight = wy * wx;
-        dy += this.hipDisp * 0.75 * weight;
-        dx += (u - 0.5) * (-this.hipDisp * 0.18) * weight;
+        dy += this.hipDisp * (isS5 ? 0.85 : 0.75) * weight;
+        dx += (u - 0.5) * (-this.hipDisp * 0.22) * weight;
       }
 
       data[i] = rx + dx;
@@ -290,27 +454,13 @@ export class HeroineRig {
     posAttr.buffer.update();
   }
 
-  public setSubStage(stage: SubGoalStageIndex, celebrate = false): boolean {
-    const nextTex = this.stageTextures[stage] ?? this.stageTextures[0];
-    const changed = this.currentStage !== stage || this.mesh.texture !== nextTex;
-    this.currentStage = stage;
-    if (changed) {
-      this.mesh.texture = nextTex;
-    }
-    if (celebrate) {
-      this.chestVel -= 170;
-      this.hipVel -= 130;
-      this.chairRecoilVel += 58;
-      this.triggerFluster(2600);
-    }
-    return changed || celebrate;
-  }
-
   public getDebugSnapshot() {
     return {
       subStage: this.currentStage,
+      activeEmotion: this.activeEmotion,
+      emotionAlpha: Number(this.emotionSprite.alpha.toFixed(3)),
+      boldRestAlpha: Number(this.boldRestSprite.alpha.toFixed(3)),
       blinkAlpha: Number(this.blinkSprite.alpha.toFixed(3)),
-      flusterAlpha: Number(this.flusterSprite.alpha.toFixed(3)),
       chestDisp: Number(this.chestDisp.toFixed(2)),
     };
   }

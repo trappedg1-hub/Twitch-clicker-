@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pickDialogueLine, UPGRADE_REACTION_LINES, ZONE_DIALOGUES } from '../src/domain/dialogue.ts';
+import {
+  pickDialogueLine,
+  pickEmotionForContext,
+  UPGRADE_REACTION_LINES,
+  ZONE_DIALOGUES,
+} from '../src/domain/dialogue.ts';
 import {
   applyTap,
   buyGiftSubs,
@@ -18,7 +23,10 @@ import {
   STORY_CHAPTERS,
   STREAM_CHALLENGES,
 } from '../src/domain/progression.ts';
-import { SUB_GOAL_STAGES } from '../src/domain/subGoals.ts';
+import {
+  pickShySubGoalApproachLine,
+  SUB_GOAL_STAGES,
+} from '../src/domain/subGoals.ts';
 import type { TapZoneId } from '../src/domain/types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
 
@@ -37,8 +45,8 @@ test('initial state starts bundled up at Stage 0 (0 subs, hoodie + leggings + so
   assert.equal(stats.nextMilestone?.id, TIER1_MILESTONES[0]?.id);
 });
 
-test('Sub Goal strip-down progression unlocks 10 -> 50 -> 200 -> 500 subs cleanly', () => {
-  let s = { ...createInitialState(1000), balance: 100_000 };
+test('Sub Goal strip-down & cosplay progression unlocks 10 -> 50 -> 200 -> 500 -> 1000 subs cleanly', () => {
+  let s = { ...createInitialState(1000), balance: 250_000 };
 
   // Gift 5 + 5 = 10 subs -> Stage 1 (remove socks)
   s = buyGiftSubs(s, 5).state;
@@ -75,10 +83,20 @@ test('Sub Goal strip-down progression unlocks 10 -> 50 -> 200 -> 500 subs cleanl
   }
   assert.equal(s.unlockedSubStage, 4);
   assert.equal(s.displayedSubStage, 4);
+  assert.equal(computeStats(s).nextSubGoalDef?.subsRequired, 1000);
+
+  // Gift up to 1000+ subs -> Stage 5 (Mega Cosplay: Feet on Desk!)
+  while (s.subscribers < 1000) {
+    const r = buyGiftSubs(s, 25);
+    assert.equal(r.ok, true);
+    s = r.state;
+  }
+  assert.equal(s.unlockedSubStage, 5);
+  assert.equal(s.displayedSubStage, 5);
 
   const maxStats = computeStats(s);
   assert.equal(maxStats.nextSubGoalDef, null);
-  assert.equal(maxStats.currentSubStageDef.plateUrl, '/art/heroine_t1_s4.webp');
+  assert.equal(maxStats.currentSubStageDef.plateUrl, '/art/heroine_t1_s5.webp');
 
   // Player can re-equip an earlier unlocked stage without losing Stage 4 income bonus
   const baseIncome = maxStats.clickIncome;
@@ -147,7 +165,7 @@ test('paid stream challenges boost boldness, grant subs, and respect viewer lock
 
   assert.equal(STORY_CHAPTERS.length, 4);
   assert.equal(getStoryChapter(90).stage, 4);
-  assert.equal(SUB_GOAL_STAGES.length, 5);
+  assert.equal(SUB_GOAL_STAGES.length, 6);
   assert.ok(STREAM_CHALLENGES.length >= 4);
 });
 
@@ -163,7 +181,7 @@ test('uncapped elapsed-ms tick accrues passive income and organic viewer subs', 
   assert.ok(ticked.state.subscribers >= 1);
 });
 
-test('all 5 tap zones have Russian lines across all 4 bands and clothing stages', () => {
+test('all 5 tap zones have Russian lines, shy Sub Goal lines, and emotion progression', () => {
   const zones: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
   for (const z of zones) {
     for (const band of [1, 2, 3, 4] as const) {
@@ -173,6 +191,16 @@ test('all 5 tap zones have Russian lines across all 4 bands and clothing stages'
       }
     }
   }
+
+  for (const st of SUB_GOAL_STAGES.slice(1)) {
+    assert.ok(st.shyApproachLines.length >= 3);
+    const line = pickShySubGoalApproachLine(st, 1);
+    assert.ok(line && line.length > 15);
+  }
+
+  assert.equal(pickEmotionForContext(5, 0, 1), 'shy');
+  assert.equal(pickEmotionForContext(95, 4, 1), 'bold');
+  assert.equal(pickEmotionForContext(95, 4, 3), 'tease');
 });
 
 test('serialization round-trips subscribers & sub-goal stages cleanly', () => {

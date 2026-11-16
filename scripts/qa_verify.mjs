@@ -15,7 +15,7 @@ const browser = await pwChromium.launch({
 });
 
 const context = await browser.newContext({
-  viewport: { width: 1280, height: 760 },
+  viewport: { width: 1360, height: 800 },
   deviceScaleFactor: 1,
 });
 const page = await context.newPage();
@@ -32,30 +32,38 @@ await page.waitForFunction(() => Boolean(window.__qaScene && window.__pixiApp &&
 });
 await page.waitForTimeout(300);
 
-// Unlock all 5 stages up to 500 subs (black bralette) + open Sub Goal Wardrobe drawer
+// Unlock all the way to 1000 subs -> Stage 5 Mega Cosplay (Feet propped on desk in camera!)
 const summary = await page.evaluate(() => {
   const qa = window.__qaScene;
-  qa.addFunds(100000);
-  for (let i = 0; i < 20; i++) {
+  qa.addFunds(250000);
+  for (let i = 0; i < 40; i++) {
     qa.giftSubs(25);
   }
-  qa.switchTab('outfits');
-  qa.forceFluster();
+  qa.tapZone('feet');
   window.__qaFreezeTicker?.();
   return {
     state: qa.getState(),
-    stats: qa.getStats(),
     rig: window.__heroineRig.getDebugSnapshot(),
   };
 });
+await page.waitForTimeout(350);
+await page.screenshot({ path: '.qa-out/live_v6_cosplay_feet_desk.png' });
+
+// Also capture the 3x2 Sub Goal Outfits drawer showing all 6 stages unlocked!
+await page.evaluate(() => {
+  const qa = window.__qaScene;
+  qa.switchTab('outfits');
+  qa.forceEmotion('tease');
+  window.__pixiApp.render();
+});
 await page.waitForTimeout(250);
-await page.screenshot({ path: '.qa-out/live_s4_v2.png' });
+await page.screenshot({ path: '.qa-out/live_v6_outfits_3x2.png' });
 
 await browser.close();
 
-console.log('QA v4 Summary:', JSON.stringify(summary, null, 2));
+console.log('QA v6 Summary:', JSON.stringify(summary.rig), 'subs=', summary.state.subscribers);
 if (errors.length > 0) {
   console.error('QA Errors:', errors);
   process.exit(1);
 }
-console.log('QA v4 PASSED with 0 console/page errors!');
+console.log('QA v6 PASSED with 0 console/page errors!');

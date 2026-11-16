@@ -21,10 +21,12 @@ import {
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
+import { pickShySubGoalApproachLine } from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
   GameState,
+  HeroineEmotion,
   SubGoalStageDef,
   SubGoalStageIndex,
   TapZoneId,
@@ -51,6 +53,7 @@ declare global {
       switchTab: (tab: BottomTabId) => void;
       forceBlink: () => void;
       forceFluster: () => void;
+      forceEmotion: (emo: Exclude<HeroineEmotion, 'neutral'>) => void;
       resetSave: () => void;
     };
   }
@@ -78,6 +81,7 @@ export async function bootstrapApp(): Promise<void> {
   const syncAll = () => {
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
+    stage.rig.setBoldness(stats.boldness);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
     if (!isQa) {
@@ -88,11 +92,11 @@ export async function bootstrapApp(): Promise<void> {
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
     if (unlockedStages.length === 0) return;
     const latest = unlockedStages[unlockedStages.length - 1]!;
-    stage.setSubStage(latest.stage, true, latest.removedItemLabel);
+    stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
     ui.showSpeech(latest.unlockLine);
     ui.showDonationAlert(
-      `★ SUB GOAL ${latest.subsRequired} САБОВ! ★`,
-      `${latest.removedItemLabel} Доход увеличен до x${latest.incomeMultiplier.toFixed(2)}!`,
+      `★ SUB GOAL ${latest.subsRequired} САБОВ ПРОБИТ!`,
+      `${latest.removedItemLabel} • Доход вырос до x${latest.incomeMultiplier.toFixed(2)}!`,
     );
 
     const cascade = createSubGoalCascadeMessages(latest);
@@ -110,12 +114,21 @@ export async function bootstrapApp(): Promise<void> {
   stage.onHeroineTap = (zone: TapZoneId) => {
     const outcome = applyTap(state, zone);
     state = outcome.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
     ui.showSpeech(outcome.line);
 
     if (outcome.gainedOrganicSubs > 0) {
       ui.pushChatMessage(
         createSubNotificationMessage(outcome.gainedOrganicSubs, false, state.subscribers),
       );
+      if (outcome.newlyUnlockedSubStages.length === 0) {
+        const shyLine = pickShySubGoalApproachLine(afterStats.nextSubGoalDef, state.subscribers);
+        if (shyLine) {
+          stage.rig.triggerEmotion(afterStats.boldness < 60 ? 'shy' : 'tease', 1900);
+          ui.showSpeech(shyLine);
+        }
+      }
     }
 
     if (outcome.newlyUnlockedSubStages.length > 0) {
@@ -128,7 +141,7 @@ export async function bootstrapApp(): Promise<void> {
       }
       if (outcome.triggeredDonationAlert) {
         ui.showDonationAlert(
-          outcome.earned,
+          `★ НОВЫЙ ДОНАТ +${outcome.earned} ₽`,
           '«Лови донат в копилку на следующий Sub Goal! ♥»',
         );
         ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps));
@@ -154,19 +167,32 @@ export async function bootstrapApp(): Promise<void> {
     const res = buyGiftSubs(state, count);
     if (!res.ok) return;
     state = res.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
 
     ui.pushChatMessage(createSubNotificationMessage(count, true, state.subscribers));
 
     if (res.newlyUnlockedSubStages.length > 0) {
       celebrateSubGoalUnlocks(res.newlyUnlockedSubStages);
     } else {
-      stage.rig.triggerFluster(1500);
-      stage.rig.triggerTapReaction('chest');
-      ui.showSpeech(
-        count >= 5
-          ? `Ого, сразу +${count} подарочных сабов в чат?! Полоска Sub Goal летит к цели!~ ★ ♥`
-          : `Спасибо за подарочный саб, котик! Ещё на шаг ближе к снятию следующей вещи~ ♥`,
+      // Embarrassed / panicked reaction as the Sub Goal creeps closer!
+      const emo: Exclude<HeroineEmotion, 'neutral'> =
+        afterStats.boldness < 50 ? 'shy' : afterStats.boldness < 78 ? 'fluster' : 'tease';
+      stage.rig.triggerTapReaction('chest', emo);
+      const shyLine = pickShySubGoalApproachLine(
+        afterStats.nextSubGoalDef,
+        state.subscribers + count,
       );
+      ui.showSpeech(
+        shyLine ??
+          `Ого, ещё +${count} подарочных сабов в чат! Спасибо огромное, спонсоры~ ★ ♥`,
+      );
+      if (count >= 5) {
+        ui.showDonationAlert(
+          `★ ПОДАРЕНО ${count} ПОДПИСОК`,
+          `VIP_Sponsor ускоряет Sub Goal! Всего: ${state.subscribers} сабов`,
+        );
+      }
     }
 
     for (const m of res.newlyUnlockedMilestones) {
@@ -194,8 +220,12 @@ export async function bootstrapApp(): Promise<void> {
     const res = buyUpgrade(state, id);
     if (!res.ok) return;
     state = res.state;
-    stage.rig.triggerFluster(1700);
-    stage.rig.triggerTapReaction('chest');
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.rig.triggerTapReaction(
+      'chest',
+      id === 'webcam_focus' || id === 'ring_lamp' ? 'shy' : 'tease',
+    );
     ui.showSpeech(UPGRADE_REACTION_LINES[id]);
     ui.pushChatMessage(createUpgradeChatMessage(id));
     syncAll();
@@ -205,8 +235,12 @@ export async function bootstrapApp(): Promise<void> {
     const res = triggerStreamChallenge(state, id);
     if (!res.ok) return;
     state = res.state;
-    stage.rig.triggerFluster(2100);
-    stage.rig.triggerTapReaction(res.zoneFocus);
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.rig.triggerTapReaction(
+      res.zoneFocus,
+      id === 'lean_mic' || id === 'pose_feet' ? 'tease' : 'bold',
+    );
     stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
     ui.pushChatMessage({
       id: `ch_${Date.now()}`,
@@ -221,7 +255,10 @@ export async function bootstrapApp(): Promise<void> {
       celebrateSubGoalUnlocks(res.newlyUnlockedSubStages);
     } else {
       ui.showSpeech(res.line);
-      ui.showDonationAlert(res.reward, `★ Челлендж выполнен (+${res.gainedSubs} саб)! ★`);
+      ui.showDonationAlert(
+        `★ ЧЕЛЛЕНДЖ ВЫПОЛНЕН +${res.reward} ₽`,
+        `Чат подарил ещё +${res.gainedSubs} саб за смелость!`,
+      );
     }
     syncAll();
   };
@@ -333,7 +370,12 @@ export async function bootstrapApp(): Promise<void> {
         stage.app.render();
       },
       forceFluster: () => {
-        stage.rig.triggerFluster(3000);
+        stage.rig.triggerEmotion('fluster', 3000);
+        stage.rig.update(120);
+        stage.app.render();
+      },
+      forceEmotion: (emo: Exclude<HeroineEmotion, 'neutral'>) => {
+        stage.rig.triggerEmotion(emo, 3500);
         stage.rig.update(120);
         stage.app.render();
       },

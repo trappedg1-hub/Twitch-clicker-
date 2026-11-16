@@ -14,9 +14,19 @@ import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgr
 import { renderChatTextWithEmotes } from './twitchEmotes.ts';
 
 function formatMoney(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M ₽`;
   if (n >= 10_000) return `${(n / 1000).toFixed(1)}k ₽`;
   return `${Math.floor(n)} ₽`;
 }
+
+const UPGRADE_SVGS: Record<UpgradeId, string> = {
+  ring_lamp: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="10" r="6.5"/><circle cx="12" cy="10" r="2.8" stroke-opacity="0.55"/><path d="M12 16.5V21M8.5 21h7"/></svg>`,
+  usb_mic_pop: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0013 0M12 17v4M8.5 21h7"/></svg>`,
+  obs_alerts: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H12L11 22L19.5 10.5H12L13 2Z"/></svg>`,
+  webcam_focus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="13" rx="3"/><circle cx="12" cy="11.5" r="3.5"/><path d="M8 21h8"/></svg>`,
+  chat_emotes: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7-4.5-7-10.2A4.2 4.2 0 019.2 6c1.4 0 2.3.7 2.8 1.6.5-.9 1.4-1.6 2.8-1.6A4.2 4.2 0 0119 10.3c0 5.7-7 10.2-7 10.2z"/></svg>`,
+  clips_boost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,4 19,12 5,20"/></svg>`,
+};
 
 export class UiController {
   private readonly stageBadgeEl = document.getElementById('story-stage-badge')!;
@@ -28,7 +38,12 @@ export class UiController {
   private readonly obsSubgoalEl = document.getElementById('obs-subgoal')!;
   private readonly subgoalTargetNameEl = document.getElementById('subgoal-target-name')!;
   private readonly subgoalCountEl = document.getElementById('subgoal-count')!;
+  private readonly subgoalPctEl = document.getElementById('subgoal-pct')!;
   private readonly subgoalFillEl = document.getElementById('subgoal-fill')!;
+  private readonly subgoalStepEls = Array.from(
+    document.querySelectorAll<HTMLElement>('#subgoal-steps-row .goal-step'),
+  );
+  private readonly moodIndicatorEl = document.getElementById('mood-indicator-label')!;
   private readonly giftBtn1El = document.getElementById('btn-gift-sub-1') as HTMLButtonElement;
   private readonly giftBtn5El = document.getElementById('btn-gift-sub-5') as HTMLButtonElement;
   private readonly giftBtn25El = document.getElementById('btn-gift-sub-25') as HTMLButtonElement;
@@ -177,21 +192,44 @@ export class UiController {
     this.boldnessFillEl.style.width = `${stats.boldness}%`;
     this.boldnessPctEl.textContent = `${Math.floor(stats.boldness)}%`;
 
-    // Top-Left OBS Sub Goal Bar
+    // Top-Left Twitch Creator Sub Goal Bar
     const nextGoal = stats.nextSubGoalDef;
     const prevFloor = SUB_GOAL_STAGES[state.unlockedSubStage]?.subsRequired ?? 0;
     if (nextGoal) {
       this.obsSubgoalEl.classList.remove('completed');
-      this.subgoalTargetNameEl.textContent = nextGoal.shortGoalTitle;
-      this.subgoalCountEl.textContent = `${state.subscribers} / ${nextGoal.subsRequired}`;
+      this.subgoalTargetNameEl.textContent = `${nextGoal.subsRequired} сабов — ${nextGoal.shortGoalTitle}`;
+      this.subgoalCountEl.textContent = `${state.subscribers} / ${nextGoal.subsRequired} сабов`;
       const span = Math.max(1, nextGoal.subsRequired - prevFloor);
       const pct = Math.min(100, Math.max(0, Math.round(((state.subscribers - prevFloor) / span) * 100)));
+      this.subgoalPctEl.textContent = `${pct}%`;
       this.subgoalFillEl.style.width = `${pct}%`;
     } else {
       this.obsSubgoalEl.classList.add('completed');
-      this.subgoalTargetNameEl.textContent = 'Все слои сняты — Бралетт!';
-      this.subgoalCountEl.textContent = `${state.subscribers} сабов ★`;
+      this.subgoalTargetNameEl.textContent = 'Все цели пробиты — Мега-Косплей! ★';
+      this.subgoalCountEl.textContent = `${state.subscribers} сабов`;
+      this.subgoalPctEl.textContent = '100% ★';
       this.subgoalFillEl.style.width = '100%';
+    }
+
+    const stepLabels = ['10 Носки', '50 Легинсы', '200 Худи', '500 Тишка', '1000 Косп.'];
+    this.subgoalStepEls.forEach((el, idx) => {
+      const stepStage = idx + 1;
+      const done = state.unlockedSubStage >= stepStage;
+      const active = state.unlockedSubStage + 1 === stepStage;
+      el.classList.toggle('done', done);
+      el.classList.toggle('active', active);
+      el.textContent = done ? `✓ ${stepLabels[idx]}` : stepLabels[idx]!;
+    });
+
+    // Top-right mood badge reflecting shyness -> boldness arc
+    if (stats.boldness < 25) {
+      this.moodIndicatorEl.textContent = 'В панике стесняется';
+    } else if (stats.boldness < 55) {
+      this.moodIndicatorEl.textContent = 'Заливается румянцем';
+    } else if (stats.boldness < 82) {
+      this.moodIndicatorEl.textContent = 'Игриво кокетничает';
+    } else {
+      this.moodIndicatorEl.textContent = 'Полностью раскрепощена ♥';
     }
 
     const cost1 = getGiftSubPackCost(state.subscribers, 1);
@@ -218,7 +256,10 @@ export class UiController {
 
     this.viewersEl.textContent = String(stats.onlineViewers);
     this.balanceEl.textContent = formatMoney(state.balance);
-    this.incomeEl.textContent = `+${stats.clickIncome} ₽ • ${stats.passivePerSec}/с`;
+    this.incomeEl.textContent =
+      stats.passivePerSec > 0
+        ? `+${stats.clickIncome} • ${stats.passivePerSec}/с`
+        : `+${stats.clickIncome} ₽/клик`;
     this.hypeMultEl.textContent = `x${stats.hypeMultiplier.toFixed(2)}`;
     this.hypeFillEl.style.width = `${Math.min(100, Math.max(0, state.hype))}%`;
 
@@ -288,18 +329,27 @@ export class UiController {
 
       btn.disabled = isMax;
       btn.classList.toggle('affordable', canAfford);
+      const lvlPct = Math.min(100, Math.round((lvl / def.maxLevel) * 100));
+      const svgIcon = UPGRADE_SVGS[def.id];
       const nextUpgHtml = `
-        <div class="upg-top">
-          <div class="upg-title-wrap">
-            <span class="upg-icon">${def.icon}</span>
+        <div class="upg-icon-tile">${svgIcon}</div>
+        <div class="upg-main">
+          <div class="upg-top">
             <span class="upg-name">${def.name}</span>
+            <span class="upg-lvl">Ур. ${lvl}/${def.maxLevel}</span>
           </div>
-          <span class="upg-lvl">ур.${lvl}</span>
+          <div class="upg-sub">${def.subtitle}</div>
+          <div class="upg-meta-row">
+            <span class="upg-stat-chip">+${def.clickBonus} ₽/кл</span>
+            <span class="upg-stat-chip">+${def.passivePerSec}/с</span>
+            <span class="upg-stat-chip upg-chip-viewers">+${def.viewersBonus} онл</span>
+            <span class="upg-stat-chip upg-chip-bold">+${def.boldnessBonus}%</span>
+          </div>
+          <div class="upg-prog-track"><div class="upg-prog-fill" style="width:${lvlPct}%"></div></div>
         </div>
-        <div class="upg-sub">${def.subtitle}</div>
-        <div class="upg-bottom">
-          <span class="upg-bonuses">+${def.viewersBonus} онл • +${def.boldnessBonus}% смел</span>
-          <span class="upg-cost">${isMax ? 'МАКС' : `${cost} ₽`}</span>
+        <div class="upg-cta ${isMax ? 'is-max' : canAfford ? 'can-buy' : ''}">
+          <span class="upg-cta-label">${isMax ? 'ГОТОВО' : 'КУПИТЬ'}</span>
+          <strong class="upg-cta-price">${isMax ? 'МАКС ★' : formatMoney(cost)}</strong>
         </div>
       `;
       if (btn.dataset.renderedHtml !== nextUpgHtml) {
