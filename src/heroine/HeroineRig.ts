@@ -1,3 +1,6 @@
+/** Which day's plate ladder the rig is currently showing. */
+export type WardrobeDay = 1 | 2 | 3;
+
 import {
   Container,
   FederatedPointerEvent,
@@ -23,6 +26,10 @@ export interface HeroineTextures {
   bold: Texture;
   /** Day 2 Sub Goal ladder plates (stages 0..4): hoodie tee-knot camisole bralette. */
   day2Stages?: Texture[];
+  /** Cosplay ladder (Day 3). Optional: the rig falls back to Day 2 plates while it is being cut. */
+  day3Stages?: Texture[];
+  /** Sheet-off reveal plate used for the Day 3 «Бу!» flash frame. */
+  ghostFlash?: Texture[];
 }
 
 interface EnvelopeState {
@@ -78,9 +85,18 @@ export class HeroineRig {
   private readonly hitLayer = new Container();
 
   private stageTextures: Texture[];
+
   private readonly day1Stages: readonly Texture[];
   private readonly day2Textures: Texture[];
-  private wardrobeDay: 1 | 2 = 1;
+  /** Cosplay plates (heroine_t3_s0..s4) - `null` until that art actually ships. */
+  private readonly day3Textures: Texture[] | null;
+
+  /** Day 3 «Бу!» flash frame: the sheet-off reveal plate, crossfaded in for a few hundred ms. */
+  private readonly ghostFlashTex: Texture | null = null;
+  private ghostFlashUntilMs = 0;
+  private ghostFloatSeed = 0;
+
+  private wardrobeDay: WardrobeDay = 1;
 
   /** Where the canonical emotion/blink patch content lands on the CURRENT plate. */
   private faceBox: FaceAnchor = CANONICAL_FACE;
@@ -143,6 +159,13 @@ export class HeroineRig {
     this.day2Textures = textures.day2Stages && textures.day2Stages.length === textures.stages.length
       ? [...textures.day2Stages]
       : [...textures.stages];
+    this.day3Textures =
+      textures.day3Stages && textures.day3Stages.length === textures.stages.length
+        ? [...textures.day3Stages]
+        : null;
+    this.ghostFlashTex = textures.ghostFlash && textures.ghostFlash.length > 0
+      ? textures.ghostFlash[0]!
+      : null;
     this.uprightBlinkTex = textures.blink;
 
     this.emotionTextures = {
@@ -258,15 +281,22 @@ export class HeroineRig {
    * upgrade stays on the desk. Day 2 starts with the closed everyday look: oversize beige pullover
    * hoodie, shorts, black golf socks with two white stripes.
    */
-  public setWardrobeDay(day: 1 | 2): void {
+  public setWardrobeDay(day: WardrobeDay): void {
     if (this.wardrobeDay === day) return;
     this.wardrobeDay = day;
-    this.stageTextures = day === 2 ? [...this.day2Textures] : [...this.day1Stages];
+    // Day 3 (cosplay) reuses the Day 2 plate ladder until heroine_t3_s0..s4 are cut, so the rig
+    // never shows a missing texture; the plate swap happens in one place, right here.
+    this.stageTextures =
+      day === 1
+        ? [...this.day1Stages]
+        : day === 3 && this.day3Textures
+          ? [...this.day3Textures]
+          : [...this.day2Textures];
     const nextTex = this.stageTextures[this.currentStage] ?? this.stageTextures[0]!;
     if (this.mesh.texture !== nextTex) {
       this.mesh.texture = nextTex;
       this.applyPosePatchGeometry();
-      this.triggerEmotion(day === 2 ? 'fluster' : 'shy', 2400);
+      this.triggerEmotion(day === 1 ? 'shy' : day === 3 ? 'bold' : 'fluster', 2400);
     }
   }
 
@@ -275,7 +305,41 @@ export class HeroineRig {
     return this.currentStage;
   }
 
-  public getWardrobeDay(): 1 | 2 {
+  /**
+   * Day 3 tap gimmick: the sheet "flies up" for a beat by crossfading to the reveal plate.
+   * Returns false when the ghost day is not on screen (or the flash plate has not shipped), so the
+   * caller can skip the flash-specific chat/callout noise on other days.
+   */
+  public triggerGhostBoo(durationMs = 520): boolean {
+    if (this.wardrobeDay !== 3 || !this.ghostFlashTex) return false;
+    this.ghostFlashUntilMs = this.elapsedSec * 1000 + Math.max(160, durationMs);
+    this.ghostFloatSeed += 1;
+    if (this.mesh.texture !== this.ghostFlashTex) {
+      this.mesh.texture = this.ghostFlashTex;
+      this.applyPosePatchGeometry();
+    }
+    return true;
+  }
+
+  public hasGhostFlash(): boolean {
+    return this.ghostFlashTex !== null;
+  }
+
+  public isGhostFlashing(): boolean {
+    return this.ghostFlashUntilMs > 0;
+  }
+
+  /** True once the cosplay plates exist; Day 3 falls back to the Day 2 ladder until then. */
+  public hasDay3Plates(): boolean {
+    return this.day3Textures !== null;
+  }
+
+  /** Which plate ladder is actually on screen (Day 3 = Day 2 art until t3 plates ship). */
+  public getPlateDay(): 1 | 2 | 3 {
+    return this.wardrobeDay === 3 && !this.day3Textures ? 2 : this.wardrobeDay;
+  }
+
+  public getWardrobeDay(): WardrobeDay {
     return this.wardrobeDay;
   }
 
@@ -473,8 +537,21 @@ export class HeroineRig {
         ? Math.sin(this.elapsedSec * 58) * (this.shiverTimerMs / 460) * 3.2
         : 0;
 
+    // Day 3: when the «Бу!» flash is over, snap back to the current sheet stage.
+    if (this.ghostFlashUntilMs > 0 && this.elapsedSec * 1000 >= this.ghostFlashUntilMs) {
+      this.ghostFlashUntilMs = 0;
+      const back = this.stageTextures[this.currentStage] ?? this.stageTextures[0]!;
+      if (this.mesh.texture !== back) {
+        this.mesh.texture = back;
+        this.applyPosePatchGeometry();
+      }
+    }
+
+    // The sheet is light: on the ghost day she floats a little slower and deeper, like real fabric.
+    const ghostFloat =
+      this.wardrobeDay === 3 ? Math.sin(this.elapsedSec * 1.15 + this.ghostFloatSeed) * 3.4 : 0;
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
-    this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY;
+    this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat;
     this.bodyContainer.x = shiverWave * 0.65;
 
     const posAttr = this.mesh.geometry.getAttribute('aPosition');

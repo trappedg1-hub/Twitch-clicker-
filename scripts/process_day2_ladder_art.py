@@ -143,7 +143,7 @@ LADDER = [
     ("t2_day2_s1_v2.png", "heroine_t2_s1.webp"),
     ("t2_day2_s3.png", "heroine_t2_s2.webp"),
     ("t2_day2_s3_v3.png", "heroine_t2_s3.webp"),
-    ("t2_day2_s4_pose_a.png", "heroine_t2_s4.webp"),
+    ("t2_day2_s4_pose_a_v2.png", "heroine_t2_s4.webp"),
 ]
 
 

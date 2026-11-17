@@ -1,15 +1,7 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
-import { DAY1_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
+import { DAY1_FAREWELL_LINES, DAY2_FAREWELL_LINES, DAY3_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
-import {
-  DAY1_SHORT_STEP_LABELS,
-  DAY1_STEP_LABELS,
-  DAY2_SHORT_STEP_LABELS,
-  DAY2_STEP_LABELS,
-  getGiftSubPackCost,
-  getSubGoalStagesForDay,
-  SUB_GOAL_STAGES,
-} from '../domain/subGoals.ts';
+import { DAY1_FINALE_SUBS, getShortStepLabelsForDay, getStepLabelsForDay, isDay3Unlocked, SUB_GOAL_STAGES, getGiftSubPackCost, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
@@ -38,7 +30,6 @@ const UPGRADE_SVGS: Record<UpgradeId, string> = {
 };
 
 export class UiController {
-  private readonly stageBadgeEl = document.getElementById('story-stage-badge')!;
   private readonly titleEl = document.getElementById('stream-title')!;
   private readonly subsValEl = document.getElementById('stat-subs-val')!;
   private readonly boldnessFillEl = document.getElementById('boldness-fill')!;
@@ -96,12 +87,17 @@ export class UiController {
   private readonly dayBadgeEl = document.getElementById('stream-day-badge')!;
   private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
   private readonly finaleCardEl = document.querySelector('.day-finale-card') as HTMLElement;
+  private readonly finaleKickerEl = document.getElementById('finale-kicker')!;
+  private readonly finaleTitleEl = document.getElementById('finale-title')!;
+  private readonly finaleDescEl = document.getElementById('finale-desc')!;
   private readonly farewellBlockEl = document.getElementById('finale-farewell')!;
   private readonly farewellLineEl = document.getElementById('finale-farewell-line')!;
   private readonly skipFarewellBtnEl = document.getElementById('btn-skip-farewell') as HTMLButtonElement;
   private readonly startDay2BtnEl = document.getElementById('btn-start-day2') as HTMLButtonElement;
   // Day 1 finale farewell state machine: Miya says good-bye before Day 2 unlocks.
   private farewellPhase: 'idle' | 'playing' | 'done' = 'idle';
+  /** Which day's farewell is playing (1 = Day 1 -> Day 2, 2 = Day 2 -> Day 3). */
+  private farewellDay: 1 | 2 | 3 = 1;
   private farewellTimers: number[] = [];
 
   private activeTab: BottomTabId = 'stream';
@@ -246,28 +242,35 @@ export class UiController {
     }
   }
 
-  /** Play Miya's goodbye to the chat, beat by beat, then unlock the Day 2 button. */
+  /** The farewell belongs to whichever day just ended. */
+  private farewellLines(): readonly string[] {
+    if (this.farewellDay === 3) return DAY3_FAREWELL_LINES;
+    return this.farewellDay === 2 ? DAY2_FAREWELL_LINES : DAY1_FAREWELL_LINES;
+  }
+
+  /** Play Miya's goodbye to the chat, beat by beat, then unlock the next-day button. */
   private startFarewell(): void {
     this.clearFarewellTimers();
     this.farewellPhase = 'playing';
     this.finaleCardEl.classList.remove('finale-ready');
     this.skipFarewellBtnEl.classList.remove('hidden');
     this.startDay2BtnEl.disabled = true;
+    const lines = this.farewellLines();
     const beatMs = 2900;
-    for (let i = 1; i < DAY1_FAREWELL_LINES.length; i++) {
+    for (let i = 1; i < lines.length; i++) {
       this.farewellTimers.push(
         window.setTimeout(() => this.showFarewellBeat(i), i * beatMs),
       );
     }
     this.farewellTimers.push(
-      window.setTimeout(() => this.finishFarewell(), DAY1_FAREWELL_LINES.length * beatMs + 500),
+      window.setTimeout(() => this.finishFarewell(), lines.length * beatMs + 500),
     );
     this.showFarewellBeat(0);
   }
 
   private showFarewellBeat(index: number): void {
     if (this.farewellPhase !== 'playing') return;
-    const line = DAY1_FAREWELL_LINES[index];
+    const line = this.farewellLines()[index];
     if (!line) return;
     this.farewellLineEl.textContent = line;
     this.farewellBlockEl.classList.remove('beat-in');
@@ -279,12 +282,13 @@ export class UiController {
   private finishFarewell(): void {
     if (this.farewellPhase === 'done') return;
     this.clearFarewellTimers();
-    const last = DAY1_FAREWELL_LINES[DAY1_FAREWELL_LINES.length - 1];
+    const lines = this.farewellLines();
+    const last = lines[lines.length - 1];
     if (last) this.farewellLineEl.textContent = last;
     this.farewellPhase = 'done';
     this.skipFarewellBtnEl.classList.add('hidden');
     this.finaleCardEl.classList.add('finale-ready');
-    this.startDay2BtnEl.disabled = false;
+    this.startDay2BtnEl.disabled = this.farewellDay === 2 ? !isDay3Unlocked() : false;
   }
 
   private resetFarewell(): void {
@@ -302,11 +306,47 @@ export class UiController {
   }
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
-    this.stageBadgeEl.textContent = stats.storyChapter.badgeTitle;
-    this.dayBadgeEl.textContent = state.streamDay === 2 ? 'День 2 ★' : 'День 1';
-    const isFinale = state.streamDay === 1 && state.subscribers >= 500;
+    this.dayBadgeEl.textContent =
+      state.streamDay === 3 ? 'День 3 ★ КОСПЛЕЙ' : state.streamDay === 2 ? 'День 2 ★' : 'День 1';
+    const finaleDay: 1 | 2 | 3 =
+      state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
+    const stagesForDay = getSubGoalStagesForDay(finaleDay);
+    const finaleTarget =
+      finaleDay === 1 ? DAY1_FINALE_SUBS : (stagesForDay[stagesForDay.length - 1]?.subsRequired ?? 5000);
+    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 3;
+    if (isFinale && this.farewellDay !== finaleDay) {
+      this.farewellDay = finaleDay;
+      this.farewellPhase = 'idle';
+    }
+    if (isFinale) {
+      this.finaleKickerEl.textContent =
+        finaleDay === 3
+          ? '★ ФИНАЛ КОСПЛЕЙ-ДНЯ: ПРИЗРАК ★'
+          : finaleDay === 2
+            ? '★ ФИНАЛ ВТОРОГО ДНЯ ★'
+            : '★ ФИНАЛ ПЕРВОГО ДНЯ ★';
+      this.finaleTitleEl.textContent = `${finaleTarget} сабов пробито!`;
+      this.finaleDescEl.innerHTML =
+        finaleDay === 3
+          ? `Призрачный эфир закрыт: <strong>${finaleTarget} сабов</strong>, простыня стала плащом. Мия уже думает, какой формат выбрать на следующий стрим.`
+          : finaleDay === 2
+          ? 'Второй эфир окончен: Мия прощается с чатом и уносит костюм. <strong>Завтра — День 3: косплей-стрим</strong>, и она обещала сюрприз.'
+          : 'Первый эфир окончен: Мия прощается с чатом и выключает камеру. <strong>Завтра — День 2</strong>: новый образ и новые Sub Goal.';
+      this.startDay2BtnEl.textContent =
+        finaleDay === 3
+          ? 'День 4 в разработке — продолжение завтра'
+          : finaleDay === 2
+          ? isDay3Unlocked()
+            ? 'Начать День 3 (призрачный косплей) →'
+            : 'Простыня ещё не подшита — открытие завтра'
+          : 'Начать День 2 →';
+    }
     this.finaleOverlayEl.classList.toggle('hidden', !isFinale);
     if (isFinale) {
+      // The Day-3 button re-checks the art probe on every render, so it lights up without a reload.
+      if (this.farewellPhase === 'done') {
+        this.startDay2BtnEl.disabled = finaleDay === 2 ? !isDay3Unlocked() : false;
+      }
       if (this.farewellPhase === 'idle') this.startFarewell();
     } else if (this.farewellPhase !== 'idle') {
       this.resetFarewell();
@@ -335,17 +375,18 @@ export class UiController {
     } else {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
-        state.streamDay === 2
-          ? 'День 2: финал пробит — 5000 сабов! ★'
-          : 'Финал Дня 1 пробит — 500 сабов! ★';
+        state.streamDay === 3
+          ? `День 3: призрак ушёл сквозь стену — ${finaleTarget} сабов! ★`
+          : state.streamDay === 2
+            ? 'День 2: финал пробит — 5000 сабов! ★'
+            : 'Финал Дня 1 пробит — 500 сабов! ★';
       this.subgoalCountEl.textContent = `${state.subscribers} сабов`;
       this.subgoalPctEl.textContent = '100% ★';
       this.subgoalFillEl.style.width = '100%';
     }
 
-    const isDay2Plate = state.streamDay === 2;
-    const stepLabels = isDay2Plate ? DAY2_STEP_LABELS : DAY1_STEP_LABELS;
-    const shortStepLabels = isDay2Plate ? DAY2_SHORT_STEP_LABELS : DAY1_SHORT_STEP_LABELS;
+    const stepLabels = getStepLabelsForDay(state.streamDay);
+    const shortStepLabels = getShortStepLabelsForDay(state.streamDay);
     const isNarrow = window.innerWidth <= 680;
     this.subgoalStepEls.forEach((el, idx) => {
       const stepStage = idx + 1;

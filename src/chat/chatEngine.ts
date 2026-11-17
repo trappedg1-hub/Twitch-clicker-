@@ -176,6 +176,102 @@ const AMBIENT_DAY2: readonly string[] = [
   'чат, спокойно: она только СДЕЛАЛА ВИД, что подумает над «повтори» :LUL: :Nosebleed:',
 ];
 
+/**
+ * Day 2 ambient chat, phase by phase (1500 / 2000 / 2500 / 5000). The chat reacts to what is on
+ * screen at THIS sub goal instead of recycling one generic pool, so the room feels alive as she
+ * climbs. Anything that would contradict the plate is filtered out below by the same wardrobe
+ * guard Miya's own lines use.
+ */
+const AMBIENT_DAY2_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+  0: [
+    'худи через голову, гольфы натянуты — она оделась как на войну. 1500 сабов это решат :Pog:',
+    'день 2, а она всё ещё в коконе. доверьтесь чату, мия_няш :SubHype:',
+    'гольфы как школьной форме, чат уже не может :Kreygasm: :peepoShy:',
+    'она помнит вчерашнее и краснеет заранее. лучший контент без всякого фансервиса :ClipIt:',
+    'спорим на сабку: худи улетит первым, а гольфы она будет защищать до последнего :EZ: :monkaS:',
+  ],
+  1: [
+    'худи нет, майка есть — план выполнен на четверть, чат ликует :Pog:',
+    'гольфы всё ещё натянуты, но мы знаем, что резинка не железная :LUL:',
+    'она одёргивает подол каждые три секунды, я записал четыре клипа :ClipIt: :Nosebleed:',
+    'следующая цель — худи на талию. вяжем, девочки, не торопим :monkaS: :SubHype:',
+    '1500 сабов и ни одного намёка с её стороны. она честный человек :peepoShy:',
+  ],
+  2: [
+    'худи на талии = +500 к уверенности, топ = -500 к её стыду :BOOBA:',
+    'гольфы у щиколоток, а она делает вид, что так и было задумано :peepoShy:',
+    'узел развяжется сам, чат уже скинулся на гравитацию :Pog:',
+    '2000 сабов, а она до сих пор думает, что мы не заметили топ :Kreygasm: :ClipIt:',
+    'она завязала худи САМА. это главное, чат, запомните навсегда :LUL: :miyaLove:',
+  ],
+  3: [
+    'ЛЯМКИ ОБЕ. я записал 47 клипов за 30 секунд :AWOOGA:',
+    'она натянула гольфы обратно и считает это победой. мы тоже :sub2: :Pog:',
+    'худи за спиной, колени у камеры — 2500 сабов отработали каждую копейку :Pog:',
+    'до финала 2500 сабов. добиваем, легион, не спамим но скидываем :SubHype: :monkaS:',
+    'смотрит в камеру как будто это нормально. чат, это не нормально, это прекрасно :Nosebleed:',
+  ],
+  4: [
+    '5000 САБОВ. ОНА ВСТАЛА НА КОЛЕНИ У КАМЕРЫ. ЧАТ В ШОКЕ :AWOOGA:',
+    'босые ступни на сиденье, гольфы в углу — план чата выполнен полностью :Pog:',
+    'забираю клип в избранное, спасибо за лучший вечер, мия_няш :miyaLove: :SubHype:',
+    'она сказала «завтра сюрприз»?? чат уже скупает сабы на день 3 :monkaS: :sub2:',
+    'завтра косплей, я уже предчувствую, что не усну до эфира :AWOOGA: :Overheat:',
+  ],
+};
+
+/**
+ * Day 3 «призрачная стримерша»: a cut-down sheet over a glossy bodysuit and fishnets.
+ * The chat plays the convention jury AND the horror fan at the same time, and it talks about
+ * the reveal mechanic (the «Бу!» flash frame) exactly the way a real Twitch chat would.
+ */
+const AMBIENT_DAY3: readonly string[] = [
+  'простыня с дырками для глаз — гениально, я плакал. 7000 сабов, быстро :AWOOGA: :SubHype:',
+  'контраст дня: сверху мем-призрак, снизу СЕТКА. это лучший продакшн на твиче :Pog: :Kreygasm:',
+  'она САМА резала края ножницами. я пересматриваю клип, где шов разошёлся :ClipIt: :LUL:',
+  '«это отыгрыш призрака», сказала она, прижимая ткань. конечно, дорогая, отыгрыш :peepoShy: :monkaS:',
+  'шорох простыни в микрофоне за 10-й тир — это ASMR-контент, чат, мы нашли золото :Overheat:',
+  'дырки кривые, глаза светятся, улыбка в третьей дырке. косплей года, без шуток :miyaLove: :SubHype:',
+];
+
+const AMBIENT_DAY3_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+  0: [
+    'она стоит белым прямоугольником и молчит. 7000 сабов или призрак не отпустит :Pog: :monkaS:',
+    'простыня до середины бедра, сетка внизу, и НИЧЕГО больше. это лучший троллинг чата :EZ: :ClipIt:',
+    'глаза через дырку подведены, светятся, я не сплю третий час :AWOOGA: :peepoShy:',
+    'призрак в обтяжку не даст, призрак стоит статично. учебник выдержки, том 1 :LUL:',
+    'саб-цель 7000: сдвинуть ткань с плеча. мы люди вежливые, мы просто скидываем :SubHype: :sub2:',
+  ],
+  1: [
+    'ПЛЕЧО ОТКРЫТО. простыня съехала на одно плечо, и чат потерял рассудок :Pog: :Nosebleed:',
+    'Бретелька боди под тканью = 47 клипов за минуту, статистика не врёт :ClipIt: :LUL:',
+    'она держит ткань одной рукой и делает вид, что так и было задумано :peepoShy: :monkaS:',
+    'сетка стала видна выше, и это, чат, прогресс. 10000 сабов, легион, потихоньку :SubHype: :sub2:',
+    'призрак с голым плечом — новый жанр, я уже рисую фанарт :Kreygasm: :miyaLove:',
+  ],
+  2: [
+    'ОБТЯЖКА. она прижала простыню и получила силуэт. физика, не фансервис :Pog: :AWOOGA:',
+    'натянула ткань на груди, назвала это сквозняком. в комнате нет окон, мы проверяли :LUL: :ClipIt:',
+    '10000 сабов и ни одного слова «сними». мы культурные призраколовы, мы ждём :monkaS: :sub2:',
+    'обтяжка + сетка = композиция кадра. она учит нас искусству, буквально :miyaLove: :Overheat:',
+    'следующая цель 13000: призрак приоткроет ткань. скидываемся молча, без спама :EZ: :SubHype:',
+  ],
+  3: [
+    'ПРОСТЫНЯ ЗАДРАЛАСЬ, БОДИ ДО ТАЛИИ. 13000 сабов отработали каждую копейку :Pog: :Nosebleed:',
+    '«Бу!» и ткань вверх. я пересматриваю этот клип, кажется, в сорок седьмой раз :ClipIt: :AWOOGA:',
+    'сетка от бедра, плащ-прикрытие в руках. призрак стал обложкой, чат, мы победили :Kreygasm:',
+    'она стоит и держит ткань, а мы держим сабы. 15000 до финала, никто не спит :monkaS: :sub2:',
+    'до финального кадра 2000 сабов. легион, это последний забег призрака :SubHype: :Overheat:',
+  ],
+  4: [
+    '15000 САБОВ. ПРОСТЫНЯ УШЛА НА ПЛЕЧИ КАК ПЛАЩ. БОДИ + СЕТКА + ПОЗА :AWOOGA: :Pog: :SubHype:',
+    'финальная поза с арта, дырки для глаз на месте, плащ развевается. косплей принят без замечаний :Kreygasm:',
+    'призрак разделся до костюма, чат распался на клипы. лучший эфир года, я не шучу :ClipIt: :miyaLove:',
+    'она сказала «бу» в последний раз, и у меня ком в горле. спокойной ночи, призрачиха :peepoShy: :Overheat:',
+    'завтра новый формат?? я уже купил сабы на неделю вперёд, готовьтесь, легион :monkaS: :sub2:',
+  ],
+};
+
 export function createAmbientChatMessage(
   _onlineViewers: number,
   displayedStage: SubGoalStageIndex = 0,
@@ -184,10 +280,20 @@ export function createAmbientChatMessage(
 ): ChatMessage {
   const viewer = VIEWER_NICKS[seed % VIEWER_NICKS.length]!;
   const pool =
-    streamDay === 2 ? AMBIENT_DAY2 : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
+    streamDay === 3
+      ? [
+          ...(AMBIENT_DAY3_BY_STAGE[displayedStage] ?? []),
+          ...AMBIENT_DAY3,
+        ]
+      : streamDay === 2
+        ? [
+            ...(AMBIENT_DAY2_BY_STAGE[displayedStage] ?? []),
+            ...AMBIENT_DAY2,
+          ]
+        : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
   // Same wardrobe truth the heroine's own lines use: chat may beg, but it should not narrate an
   // outfit the plate contradicts ("she looks dangerous in the hoodie" at 5000 subs).
-  const wardrobe = getWardrobe(streamDay === 2 ? 2 : 1, displayedStage);
+  const wardrobe = getWardrobe(streamDay, displayedStage);
   const usable = pool.filter((line) => contradictsWardrobe(line, wardrobe) === null);
   const spoken = usable.length > 0 ? usable : pool;
   const text = spoken[(seed * 3) % spoken.length]!;
@@ -207,6 +313,22 @@ export function createZoneBurstMessage(
   streamDay = 1,
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 3 + 2) % VIEWER_NICKS.length]!;
+  if (streamDay === 3) {
+    // Ghost day: every tap is a «Бу!» - the sheet flies for a frame and the chat clips it forever.
+    const day3Text =
+      zone === 'feet' || zone === 'legs'
+        ? 'бу! и сетка мелькнула. это единственный фансервис, который я готов обсудить :Pog: :ClipIt:'
+        : zone === 'head'
+          ? 'она смотрит на вас ЧЕРЕЗ ДЫРКУ ДЛЯ ГЛАЗ и это работает лучше любого декольте :peepoShy: :AWOOGA:'
+          : 'БУ! простыня взлетела на кадр, чат взорвался на триггер :SubHype: :Nosebleed: :LUL:';
+    return {
+      id: nextMsgId(),
+      author: viewer.name,
+      color: viewer.color,
+      badge: viewer.badge,
+      text: day3Text,
+    };
+  }
   if (streamDay === 2) {
     // Day 2 costume logic: knees hugged up, legs in opaque golf socks, hoodie fully on.
     const day2Text =
@@ -319,7 +441,8 @@ export function createSubNotificationMessage(
   };
 }
 
-const FAREWELL_CHAT: readonly {
+/** Day 1 close-out chatter. */
+const FAREWELL_CHAT_DAY1: readonly {
   author: string;
   color: string;
   badge?: ChatMessage['badge'];
@@ -355,6 +478,86 @@ const FAREWELL_CHAT: readonly {
     author: 'shadow_sniper99',
     color: '#00e5ff',
     text: 'клип с прощанием уже в залипнуто, всем спать, завтра 1000 сабов бьём :ClipIt: :LUL:',
+  },
+];
+
+/** Day 2 close-out chatter: the room already knows she is stronger now, and asks about the cosplay. */
+const FAREWELL_CHAT_DAY2: readonly {
+  author: string;
+  color: string;
+  badge?: ChatMessage['badge'];
+  text: string;
+  highlight?: boolean;
+}[] = [
+  {
+    author: 'StreamBot',
+    color: '#c084fc',
+    badge: 'MOD',
+    text: '★ ДЕНЬ 2 ЗАКРЫТ: 5000 САБОВ! Чат прошёл весь путь от носочков до финала :SubHype: :Pog:',
+    highlight: true,
+  },
+  {
+    author: 'k0tik_v_chate',
+    color: '#ff75c3',
+    badge: 'VIP',
+    text: 'НУ НЕЕЕ, она уходит на пике!! я ещё не насмотрелся :peepoShy: :monkaS:',
+  },
+  {
+    author: 'Pasha_Donater',
+    color: '#ffb703',
+    badge: 'SUB',
+    text: 'пять тысяч сабов и ни одной жалобы от модеров. это легенда, Мия :Pog:',
+  },
+  {
+    author: 'feet_connoisseur',
+    color: '#f472b6',
+    badge: 'SUB',
+    text: 'завтра КОСПЛЕЙ?? говорят, призрак в простыне. я уже оплатил три подписки вперёд :AWOOGA: :Kreygasm:',
+  },
+  {
+    author: 'neko_chan_uwu',
+    color: '#00e5ff',
+    text: 'залип на прощание, она впервые УЛЫБНУЛАСЬ в камеру. спокойной ночи, чат :miyaLove: :ClipIt:',
+  },
+];
+
+/** Day 3 (cosplay) close-out chatter. */
+const FAREWELL_CHAT_DAY3: readonly {
+  author: string;
+  color: string;
+  badge?: ChatMessage['badge'];
+  text: string;
+  highlight?: boolean;
+}[] = [
+  {
+    author: 'StreamBot',
+    color: '#c084fc',
+    badge: 'MOD',
+    text: '★ КОСПЛЕЙ-ДЕНЬ ЗАКРЫТ: 15000 САБОВ! Призрак в боди и сетке принят жюри без замечаний :SubHype: :Pog:',
+    highlight: true,
+  },
+  {
+    author: 'k0tik_v_chate',
+    color: '#ff75c3',
+    badge: 'VIP',
+    text: 'призрак ушёл сквозь стену, а я остался с клипами и пустым кошельком :peepoShy: :LUL:',
+  },
+  {
+    author: 'Pasha_Donater',
+    color: '#ffb703',
+    badge: 'SUB',
+    text: 'пятнадцать тысяч сабов: простыня, сетка, боди. я видел всё, спокойной ночи, Мия :Pog:',
+  },
+  {
+    author: 'cosplay_anon',
+    color: '#f472b6',
+    badge: 'SUB',
+    text: '«Бу!» и простыня вверх — высшая лига косплей-монтажа, чат запомнит :AWOOGA: :ClipIt:',
+  },
+  {
+    author: 'shadow_sniper99',
+    color: '#00e5ff',
+    text: 'следующий формат?? мы идём на что угодно, только не выключайте камеру :monkaS: :sub2:',
   },
 ];
 
@@ -417,8 +620,10 @@ export function createDay2ProvocationChatMessage(index: number): ChatMessage {
 }
 
 /** One viewer goodbye line per farewell beat of the Day 1 finale. */
-export function createFarewellChatMessage(index: number): ChatMessage {
-  const def = FAREWELL_CHAT[index % FAREWELL_CHAT.length]!;
+/** The goodbye chat follows the day that just ended - no stale "500 subs" copy on Day 3. */
+export function createFarewellChatMessage(index: number, streamDay = 1): ChatMessage {
+  const pool = streamDay === 3 ? FAREWELL_CHAT_DAY3 : streamDay === 2 ? FAREWELL_CHAT_DAY2 : FAREWELL_CHAT_DAY1;
+  const def = pool[index % pool.length]!;
   return {
     id: nextMsgId(),
     author: def.author,

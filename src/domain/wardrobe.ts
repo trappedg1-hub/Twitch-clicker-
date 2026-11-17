@@ -10,11 +10,15 @@ import type { SubGoalStageIndex, TapZoneId } from './types.ts';
  */
 
 export type HoodieState = 'on' | 'tied' | 'hanging' | 'off';
-export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra';
+export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra' | 'bodysuit';
 export type SockState = 'up' | 'gathered' | 'gone';
+/** Day 3 (ghost cosplay): the sheet IS the reveal mechanic, so its state is tracked like a garment. */
+export type SheetState = 'full' | 'shoulder' | 'tight' | 'lifted' | 'cape';
+
+export type DayIndex = 1 | 2 | 3;
 
 export interface Wardrobe {
-  day: 1 | 2;
+  day: DayIndex;
   stage: SubGoalStageIndex;
   hoodie: HoodieState;
   top: TopState;
@@ -22,10 +26,14 @@ export interface Wardrobe {
   socks: SockState;
   strapsDown: boolean;
   midriff: boolean;
+  /** Day 3 only: how much of the bodysuit the sheet still hides. */
+  sheet?: SheetState;
+  /** Day 3 only: fishnet stockings stay on all day - they are the punchline, not a goal. */
+  fishnets?: boolean;
 }
 
 const W = (
-  day: 1 | 2,
+  day: DayIndex,
   stage: SubGoalStageIndex,
   hoodie: HoodieState,
   top: TopState,
@@ -44,7 +52,7 @@ const W = (
   ...extra,
 });
 
-export const WARDROBES: Record<1 | 2, Record<SubGoalStageIndex, Wardrobe>> = {
+export const WARDROBES: Record<DayIndex, Record<SubGoalStageIndex, Wardrobe>> = {
   // Day 1: 0 hoodie+leggings+socks → 1 socks off → 2 leggings off → 3 crop tee → 4 bralette.
   1: {
     0: W(1, 0, 'on', 'underHoodie', true, 'up'),
@@ -66,10 +74,32 @@ export const WARDROBES: Record<1 | 2, Record<SubGoalStageIndex, Wardrobe>> = {
     }),
     4: W(2, 4, 'hanging', 'bra', false, 'gone', { strapsDown: true, midriff: true }),
   },
+  // Day 3 «призрачная стримерша»: sheet over a glossy bodysuit + fishnets. Every stage only
+  // re-cuts, re-ties or lifts THE SAME sheet - no new garments, and the fishnets never come off.
+  3: {
+    0: W(3, 0, 'off', 'bodysuit', false, 'up', { sheet: 'full', fishnets: true }),
+    1: W(3, 1, 'off', 'bodysuit', false, 'up', {
+      sheet: 'shoulder',
+      fishnets: true,
+      strapsDown: true,
+    }),
+    2: W(3, 2, 'off', 'bodysuit', false, 'up', { sheet: 'tight', fishnets: true }),
+    3: W(3, 3, 'off', 'bodysuit', false, 'up', {
+      sheet: 'lifted',
+      fishnets: true,
+      midriff: true,
+    }),
+    4: W(3, 4, 'off', 'bodysuit', false, 'up', {
+      sheet: 'cape',
+      fishnets: true,
+      midriff: true,
+      strapsDown: true,
+    }),
+  },
 };
 
 export function getWardrobe(streamDay: number, stage: number): Wardrobe {
-  const day: 1 | 2 = streamDay === 2 ? 2 : 1;
+  const day: DayIndex = streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
   const clamped = Math.max(0, Math.min(4, Math.floor(stage))) as SubGoalStageIndex;
   return WARDROBES[day][clamped] ?? WARDROBES[day][0]!;
 }
@@ -99,6 +129,59 @@ export function contradictsWardrobe(
 ): string | null {
   const removal = REMOVAL_TALK.test(line);
 
+  // Day 3 is a sheet over a bodysuit: no hoodie, no golf socks, no dress - only the sheet moves.
+  if (w.day === 3) {
+    if (/худи/i.test(line)) return 'the ghost costume has no hoodie';
+    if (/гольф/i.test(line) && !removal) return 'the ghost costume has fishnets, not golf socks';
+    if (/^(?!(.*\bне\b)).*(платье|платьиц|юбк|сарафан|халат|пижам)/i.test(line) && !removal) {
+      return 'calls the cut-down sheet a dress';
+    }
+    const sheet = w.sheet ?? 'full';
+    const sheetTalk = /простын|полотенц|ткан|дырк/i.test(line);
+    // "Полностью" only counts as a coverage claim next to a covering verb - "живот открыт полностью"
+    // is a reveal claim, and must not be filtered as if she said the opposite.
+    const claimsCovered =
+      /(полност\w*|целиком|абсолютно)[^.!?]{0,18}(закрыт|спрятан|скрыт|укутан|закутан|под ткан|под простын)|(ничего не видно|не видно соверш|вся скрыт|полностью скрыт)/i.test(
+        line,
+      );
+    const claimsSlipped = /сполз|съехал|открыл[аи]? плеч|с одного плеча|оголил/i.test(line);
+    const claimsTight = /обтяж|натянул[аи]? (ткан|простын)|затянул[аи]? (ткан|простын)|силуэт/i.test(line);
+    // The sheet was cut short BEFORE the stream, so "короткая" is true at every stage; only a lift
+    // (or the reveal) changes state and needs the sheet to have actually moved.
+    const claimsShort = /задрал[аи]?|поднял[аи]? (ткан|простын)|стала короче|ещё короче|укоротил[аи]/i.test(line);
+    // Previewing the next goal ("дальше будет обтяжка") is not a claim about the current plate.
+    const futureTalk =
+      /дальше|следующ|будет|будем|потом|скоро|обеща|до финал|ждём|ждите|цел[ьию] (до|на)/i.test(line);
+    if (sheetTalk && !removal && !futureTalk) {
+      if (sheet === 'full' && (claimsSlipped || claimsTight || claimsShort)) {
+        return 'claims the sheet moved while it is still fully on';
+      }
+      if (
+        sheet === 'full' &&
+        claimsCovered === false &&
+        /(видн|открыт|показал)/i.test(line) &&
+        !/не (видн|открыт|показал)|ничего не|никогда не|не открою|не покажу/i.test(line)
+      ) {
+        return 'reveals more than the full sheet allows';
+      }
+      if (sheet === 'shoulder' && (claimsTight || (claimsShort && !/с одной стороны/i.test(line)))) {
+        return 'claims a tighter or shorter sheet than the slipped-shoulder stage';
+      }
+      if (sheet === 'tight' && (claimsShort || claimsSlipped) && !/от натяжени|натянул[аи]?|прижал[аи]?/i.test(line)) {
+        return 'claims the sheet lifted or slipped while it is only stretched tight';
+      }
+      if ((sheet === 'lifted' || sheet === 'cape') && claimsCovered) {
+        return 'claims the sheet still hides her at the reveal stage';
+      }
+      if (sheet === 'cape' && /простын[^.!?]{0,20}(на мне|надета|одет)/i.test(line)) {
+        return 'wears the sheet as a covering while it is a shoulder cape now';
+      }
+    }
+    if (claimsCovered && !futureTalk && (sheet === 'lifted' || sheet === 'cape')) {
+      return 'says she is fully covered during the reveal';
+    }
+  }
+
   // Knee-highs: only "gathered/slouched" is true at the gathered stage; never while pulled up.
   if (/гольф/i.test(line)) {
     if (w.socks === 'gone' && !removal) return 'mentions golf socks she already took off';
@@ -112,7 +195,7 @@ export function contradictsWardrobe(
 
   // Day 1 crew socks: they are gone from stage 1 on, and Day 2 never has them at all.
   if (/носок|носочк|носк[иеов]/i.test(line)) {
-    if (w.day === 2) return 'day 2 outfit has knee-highs, not socks';
+    if (w.day !== 1) return `day ${w.day} outfit has knee-highs, not ankle socks`;
     if (w.socks === 'gone' && !removal) return 'mentions socks she already removed';
     if (w.socks === 'up' && /носк[а-я]*[^.!?]{0,26}(сполз|съехал|спустил|спущен|собран|гармошк)/i.test(line)) {
       return 'claims her socks slipped while they are on';
@@ -120,7 +203,8 @@ export function contradictsWardrobe(
   }
 
   // Saying her feet are COVERED is the opposite claim - always allowed, even with socks on.
-  const coversFeet = /(закрыт|спрятал|укутан|в гольфах|в носк|не голы)/i.test(line);
+  const coversFeet =
+    /(закрыт|спрятал|укутан|в гольфах|в носк|в сетк|под сетк|в чулк|под чулк|не голы)/i.test(line);
 
   // Bare-foot talk needs bare feet.
   if (!coversFeet && /бос[ыеиком]+|ступн|пяточк|пятьк|пальц\w* (ног|ступен)/i.test(line)) {
@@ -153,6 +237,12 @@ export function contradictsWardrobe(
   if (/ретелях|лямк/i.test(line) && !removal && w.top === 'underHoodie') {
     return 'mentions thin straps while she is bundled in the hoodie';
   }
+  if (w.day === 3 && /бретел|лямк/i.test(line) && !removal && w.sheet === 'full') {
+    return 'mentions a visible strap while the sheet still covers her shoulders';
+  }
+  if (w.day === 3 && /бретел/i.test(line) && w.sheet === 'tight') {
+    return 'claims the strap shows again while the sheet is pulled taut over the shoulders';
+  }
   if (/лямк[^.!?]{0,18}(?<!не )(подня|на месте|верну)/i.test(line) && w.strapsDown) {
     return 'claims the straps are up while they are already down';
   }
@@ -168,6 +258,13 @@ export function contradictsWardrobe(
 
   if (/живот[^.!?]{0,16}(открыт|голый|мёрзнет|мерзнет|холодит)/i.test(line) && !w.midriff) {
     return 'claims a bare stomach while her top covers it';
+  }
+
+  // Fishnets are Day 3's permanent legwear: never claim they came off, never claim bare legs.
+  if (w.day === 3 && w.fishnets && /сетк|чулк/i.test(line)) {
+    if (/без сетк|сетк[ауи]? (снят|нет|ушел|улетел)|голые ноги|ноги без/i.test(line) && !removal) {
+      return 'claims the fishnets are off while they are on all day';
+    }
   }
 
   return null;
@@ -186,7 +283,7 @@ export function filterWardrobeLines(
 }
 
 /** Guaranteed-correct reactions per day + stage, used when a whole pool contradicts the outfit. */
-export const WARDROBE_SAFE_LINES: Record<1 | 2, Record<SubGoalStageIndex, readonly string[]>> = {
+export const WARDROBE_SAFE_LINES: Record<DayIndex, Record<SubGoalStageIndex, readonly string[]>> = {
   1: {
     0: [
       'Ой!.. Я пока вся в этом огромном худи, поэтому краснею просто от взгляда в камеру, а не от смелости~',
@@ -229,6 +326,29 @@ export const WARDROBE_SAFE_LINES: Record<1 | 2, Record<SubGoalStageIndex, readon
     4: [
       'Всё: топ снят, гольфы улетели, я на коленях у самой камеры. Пять тысяч сабов, чат — ты получил меня раскрепощённую~ ★ ♥',
       'Босые ступни на сиденье, худи на локтях, и я улыбаюсь в объектив. Вчера бы сгорела — сегодня прошу смотреть~ ♥',
+    ],
+  },
+  // Day 3 ghost: sheet over a glossy bodysuit + fishnets. The safe pool keeps that truth at every stage.
+  3: {
+    0: [
+      'Белая простыня, две кривые дырки для глаз и улыбка в одной из них. Бу! — и всё, костюм готов~',
+      'Под простынёй у меня глянцевое боди и сетка на ногах, но вы этого не видите, потому что я закрыта тканью!',
+    ],
+    1: [
+      'Простыня соскользнула с одного плеча. Да, под ней видно край боди. Нет, я не помогала... много.',
+      'Плечо открыто, сетка на ногах, дырка для глаза кривая. Призрак стал откровеннее, чем я планировала~',
+    ],
+    2: [
+      'Я прижала ткань — и она обтянула силуэт. Это физика, чат, а не мой фансервис, я просто держалась за простыню!',
+      'Холодно, поэтому простыня натянута на груди в обтяжку. Всё, что вы там дорисовали, остаётся там~',
+    ],
+    3: [
+      'Простыня задралась, и под ней видно высокий вырез боди. Сетка на ногах, плак-прикрытие, всё по канону~',
+      'Края я обрезала коротко ещё до стрима, так что «случайно» тут только ваши выводы, чат.',
+    ],
+    4: [
+      'Финал: простыня на плечах как плащ, боди и сетка — на камеру. Бу! Теперь вы видите весь костюм~ ★ ♥',
+      'Призрак разделся до исходного костюма: глянцевое боди, сетка, плащ из простыни. Я красивая и мне не страшно.',
     ],
   },
 };

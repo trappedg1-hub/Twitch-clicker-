@@ -2,6 +2,7 @@ import { type DialogueBand, pickDialogueLine } from './dialogue.ts';
 import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
   DAY1_FINALE_SUBS,
+  isDay3Unlocked,
   getGiftSubPackCost,
   getGiftSubUnitCost,
   getNextSubGoalDef,
@@ -345,6 +346,37 @@ export function startDay2(state: GameState): { ok: boolean; state: GameState } {
       // balance, upgrades (mic tier!), items and boldness stay exactly where Day 1 left them.
       unlockedSubStage: 0,
       displayedSubStage: 0, // Day 2 opens fully dressed again — in the Day 2 wardrobe plate!
+      hype: 100,
+    },
+  };
+}
+
+/** Day 2 is over once her own 5000-sub ladder is fully paid off. */
+export function isDay2FinaleReached(state: GameState): boolean {
+  return state.streamDay === 2 && state.subscribers >= 5000;
+}
+
+/**
+ * Start Day 3 = COSPLAY DAY (locked until the cosplay plates ship): balance, upgrades (mic tier!),
+ * items and boldness carry over again, the wardrobe relocks to 0 and she changes into the
+ * bunny-cosplay ladder (ears on the hood, white lace top, white golf socks with ribbons).
+ */
+export function startDay3(state: GameState): { ok: boolean; state: GameState } {
+  if (!isDay2FinaleReached(state) || !isDay3Unlocked()) {
+    return { ok: false, state };
+  }
+  const carried = Math.max(
+    state.carriedOverWardrobeStage ?? 0,
+    state.unlockedSubStage,
+  ) as SubGoalStageIndex;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      streamDay: 3,
+      carriedOverWardrobeStage: carried,
+      unlockedSubStage: 0,
+      displayedSubStage: 0,
       hype: 100,
     },
   };

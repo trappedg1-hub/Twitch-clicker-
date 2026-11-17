@@ -427,10 +427,295 @@ export const DAY2_STEP_LABELS = ['1500 Худи', '2000 Талия', '2500 Ля�
 export const DAY2_SHORT_STEP_LABELS = ['1500', '2000', '2500', '5000'];
 
 export const DAY1_FINALE_SUBS = 500;
+/**
+ * Day 3 = COSPLAY DAY. She promised the chat a surprise, and the costume is a bunny cosplay:
+ * a beige pullover hoodie with sewn-on ears + a convention name badge, a white lace-trim cropped
+ * top, the same black shorts, and white golf socks with two red stripes and little ribbons.
+ *
+ * Same costume discipline as Day 2: ONE garment set for the whole day, escalation only REMOVES or
+ * RE-TIES what already exists. No skirt, no dress, no zipper, no invented accessories on later
+ * stages - the copy is written from the plate, and tests/wardrobe.ts proves it.
+ */
+export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  {
+    stage: 0,
+    subsRequired: 0,
+    shortGoalTitle: 'Старт Дня 3 (призрак)',
+    outfitName: 'Белая простыня до середины бедра + глянцевое чёрное боди под ней + чулки в сетку',
+    removedItemLabel: 'День 3 начат',
+    storyDesc:
+      'Мия вышла «призрачной стримершей»: короткая белая простыня до середины бедра с рваными дырками для глаз и рта, края обрезаны ножницами неровно. Под тканью — глянцевое чёрное боди с высоким вырезом, ноги в чулках в мелкую сетку. Сверху — чистый мем-призрак, снизу — то, за чем чат пришёл на самом деле.',
+    incomeMultiplier: 1.0,
+    viewersBonus: 0,
+    boldnessBonus: 0,
+    unlockEmotion: 'shy',
+    unlockLine: '',
+    plateUrl: '/art/heroine_t3_s0.webp',
+    shyApproachLines: [
+      'Это простыня, чат. Я её сама ножницами кромсала. Бу? Бу. Всё, теперь можно смотреть.',
+      'Дырки я вырезала криво, поэтому вы видите только мои глаза и улыбку. И да, глаза подведены, спасибо~',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ ДЕНЬ 3: «ПРИЗРАЧНАЯ СТРИМЕРША» ВЫШЛА В ПРОСТЫНЕ :Pog: :SubHype: бу-бу',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'Pasha_Donater',
+        color: '#ff6b9d',
+        badge: 'VIP',
+        text: 'простыня до середины бедра, а снизу СЕТКА. это лучший косплей в истории твича :AWOOGA:',
+      },
+      {
+        author: 'kaktus_mod',
+        color: '#4ecdc4',
+        badge: 'MOD',
+        text: 'правило дня: никто не просит «снять простыню». мы просто скидываем на 7000 :EZ: :ClipIt:',
+      },
+    ],
+  },
+  {
+    stage: 1,
+    subsRequired: 7000,
+    shortGoalTitle: 'Простыня сползла с плеча',
+    outfitName: 'Простыня на одном плече + видимая бретелька боди + чулки в сетку',
+    removedItemLabel: '− Простыня сползла с плеча!',
+    storyDesc:
+      '7000 сабов: простыня соскользнула с одного плеча, и из-под ткани видно край глянцевого боди и тонкую бретельку. Ноги в сетке чат заметил первым — именно поэтому контраст и работал весь эфир.',
+    incomeMultiplier: 1.4,
+    viewersBonus: 220,
+    boldnessBonus: 4,
+    unlockEmotion: 'fluster',
+    unlockLine:
+      'Бу!.. простыня не сползла, она... драпировалась. Да, плечо открыто, и да, я это сделала специально~',
+    plateUrl: '/art/heroine_t3_s1.webp',
+    shyApproachLines: [
+      'Плечо открыто, потому что ткань скользкая, а не потому что я хотела. Проверьте крашеный ноготь, я не вру.',
+      'Вы сейчас все смотрите на бретельку под простынёй. Я знаю. Я просто делаю вид, что не знаю.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 7000/7000! ПРОСТЫНЯ СПОЛЗЛА С ПЛЕЧА, видна бретелька боди :Pog: :AWOOGA:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'neko_chan_uwu',
+        color: '#ff75c3',
+        badge: 'SUB',
+        text: 'призрак с голым плечом — это новый жанр, чат уже рисует фанарт :ClipIt: :LUL:',
+      },
+      {
+        author: 'feet_connoisseur',
+        color: '#f472b6',
+        badge: 'SUB',
+        text: 'СЕТКА ВНИЗУ. простыня только выше колена, дальше 10000: обтяжка :monkaS: :Overheat:',
+      },
+    ],
+  },
+  {
+    stage: 2,
+    subsRequired: 10000,
+    shortGoalTitle: 'Простыня в обтяжку',
+    outfitName: 'Простыня, натянутая на груди, + боди под тканью + чулки в сетку',
+    removedItemLabel: '− Ткань натянулась!',
+    storyDesc:
+      '10000 сабов: она прижала простыню руками и нечаянно затянула её на груди — ткань обтянула силуэт так, что мем-призрак превратился в очень откровенный силуэт. Лицо по-прежнему видно только через две дырки, и эти дырки улыбаются.',
+    incomeMultiplier: 1.85,
+    viewersBonus: 460,
+    boldnessBonus: 6,
+    unlockEmotion: 'tease',
+    unlockLine:
+      'Я не натягивала, она... обтянулась от сквозняка. В комнате нет окна, но я продолжаю стоять на сквозняке~',
+    plateUrl: '/art/heroine_t3_s2.webp',
+    shyApproachLines: [
+      'Ткань обтянула всё, что я просила не обтягивать. Это физика, чат, а не мой план.',
+      'Смотрите на дырки для глаз, а не ниже дырок для глаз. Я серьёзно прошу, это правила приличия призрака.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 10000/10000! ПРОСТЫНЯ В ОБТЯЖКУ, СИЛУЭТ НА ВИДУ :AWOOGA: :Pog: физика победила',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'Pasha_Donater',
+        color: '#ff6b9d',
+        badge: 'VIP',
+        text: 'обтяжка из простыни — это же уровень «я не планировала, но оставляю» :Kreygasm: :Nosebleed:',
+      },
+      {
+        author: 'kaktus_mod',
+        color: '#4ecdc4',
+        badge: 'MOD',
+        text: '13000: призрак приоткроет простыню. спамим «бу», не спамим просьбами, мы культурные мертвецы :LUL:',
+      },
+    ],
+  },
+  {
+    stage: 3,
+    subsRequired: 13000,
+    shortGoalTitle: 'Простыня задралась',
+    outfitName: 'Короткая простыня + глянцевое боди выше бедра + чулки в сетку',
+    removedItemLabel: '− Простыня задралась!',
+    storyDesc:
+      '13000 сабов: после «Бу!» простыня задралась и стала совсем короткой — из-под неё видно боди с высоким вырезом до самой талии и сетку на ногах до колена. Призрак теперь выглядит как обложка, а не как мем.',
+    incomeMultiplier: 2.4,
+    viewersBonus: 760,
+    boldnessBonus: 8,
+    unlockEmotion: 'fluster',
+    unlockLine:
+      'Она поднялась сама! Ну... то есть я подняла. На два пальца. Это всё ещё прикрытие, чат, не льстите себе~',
+    plateUrl: '/art/heroine_t3_s3.webp',
+    shyApproachLines: [
+      'Простыня теперь короткая, боди высокое, сетка на месте. Призрак стал откровеннее, чем планировалось.',
+      'Я держу ткань двумя руками, и вы всё равно видите больше, чем я согласовывала. Бу! — и отстаньте.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 13000/13000! ПРОСТЫНЯ ЗАДРАЛАСЬ, БОДИ + СЕТКА В ПОЛНЫЙ РОСТ :Pog: :AWOOGA:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'neko_chan_uwu',
+        color: '#ff75c3',
+        badge: 'SUB',
+        text: 'я пересматриваю клип с «бу» 47 раз. простыня улетает на долю секунды, гений монтажа :ClipIt: :LUL:',
+      },
+      {
+        author: 'cosplay_anon',
+        color: '#00e5ff',
+        badge: 'VIP',
+        text: '15000 и призрак сбрасывает простыню. это финал костюма, легион, добиваем :SubHype: :monkaS:',
+      },
+    ],
+  },
+  {
+    stage: 4,
+    subsRequired: 15000,
+    shortGoalTitle: 'Призрак сбрасывает простыню',
+    outfitName: 'Глянцевое чёрное боди + чулки в сетку + простыня на плечах как плащ',
+    removedItemLabel: '− Простыня сброшена!',
+    storyDesc:
+      '15000 сабов: финальная фаза костюма. Простыня сброшена с плеч и повязана на спине как плащ, на ней остались только дырки для глаз — вся фигура в глянтовом боди с высоким вырезом и чулках в сетку открыта camerа до колена, поза — максимально фансервисная, лицо — счастливое.',
+    incomeMultiplier: 3.2,
+    viewersBonus: 1200,
+    boldnessBonus: 10,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Бу!.. всё, чат: простыня ушла на плечи, боди и сетка — на вас. Финал призрачного дня, и мне не страшно~ ★ ♥',
+    plateUrl: '/art/heroine_t3_s4.webp',
+    shyApproachLines: [
+      'Плащ из простыни — это финальная форма призрака. Я её ношу с гордостью и с открытыми плечами.',
+      'Вот теперь видно весь костюм: боди, сетка, дырки для глаз. Референс был именно такой, я проверила.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 15000/15000! ПРИЗРАК СБРОСИЛ ПРОСТЫНЮ — БОДИ + СЕТКА + ПЛАЩ :AWOOGA: :Pog: :SubHype:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'Pasha_Donater',
+        color: '#ff6b9d',
+        badge: 'VIP',
+        text: 'простыня как плащ, сетка как панчлайн. я умер, и это был лучший косплей-стрим :Kreygasm: :Nosebleed:',
+      },
+      {
+        author: 'kaktus_mod',
+        color: '#4ecdc4',
+        badge: 'MOD',
+        text: 'финал принят жюри чата. клип «призрак сбросил простыню» уходит в топ месяца :ClipIt: :miyaLove:',
+      },
+      {
+        author: 'cosplay_anon',
+        color: '#00e5ff',
+        badge: 'VIP',
+        text: 'день 3 закрыт на 15000. призрак ушёл в стенку, мы остались с обтяжкой в истории :LUL: :sub2:',
+      },
+    ],
+  },
+] as const;
+
+/** The «Бу!» flash frame: sheet off, bodysuit + fishnets — crossfaded in for a few hundred ms. */
+export const DAY3_FLASH_PLATE = '/art/heroine_t3_flash.webp';
+
+export const DAY3_STEP_LABELS = ['7000 Плечо', '10000 Обтяжка', '13000 Задор', '15000 Финал'];
+export const DAY3_SHORT_STEP_LABELS = ['7000', '10000', '13000', '15000'];
+export const DAY3_FINALE_SUBS = 15000;
+
+/**
+ * Day 3 art is cut separately (cosplay plates heroine_t3_s0..s4). Until those files actually ship,
+ * the day stays locked so nobody can walk into a half-dressed ladder.
+ *
+ * The gate reads `window.__day3Unlocked` first (QA / manual override), otherwise it reflects the
+ * HEAD probe below: the moment the five plates exist in `public/art`, Day 3 unlocks by itself.
+ */
+let day3ArtProbe = false;
+
+export function isDay3Unlocked(): boolean {
+  try {
+    const forced = (window as unknown as { __day3Unlocked?: boolean }).__day3Unlocked;
+    if (forced === true || forced === false) return forced;
+  } catch {
+    /* no window during tests */
+  }
+  return day3ArtProbe;
+}
+
+/**
+ * Probe the cosplay plate ladder once; flips the Day 3 button as soon as the art is in place.
+ * The dev server answers missing files with the SPA index.html (status 200), so the content type
+ * is the real signal here - not `res.ok`.
+ */
+export async function probeDay3Art(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const files = [...DAY3_SUB_GOAL_STAGES.map((def) => def.plateUrl), DAY3_FLASH_PLATE];
+    const checks = await Promise.all(
+      files.map((url) =>
+        fetch(url, { method: 'HEAD' })
+          .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+          .catch(() => false),
+      ),
+    );
+    day3ArtProbe = checks.every(Boolean);
+  } catch {
+    day3ArtProbe = false;
+  }
+  return day3ArtProbe;
+}
 
 /** Day 2 runs on its own ladder: Day 1 goals are already paid off, so the bar is 10x higher. */
+/** Step labels follow the live day, so the OBS ladder never shows Day 1 wording on Day 3. */
+export function getStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 3) return DAY3_STEP_LABELS;
+  if (streamDay === 2) return DAY2_STEP_LABELS;
+  return DAY1_STEP_LABELS;
+}
+
+export function getShortStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 3) return DAY3_SHORT_STEP_LABELS;
+  if (streamDay === 2) return DAY2_SHORT_STEP_LABELS;
+  return DAY1_SHORT_STEP_LABELS;
+}
+
 export function getSubGoalStagesForDay(streamDay: number): readonly SubGoalStageDef[] {
-  return streamDay === 2 ? DAY2_SUB_GOAL_STAGES : SUB_GOAL_STAGES;
+  if (streamDay === 3) return DAY3_SUB_GOAL_STAGES;
+  if (streamDay === 2) return DAY2_SUB_GOAL_STAGES;
+  return SUB_GOAL_STAGES;
 }
 
 export function getSubGoalStageForSubs(subs: number, streamDay: number = 1): SubGoalStageIndex {
@@ -467,7 +752,12 @@ export function getGiftSubUnitCost(currentSubs: number): number {
   if (currentSubs < 1500) return 110;
   if (currentSubs < 2500) return 150;
   if (currentSubs < 5000) return 195;
-  return 240;
+  // Day 3 (ghost cosplay) climbs to 15000 subs, so the curve keeps going up with it.
+  if (currentSubs < 7000) return 240;
+  if (currentSubs < 10000) return 320;
+  if (currentSubs < 13000) return 400;
+  if (currentSubs < 15000) return 470;
+  return 560;
 }
 
 export function getGiftSubPackCost(currentSubs: number, count: number): number {

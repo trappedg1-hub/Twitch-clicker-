@@ -13,7 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import { DAY3_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -41,7 +41,13 @@ export class StreamStage {
   // narrow mobile portrait — that is intentional: the mic must rest on the plank and
   // NEVER float in front of her legs.
   public static readonly MIC_X = 1245;
-  public static readonly MIC_BASE_Y = 738;
+  /**
+   * The foreground plank's top edge sits at y=708 in virtual space (measured off fg_desk_t1: the
+   * wood starts at row 705..709 across the whole right half). A base lower than that buried the
+   * mic behind the desk front and made it look like it stood on the floor, so the feet of the rig
+   - and its contact shadow - land right on that edge.
+   */
+  public static readonly MIC_BASE_Y = 708;
   /** Compact desk mic: small enough that it can never shield her, even at the finale plates. */
   public static readonly MIC_HEIGHT = 148;
   /** How much of the mic stays inside the frame when the right desk corner is cropped (mobile). */
@@ -149,6 +155,29 @@ export class StreamStage {
       getSubGoalStagesForDay(2).map((def) => Assets.load<Texture>(def.plateUrl)),
     );
 
+    // Day 3 cosplay plates are cut last: probe the ladder and load it only when every file exists,
+    // otherwise the rig keeps reusing the Day 2 art (a 404 texture would break the whole boot).
+    const day3Defs = getSubGoalStagesForDay(3);
+    // A missing file still answers 200 with the SPA index.html in dev, so the content type decides.
+    const day3Heads = await Promise.all(
+      day3Defs.map((def) =>
+        fetch(def.plateUrl, { method: 'HEAD' })
+          .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+          .catch(() => false),
+      ),
+    );
+    let day3StagesTex: Texture[] | undefined;
+    let ghostFlashTex: Texture | undefined;
+    if (day3Heads.every(Boolean)) {
+      try {
+        const loaded = await Promise.all(day3Defs.map((def) => Assets.load<Texture>(def.plateUrl)));
+        day3StagesTex = loaded.every((tex) => Boolean(tex)) ? loaded : undefined;
+        ghostFlashTex = await Assets.load<Texture>(DAY3_FLASH_PLATE).catch(() => undefined);
+      } catch {
+        day3StagesTex = undefined; // decode failed - the Day 2 ladder keeps the rig alive
+      }
+    }
+
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
     this.bgSprite.width = StreamStage.VIRTUAL_W + 24;
@@ -204,6 +233,8 @@ export class StreamStage {
       tease: teaseTex,
       bold: boldTex,
       day2Stages: day2StagesTex,
+      day3Stages: day3StagesTex,
+      ghostFlash: ghostFlashTex ? [ghostFlashTex] : undefined,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -226,7 +257,7 @@ export class StreamStage {
     this.micTextures = [micT1Tex, micT2Tex, micT3Tex, micT4Tex, micT5Tex, micT6Tex, micT7Tex, micT8Tex, micT9Tex, micT10Tex];
     // Shadow + mic share one holder so the whole rig can slide onto the visible desk edge
     // on narrow screens without ever floating above Miya's legs.
-    this.deskMicShadow.ellipse(0, 4, 44, 8).fill({ color: 0x1a1118, alpha: 0.38 });
+    this.deskMicShadow.ellipse(0, 3, 40, 7).fill({ color: 0x1a1118, alpha: 0.34 });
     this.deskMicShadow.visible = false;
     this.micHolder.addChild(this.deskMicShadow);
     this.deskMicSprite = new Sprite(micT1Tex);
@@ -315,7 +346,7 @@ export class StreamStage {
 
   /** QA/debug: file name of the plate currently shown for the current day + stage. */
   public getActivePlateName(): string {
-    const day = (this.rig?.getWardrobeDay() ?? 1) === 2 ? 2 : 1;
+    const day = this.rig?.getPlateDay() ?? 1;
     const stage = this.rig?.getStageIndex() ?? 0;
     const url = getSubGoalStagesForDay(day)[stage]?.plateUrl ?? '';
     return String(url).split('/').pop() ?? '';
@@ -353,7 +384,17 @@ export class StreamStage {
   }
 
   /** Swap Miya's wardrobe plate set: Day 1 canonical ladder vs Day 2 oversize-hoodie look. */
-  public setWardrobeDay(day: 1 | 2): void {
+  /** True when the sheet-off reveal plate is loaded, i.e. the «Бу!» flash can actually play. */
+  public hasGhostFlash(): boolean {
+    return this.rig?.hasGhostFlash() ?? false;
+  }
+
+  /** Day 3 «Бу!» flash frame; returns true when something actually flashed on screen. */
+  public triggerGhostBoo(durationMs = 520): boolean {
+    return this.rig?.triggerGhostBoo(durationMs) ?? false;
+  }
+
+  public setWardrobeDay(day: 1 | 2 | 3): void {
     this.rig?.setWardrobeDay(day);
     this.rig?.setFaceAnchorFor(this.getActivePlateName());
   }

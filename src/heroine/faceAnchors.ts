@@ -22,7 +22,7 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t2_s1.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s2.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s3.webp": { x: 313, y: 43, w: 382, h: 435 },
-  "heroine_t2_s4.webp": { x: 317, y: 57, w: 375, h: 427 },
+  "heroine_t2_s4.webp": { x: 336, y: 57, w: 362, h: 411 },
   "heroine_t1_s0.webp": { x: 338, y: 61, w: 348, h: 397 },
   "heroine_t1_s1.webp": { x: 338, y: 61, w: 348, h: 397 },
   "heroine_t1_s2.webp": { x: 338, y: 61, w: 348, h: 397 },

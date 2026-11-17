@@ -3,8 +3,11 @@ import test from 'node:test';
 import {
   DAY2_OPENING_LINE,
   DAY2_SHAME_LINES,
-  pickDay2TapLine,
+  DAY3_FAREWELL_LINES,
+  DAY3_OPENING_LINE,
+  GHOST_BOO_LINES,
   pickDialogueLine,
+  pickStageTapLine,
   pickEmotionForContext,
   pickFeverOverheatLine,
   pickIdleTeaseLine,
@@ -22,7 +25,9 @@ import {
   isDay1FinaleReached,
   selectDisplayedSubStage,
   serializeState,
+  isDay2FinaleReached,
   startDay2,
+  startDay3,
   tickEconomy,
   triggerStreamChallenge,
 } from '../src/domain/engine.ts';
@@ -33,7 +38,11 @@ import {
 } from '../src/domain/progression.ts';
 import {
   DAY2_SUB_GOAL_STAGES,
+  DAY3_FLASH_PLATE,
   getGiftSubUnitCost,
+  getShortStepLabelsForDay,
+  getStepLabelsForDay,
+  isDay3Unlocked,
   getSubGoalStageForSubs,
   getSubGoalStagesForDay,
   pickShySubGoalApproachLine,
@@ -441,7 +450,7 @@ test('stream titles follow the day (Day 1 socks goal vs Day 2 5000 subs finale)'
 const QA_ZONES: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
 
 test('every line she speaks matches what is actually on her right now', () => {
-  for (const day of [1, 2] as const) {
+  for (const day of [1, 2, 3] as const) {
     for (let stage = 0; stage <= 4; stage++) {
       const w = getWardrobe(day, stage);
       for (const line of WARDROBE_SAFE_LINES[day][stage as SubGoalStageIndex]!) {
@@ -459,8 +468,12 @@ test('every line she speaks matches what is actually on her right now', () => {
           }
         }
         for (let seed = 0; seed < 10; seed++) {
-          const d2 = pickDay2TapLine(zone, seed, stage as SubGoalStageIndex);
-          assert.equal(contradictsWardrobe(d2, getWardrobe(2, stage), zone), null, `day2 tap: ${d2}`);
+          const d2 = pickStageTapLine(zone, seed, stage as SubGoalStageIndex, day);
+          assert.equal(
+            contradictsWardrobe(d2, getWardrobe(day, stage), zone),
+            null,
+            `day${day} tap: ${d2}`,
+          );
           const fever = pickFeverOverheatLine(zone, stage as SubGoalStageIndex, seed, day);
           assert.equal(contradictsWardrobe(fever, w, zone), null, `fever: ${fever}`);
         }
@@ -501,7 +514,7 @@ test('stream titles sell her arc, not her outfit', () => {
     'худи', 'гольф', 'носк', 'носочк', 'шорт', 'легинс', 'маек', 'тишк', 'кроп',
     'бралет', 'бра-топ', 'бюст', 'топ ', 'платье', 'юбк', 'босы', 'босиком', 'ступн',
   ];
-  for (const day of [1, 2]) {
+  for (const day of [1, 2, 3]) {
     for (let stage = 0; stage <= 4; stage++) {
       const title = getStreamTitle(stage as SubGoalStageIndex, 1234, day);
       for (const word of garmentWords) {
@@ -510,4 +523,112 @@ test('stream titles sell her arc, not her outfit', () => {
       assert.match(title, /SUB GOAL|САБОВ/, `title lost its goal tail: ${title}`);
     }
   }
+});
+
+// ============ Day 3 «призрачная стримерша» (cosplay day) ============
+test('Day 3 ghost ladder: sheet reveal beats 7000/10000/13000/15000 on its own plates', () => {
+  const stages = getSubGoalStagesForDay(3);
+  assert.deepEqual(
+    stages.map((s) => s.subsRequired),
+    [0, 7000, 10000, 13000, 15000],
+  );
+  // Fanservice escalates monotonically - every stage is strictly more exposed than the last.
+  const mults = stages.map((s) => s.incomeMultiplier);
+  for (let i = 1; i < mults.length; i++) assert.ok(mults[i]! > mults[i - 1]!, 'income must rise');
+  const emotions = stages.map((s) => s.unlockEmotion).join(',');
+  assert.equal(emotions, 'shy,fluster,tease,fluster,bold');
+  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t3_s[0-4]\.webp$/);
+  // She never invents a garment: the whole day is one sheet, one bodysuit and one pair of fishnets.
+  for (const s of stages) {
+    for (const text of [s.shortGoalTitle, s.outfitName, s.storyDesc, s.unlockLine ?? '', ...s.shyApproachLines]) {
+      const t = text.toLowerCase();
+      for (const word of ['платье', 'юбк', 'худи', 'гольф', 'носок', 'носочк', 'легинс', 'ушк', 'зайк']) {
+        assert.ok(!t.includes(word), `day 3 ladder copy mentions "${word}": ${text}`);
+      }
+    }
+    assert.match(s.outfitName, /простын|сетк|боди/i, 'outfit must name the ghost costume parts');
+  }
+  // Stage math follows the ghost sheet, and each chat cascade is real Twitch noise.
+  assert.equal(getSubGoalStageForSubs(6999, 3), 0);
+  assert.equal(getSubGoalStageForSubs(7000, 3), 1);
+  assert.equal(getSubGoalStageForSubs(12999, 3), 2);
+  assert.equal(getSubGoalStageForSubs(15000, 3), 4);
+  for (const s of stages) {
+    assert.ok(s.chatCascade.length >= 2, `stage ${s.stage} needs a chat reaction`);
+    for (const m of s.chatCascade) {
+      assert.ok(m.author.length > 1 && m.text.length > 8, 'cascade entries need an author and a body');
+      assert.match(m.color, /^#[0-9a-f]{6}$/i);
+    }
+  }
+});
+
+test('Day 3 copy matches the sheet state on screen (nothing slips before its time)', () => {
+  for (let stage = 0; stage <= 4; stage++) {
+    const w = getWardrobe(3, stage);
+    assert.equal(w.sheet, (['full', 'shoulder', 'tight', 'lifted', 'cape'] as const)[stage]);
+    assert.equal(w.fishnets, true, 'fishnets are permanent on the ghost day');
+    // Stage 0 must reject every "it moved" claim; later stages must accept their own truth.
+    if (stage === 0) {
+      assert.ok(contradictsWardrobe('Простыня сползла с плеча', w));
+      assert.ok(contradictsWardrobe('Под тканью видно бретельку боди', w));
+      assert.ok(contradictsWardrobe('Я сижу в худи и гольфах', w));
+      assert.ok(contradictsWardrobe('Простыня полностью меня закрывает', w) === null);
+    }
+    for (const line of WARDROBE_SAFE_LINES[3][stage as SubGoalStageIndex]!) {
+      assert.equal(contradictsWardrobe(line, w), null, `safe s${stage}: ${line}`);
+    }
+    for (const zone of QA_ZONES) {
+      for (let seed = 0; seed < 60; seed++) {
+        const line = pickStageTapLine(zone, seed, stage as SubGoalStageIndex, 3);
+        assert.equal(contradictsWardrobe(line, w, zone), null, `s${stage} ${zone}#${seed}: ${line}`);
+      }
+      for (let seed = 0; seed < 40; seed++) {
+        const idle = pickIdleTeaseLine(stage as SubGoalStageIndex, seed, 3);
+        assert.equal(contradictsWardrobe(idle, w), null, `s${stage} idle: ${idle}`);
+      }
+    }
+  }
+});
+
+test('Day 3 is gated: no ghost plates means no cosplay day, and it starts only after Day 2', () => {
+  // Node has no window, so the art probe cannot unlock the day from a test.
+  assert.equal(isDay3Unlocked(), false);
+  const day1 = createInitialState(1000);
+  assert.equal(startDay3(day1).ok, false, 'Day 3 cannot start on Day 1');
+  const afterDay1 = startDay2({ ...day1, subscribers: 501 });
+  assert.ok(afterDay1.ok);
+  assert.equal(startDay3(afterDay1.state).ok, false, 'the Day 2 ladder is not finished yet');
+  const day2Done = { ...afterDay1.state, subscribers: 5000 };
+  assert.equal(isDay2FinaleReached(day2Done), true);
+  assert.equal(startDay3(day2Done).ok, false, 'locked until heroine_t3_* plates ship');
+  // ...but everything the day needs to carry over is already in place.
+  assert.equal(getStreamTitle(0, 100, 3).includes('7000'), true);
+  assert.equal(DAY3_FLASH_PLATE, '/art/heroine_t3_flash.webp');
+  assert.equal(getStepLabelsForDay(3).length, 4);
+  assert.equal(getShortStepLabelsForDay(3)[3], '15000');
+  // Price curve keeps climbing with the ghost ladder instead of freezing at the Day 2 top.
+  assert.ok(getGiftSubUnitCost(5200) < getGiftSubUnitCost(7000));
+  assert.ok(getGiftSubUnitCost(9999) < getGiftSubUnitCost(10000));
+  assert.ok(getGiftSubUnitCost(14999) < getGiftSubUnitCost(15000));
+});
+
+test('the ghost farewell and the «Бу!» flash lines close the day without inventing anything', () => {
+  const finale = getWardrobe(3, 4);
+  for (const line of DAY3_FAREWELL_LINES) {
+    assert.equal(contradictsWardrobe(line, finale), null, `farewell: ${line}`);
+  }
+  assert.match(DAY3_OPENING_LINE, /Бу!/);
+  assert.match(DAY3_OPENING_LINE, /простын/);
+  // The flash line must be true at EVERY sheet state - the flash happens on any stage.
+  for (let stage = 0; stage <= 4; stage++) {
+    for (const line of GHOST_BOO_LINES) {
+      assert.equal(
+        contradictsWardrobe(line, getWardrobe(3, stage)),
+        null,
+        `boo at s${stage}: ${line}`,
+      );
+    }
+  }
+  assert.ok(DAY3_FAREWELL_LINES.length >= 5, 'the ghost day needs a real goodbye');
+  assert.match(DAY3_FAREWELL_LINES.join(' '), /сетк/, 'farewell must mention the fishnets punchline');
 });

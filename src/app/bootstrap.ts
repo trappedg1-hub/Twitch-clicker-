@@ -12,9 +12,14 @@ import {
 } from '../chat/chatEngine.ts';
 import {
   DAY1_FAREWELL_LINES,
+  DAY2_FAREWELL_LINES,
   DAY2_OPENING_LINE,
   DAY2_SHAME_LINES,
-  pickDay2TapLine,
+  DAY3_FAREWELL_LINES,
+  DAY3_OPENING_LINE,
+  GHOST_BOO_LINES,
+  pickStageTapLine,
+  pickSituationLine,
   pickFeverOverheatLine,
   pickIdleTeaseLine,
   pickReactionCalloutTag,
@@ -32,10 +37,11 @@ import {
   selectDisplayedSubStage,
   serializeState,
   startDay2,
+  startDay3,
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
-import { pickShySubGoalApproachLine } from '../domain/subGoals.ts';
+import { isDay3Unlocked, pickShySubGoalApproachLine, probeDay3Art } from '../domain/subGoals.ts';
 import { getMicTier } from '../domain/upgrades.ts';
 import type {
   BottomTabId,
@@ -61,6 +67,9 @@ declare global {
       getDeskMicDebug: () => unknown;
       getFaceAnchorDebug: () => { x: number; y: number; w: number; h: number };
       getActivePlateName: () => string;
+      situationLine: (seed: number) => string;
+      tapLine: (zone: TapZoneId, seed: number, stage: number, day: number) => string;
+      farewellLineCount: () => number;
       isWearingDay2Outfit: () => boolean;
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
@@ -70,6 +79,10 @@ declare global {
       setSubStage: (stage: SubGoalStageIndex) => boolean;
       buyUpgrade: (id: UpgradeId) => boolean;
       startDay2: () => boolean;
+      startDay3: () => boolean;
+      isDay3Unlocked: () => boolean;
+      ghostBoo: (ms?: number) => boolean;
+      ghostInfo: () => { unlocked: boolean; flashLive: boolean; day: number };
       runChallenge: (id: ChallengeId) => boolean;
       switchTab: (tab: BottomTabId) => void;
       forceBlink: () => void;
@@ -89,6 +102,9 @@ export async function bootstrapApp(): Promise<void> {
 
   let lastPlayerInteractionMs = performance.now();
   let idleTeaseCounter = 0;
+  /** She keeps commenting on the stream: idle stares AND live numbers, never over a celebration. */
+  let lastCelebrationMs = 0;
+  let nextRemarkAtMs = performance.now() + 17000;
 
   const ui = new UiController();
   ui.init();
@@ -109,7 +125,7 @@ export async function bootstrapApp(): Promise<void> {
     stage.setHypeLevel(state.hype);
     stage.setMicTier(state.upgrades.desk_mic ?? 0);
     stage.rig.setBoldness(stats.boldness);
-    stage.setWardrobeDay(state.streamDay === 2 ? 2 : 1);
+    stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
     if (!isQa) {
@@ -119,6 +135,7 @@ export async function bootstrapApp(): Promise<void> {
 
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
     if (unlockedStages.length === 0) return;
+    lastCelebrationMs = performance.now();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
     stage.spawnReactionCallout(latest.removedItemLabel, true, latest.stage);
@@ -150,12 +167,20 @@ export async function bootstrapApp(): Promise<void> {
     const isFever = state.hype >= 72;
     const isFeverTrigger = isFever && state.totalTaps % 4 === 0;
 
-    if (isFeverTrigger) {
+    // Day 3 tap gimmick: a «Бу!» and the sheet flashes up for a beat (crossfade to the reveal plate),
+    // and the chat explodes with clips like any decent haunt would.
+    const isBoo = state.streamDay === 3 && state.totalTaps % 3 === 0;
+    const booFlashed = isBoo ? stage.triggerGhostBoo(state.hype >= 72 ? 700 : 480) : false;
+    if (booFlashed) {
+      ui.showSpeech(GHOST_BOO_LINES[state.totalTaps % GHOST_BOO_LINES.length]!);
+      stage.spawnReactionCallout('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 3));
+    } else if (isFeverTrigger) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
       ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps, state.streamDay));
-    } else if (state.streamDay === 2 && state.totalTaps % 2 === 1) {
-      // Day 2: every tap drags yesterday's strip ladder back into her head.
-      ui.showSpeech(pickDay2TapLine(zone, state.totalTaps, state.displayedSubStage));
+    } else if (state.streamDay >= 2 && state.totalTaps % 2 === 1) {
+      // Day 2/3: every tap gets an answer from her, tuned to the stage she is actually on.
+      ui.showSpeech(pickStageTapLine(zone, state.totalTaps, state.displayedSubStage, state.streamDay));
     } else {
       ui.showSpeech(outcome.line);
     }
@@ -320,15 +345,30 @@ export async function bootstrapApp(): Promise<void> {
 
   // Every farewell beat of the Day 1 finale: a viewer goodbye in chat + a shy wave.
   ui.onFarewellBeat = (index: number) => {
-    ui.pushChatMessage(createFarewellChatMessage(index));
-    stage.rig.triggerEmotion(index >= DAY1_FAREWELL_LINES.length - 2 ? 'tease' : 'shy', 2300);
-    if (index === DAY1_FAREWELL_LINES.length - 1) {
-      stage.spawnReactionCallout('♥ ПОКА-ПОКА, ЧАТ!', true, index);
+    ui.pushChatMessage(createFarewellChatMessage(index, state.streamDay));
+    // Which day is closing decides the beat count, the emotion curve and the last callout.
+    const beats =
+      state.streamDay === 3
+        ? DAY3_FAREWELL_LINES.length
+        : state.streamDay === 2
+          ? DAY2_FAREWELL_LINES.length
+          : DAY1_FAREWELL_LINES.length;
+    stage.rig.triggerEmotion(index >= beats - 2 ? 'tease' : 'shy', 2300);
+    if (index === beats - 1) {
+      stage.spawnReactionCallout(
+        state.streamDay === 3 ? '♥ КОСПЛЕЙ-ДЕНЬ ЗАКРЫТ!' : '♥ ПОКА-ПОКА, ЧАТ!',
+        true,
+        index,
+      );
     }
   };
 
   ui.onStartDay2 = () => {
     lastPlayerInteractionMs = performance.now();
+    if (state.streamDay === 2) {
+      startDay3Flow();
+      return;
+    }
     const res = startDay2(state);
     if (!res.ok) return;
     state = res.state;
@@ -357,6 +397,44 @@ export async function bootstrapApp(): Promise<void> {
       isSystemHighlight: true,
     });
     ui.showDonationAlert('★ ДЕНЬ 2 НАЧАЛСЯ!', 'Улучшения, микрофон и гардероб перенесены!');
+    syncAll();
+  };
+
+  /**
+   * Day 3 = cosplay day. The finale card's single "next day" button routes here once Day 2 is
+   * closed; same rule as Day 2: only money, subs, upgrades, items and boldness carry over.
+   */
+  // Day 3 unlocks itself the moment the cosplay plates land in /art - no flag flipping needed.
+  void probeDay3Art().then(() => {
+    syncAll();
+  });
+
+  const startDay3Flow = () => {
+    lastPlayerInteractionMs = performance.now();
+    const res = startDay3(state);
+    if (!res.ok) return;
+    state = res.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.setWardrobeDay(3);
+    stage.rig.triggerEmotion('bold', 2600);
+    ui.showSpeech(DAY3_OPENING_LINE);
+    // The ghost day opens with one free «Бу!» so the flash mechanic is discovered immediately.
+    window.setTimeout(() => {
+      if (stage.triggerGhostBoo(760)) {
+        ui.showSpeech(GHOST_BOO_LINES[0]!);
+        stage.spawnReactionCallout('♥ БУ! ПРИЗРАК НА СВЯЗИ!', true, 0);
+      }
+    }, 900);
+    ui.pushChatMessage({
+      id: `day3_${Date.now()}`,
+      author: 'StreamBot',
+      color: '#c084fc',
+      badge: 'MOD',
+      text: '★ ДЕНЬ 3: «ПРИЗРАЧНАЯ СТРИМЕРША»! Простыня надета, сетка на ногах, дырки для глаз вырезаны :SubHype: :Pog:',
+      isSystemHighlight: true,
+    });
+    ui.showDonationAlert('★ ДЕНЬ 3: ПРИЗРАК!', 'Бу! Гардероб перенесён, цели обновлены, простыня на месте!');
     syncAll();
   };
 
@@ -407,9 +485,11 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   // Seed initial subtle floating stream chat matching current clothing stage
-  ui.pushChatMessage(createAmbientChatMessage(3, state.displayedSubStage, 1));
-  ui.pushChatMessage(createAmbientChatMessage(3, state.displayedSubStage, 2));
-  ui.pushChatMessage(createAmbientChatMessage(3, state.displayedSubStage, 3));
+  for (let i = 1; i <= 3; i++) {
+    ui.pushChatMessage(
+      createAmbientChatMessage(3, state.displayedSubStage, i * 7, state.streamDay),
+    );
+  }
   syncAll();
 
   // Uncapped elapsed-ms economy loop + spontaneous idle fourth-wall teasing!
@@ -421,14 +501,34 @@ export async function bootstrapApp(): Promise<void> {
     const res = tickEconomy(state, elapsed);
     state = res.state;
 
-    // If viewer has been silently staring at Miya for ~11s, she notices and teases!
-    if (!isQa && nowPerf - lastPlayerInteractionMs > 11000) {
+    // Nobody tapped for ~11s -> she notices the silence. Otherwise she still reacts to the live
+    // numbers every ~19s: how close the next Sub Goal is, the hype bar, the mic tier, the crowd.
+    const idleFor = nowPerf - lastPlayerInteractionMs;
+    if (!isQa && (idleFor > 11000 || nowPerf >= nextRemarkAtMs) && nowPerf - lastCelebrationMs > 7000) {
       lastPlayerInteractionMs = nowPerf;
       idleTeaseCounter += 1;
       const statsNow = computeStats(state);
-      stage.rig.triggerEmotion(statsNow.boldness < 45 ? 'shy' : 'tease', 2200);
+      const situation = idleFor <= 11000 || idleTeaseCounter % 2 === 1;
+      nextRemarkAtMs = nowPerf + (situation ? 18000 + (idleTeaseCounter % 3) * 3000 : 14000);
+      stage.rig.triggerEmotion(
+        statsNow.boldness < 45 ? 'shy' : situation ? 'fluster' : 'tease',
+        2200,
+      );
       ui.showSpeech(
-        pickIdleTeaseLine(state.displayedSubStage, idleTeaseCounter, state.streamDay),
+        situation
+          ? pickSituationLine({
+              streamDay: state.streamDay,
+              stage: state.displayedSubStage,
+              subs: state.subscribers,
+              nextGoalSubs: statsNow.nextSubGoalDef?.subsRequired ?? null,
+              boldness: statsNow.boldness,
+              hype: state.hype,
+              onlineViewers: statsNow.onlineViewers,
+              micTier: state.upgrades.desk_mic ?? 0,
+              balance: state.balance,
+              seed: idleTeaseCounter,
+            })
+          : pickIdleTeaseLine(state.displayedSubStage, idleTeaseCounter, state.streamDay),
       );
     }
 
@@ -480,6 +580,27 @@ export async function bootstrapApp(): Promise<void> {
       getDeskMicDebug: () => stage.getDeskMicDebug(),
       getFaceAnchorDebug: () => stage.rig.getFaceAnchorDebug(),
       getActivePlateName: () => stage.getActivePlateName(),
+      situationLine: (seed: number) => {
+        const statsNow = computeStats(state);
+        return pickSituationLine({
+          streamDay: state.streamDay,
+          stage: state.displayedSubStage,
+          subs: state.subscribers,
+          nextGoalSubs: statsNow.nextSubGoalDef?.subsRequired ?? null,
+          boldness: statsNow.boldness,
+          hype: state.hype,
+          onlineViewers: statsNow.onlineViewers,
+          micTier: state.upgrades.desk_mic ?? 0,
+          balance: state.balance,
+          seed,
+        });
+      },
+      farewellLineCount: () =>
+        state.streamDay === 3
+          ? DAY3_FAREWELL_LINES.length
+          : state.streamDay === 2
+            ? DAY2_FAREWELL_LINES.length
+            : DAY1_FAREWELL_LINES.length,
       isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
       tapZone: (zone: TapZoneId) => {
@@ -521,6 +642,19 @@ export async function bootstrapApp(): Promise<void> {
         const prev = state.upgrades[id];
         ui.onBuyUpgrade?.(id);
         return state.upgrades[id] > prev;
+      },
+      isDay3Unlocked: () => isDay3Unlocked(),
+      ghostBoo: (ms?: number) => stage.triggerGhostBoo(ms ?? 520),
+      ghostInfo: () => ({
+        unlocked: isDay3Unlocked(),
+        flashLive: stage.hasGhostFlash(),
+        day: state.streamDay,
+      }),
+      tapLine: (zone: TapZoneId, seed: number, stage: number, day: number) =>
+        pickStageTapLine(zone, seed, stage as SubGoalStageIndex, day),
+      startDay3: () => {
+        startDay3Flow();
+        return state.streamDay === 3;
       },
       startDay2: () => {
         const prevDay = state.streamDay;
