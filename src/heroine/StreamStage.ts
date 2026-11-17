@@ -42,7 +42,10 @@ export class StreamStage {
   // NEVER float in front of her legs.
   public static readonly MIC_X = 1245;
   public static readonly MIC_BASE_Y = 738;
-  public static readonly MIC_HEIGHT = 210;
+  /** Compact desk mic: small enough that it can never shield her, even at the finale plates. */
+  public static readonly MIC_HEIGHT = 148;
+  /** How much of the mic stays inside the frame when the right desk corner is cropped (mobile). */
+  public static readonly MIC_VISIBLE_FRACTION = 0.48;
 
   public app!: Application;
   public rig!: HeroineRig;
@@ -209,6 +212,8 @@ export class StreamStage {
       18,
     );
     this.root.addChild(this.rig.view);
+    // Day 2 plates frame her head differently - glue the patches on before the first render.
+    this.rig.setFaceAnchorFor(this.getActivePlateName());
 
     // Layer 2: Foreground Desk Edge + Cat Tea Mug + USB Microphone (3D depth overlap over chair post!)
     this.fgDeskSprite = new Sprite(fgDeskTex);
@@ -221,7 +226,7 @@ export class StreamStage {
     this.micTextures = [micT1Tex, micT2Tex, micT3Tex, micT4Tex, micT5Tex, micT6Tex, micT7Tex, micT8Tex, micT9Tex, micT10Tex];
     // Shadow + mic share one holder so the whole rig can slide onto the visible desk edge
     // on narrow screens without ever floating above Miya's legs.
-    this.deskMicShadow.ellipse(0, 4, 62, 11).fill({ color: 0x1a1118, alpha: 0.42 });
+    this.deskMicShadow.ellipse(0, 4, 44, 8).fill({ color: 0x1a1118, alpha: 0.38 });
     this.deskMicShadow.visible = false;
     this.micHolder.addChild(this.deskMicShadow);
     this.deskMicSprite = new Sprite(micT1Tex);
@@ -275,12 +280,12 @@ export class StreamStage {
    * (partially clipped is fine — floating in front of her legs is not).
    */
   private micAnchorX(): number {
-    const half = this.deskMicSprite ? this.deskMicSprite.width / 2 : 88;
+    const w = this.deskMicSprite ? this.deskMicSprite.width : 132;
     const bounds = this.getVisibleVirtualBounds();
-    const minSafe = StreamStage.VIRTUAL_W * 0.5 + 130;
-    // Let the far side of the mic run past the visible right edge (30% of its half-width) so it
-    // peeks from behind the corner instead of being paraded in front of Miya on narrow screens.
-    return Math.max(minSafe, Math.min(StreamStage.MIC_X, bounds.right - half * 0.3));
+    // Only a slice of it may be inside the frame; the rest hangs off the right edge. Clamping the
+    // other way (pulling the mic left) is what parked it on top of Miya on portrait screens.
+    const edge = bounds.right + (0.5 - StreamStage.MIC_VISIBLE_FRACTION) * w;
+    return Math.min(StreamStage.MIC_X, edge);
   }
 
   /** QA/debug helper: where the desk mic actually stands relative to the visible frame. */
@@ -350,6 +355,7 @@ export class StreamStage {
   /** Swap Miya's wardrobe plate set: Day 1 canonical ladder vs Day 2 oversize-hoodie look. */
   public setWardrobeDay(day: 1 | 2): void {
     this.rig?.setWardrobeDay(day);
+    this.rig?.setFaceAnchorFor(this.getActivePlateName());
   }
 
   public spawnReactionCallout(tagText: string, isFever = false, sideSeed = 0): void {
@@ -438,6 +444,8 @@ export class StreamStage {
     unlockEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): void {
     const didChange = this.rig?.setSubStage(stage, celebrate, unlockEmotion);
+    // The new plate may frame her head at a different size/height - move the patches with it.
+    this.rig?.setFaceAnchorFor(this.getActivePlateName());
     if (didChange && this.rig && this.fgDeskSprite) {
       // All stages sit naturally behind the wooden foreground desk!
       this.rig.view.y = 18;

@@ -188,14 +188,32 @@
                 <span class="tab-label-short">Саб</span>
                 <span id="gift-cost-1" class="tw-sub-price">18 ₽</span>
               </button>
-              <button id="btn-gift-sub-5" class="tw-sub-btn-split" type="button" title="Саб-бомба: подарить 5 подписок">
-                <span>x5</span>
-                <small id="gift-cost-5">90 ₽</small>
+              <button id="btn-gift-sub-menu" class="tw-sub-btn-split tw-sub-btn-caret" type="button"
+                aria-haspopup="true" aria-expanded="false" aria-controls="sub-pack-menu"
+                title="Выбрать, сколько сабов подарить">
+                <span class="tw-sub-pack-now">x5</span>
+                <small id="gift-cost-pack">90 ₽</small>
+                <svg class="tw-caret-svg" viewBox="0 0 16 16" aria-hidden="true">
+                  <path fill="currentColor" d="M3 6l5 5 5-5z" />
+                </svg>
               </button>
-              <button id="btn-gift-sub-25" class="tw-sub-btn-split" type="button" title="Шейх-дроп: подарить 25 подписок">
-                <span>x25</span>
-                <small id="gift-cost-25">600 ₽</small>
-              </button>
+
+              <div id="sub-pack-menu" class="sub-pack-menu" role="menu" aria-label="Количество подписок" hidden>
+                <p class="sub-pack-title">Подарить сабы<span>массовый дроп в чат</span></p>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="5">
+                  <b>x5</b><i>Саб-бомба</i><span id="gift-cost-5">90 ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="25">
+                  <b>x25</b><i>Шейх-дроп</i><span id="gift-cost-25">600 ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="50">
+                  <b>x50</b><i>Тяжёлый легион</i><span id="gift-cost-50">1,3к ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="100">
+                  <b>x100</b><i>Полный захват чата</i><span id="gift-cost-100">2,9к ₽</span>
+                </button>
+                <p class="sub-pack-foot">Одиночный саб остаётся кнопкой слева • цена саба растёт вместе с Sub Goal</p>
+              </div>
             </div>
 
             <div class="viewer-counter" title="Зрители онлайн">

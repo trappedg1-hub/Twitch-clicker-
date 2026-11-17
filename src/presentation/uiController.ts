@@ -53,11 +53,15 @@ export class UiController {
     document.querySelectorAll<HTMLElement>('#subgoal-steps-row .goal-step'),
   );
   private readonly giftBtn1El = document.getElementById('btn-gift-sub-1') as HTMLButtonElement;
-  private readonly giftBtn5El = document.getElementById('btn-gift-sub-5') as HTMLButtonElement;
-  private readonly giftBtn25El = document.getElementById('btn-gift-sub-25') as HTMLButtonElement;
+  private readonly giftMenuBtnEl = document.getElementById('btn-gift-sub-menu') as HTMLButtonElement;
+  private readonly subPackMenuEl = document.getElementById('sub-pack-menu') as HTMLElement;
+  private readonly subPackRowEls = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('#sub-pack-menu .sub-pack-row'),
+  );
   private readonly giftCost1El = document.getElementById('gift-cost-1')!;
-  private readonly giftCost5El = document.getElementById('gift-cost-5')!;
-  private readonly giftCost25El = document.getElementById('gift-cost-25')!;
+  private readonly giftCostPackEl = document.getElementById('gift-cost-pack')!;
+  /** Quantity picked in the gift-sub popup; the big button on its left always stays a single sub. */
+  private subPackQty = 5;
 
   private readonly viewersEl = document.getElementById('stat-viewers-val')!;
   private readonly balanceEl = document.getElementById('stat-balance-val')!;
@@ -109,7 +113,7 @@ export class UiController {
   private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
   public onBuyUpgrade?: (id: UpgradeId) => void;
-  public onGiftSubs?: (count: 1 | 5 | 25) => void;
+  public onGiftSubs?: (count: number) => void;
   public onSelectSubStage?: (stage: SubGoalStageIndex) => void;
   public onTriggerChallenge?: (id: ChallengeId) => void;
   public onTabChange?: (tab: BottomTabId) => void;
@@ -134,8 +138,41 @@ export class UiController {
 
   private setupGiftSubButtons(): void {
     this.giftBtn1El.addEventListener('click', () => this.onGiftSubs?.(1));
-    this.giftBtn5El.addEventListener('click', () => this.onGiftSubs?.(5));
-    this.giftBtn25El.addEventListener('click', () => this.onGiftSubs?.(25));
+
+    const close = (): void => {
+      this.subPackMenuEl.hidden = true;
+      this.giftMenuBtnEl.setAttribute('aria-expanded', 'false');
+    };
+    const open = (): void => {
+      this.subPackMenuEl.hidden = false;
+      this.giftMenuBtnEl.setAttribute('aria-expanded', 'true');
+    };
+    this.giftMenuBtnEl.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if (this.subPackMenuEl.hidden) open();
+      else close();
+    });
+    this.subPackRowEls.forEach((row) => {
+      row.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const qty = Number(row.dataset.pack);
+        if (!Number.isFinite(qty) || qty <= 0) return;
+        this.subPackQty = qty;
+        this.onGiftSubs?.(qty);
+        close();
+      });
+    });
+    // Click anywhere else (or Escape) dismisses it - same as the native Twitch picker.
+    document.addEventListener('click', (ev) => {
+      if (this.subPackMenuEl.hidden) return;
+      if (!this.subPackMenuEl.contains(ev.target as Node)) close();
+    });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && !this.subPackMenuEl.hidden) {
+        close();
+        this.giftMenuBtnEl.focus();
+      }
+    });
   }
 
   private setupTabs(): void {
@@ -321,21 +358,30 @@ export class UiController {
     });
 
     const cost1 = getGiftSubPackCost(state.subscribers, 1);
-    const cost5 = getGiftSubPackCost(state.subscribers, 5);
-    const cost25 = getGiftSubPackCost(state.subscribers, 25);
     this.giftCost1El.textContent = formatMoney(cost1);
-    this.giftCost5El.textContent = formatMoney(cost5);
-    this.giftCost25El.textContent = formatMoney(cost25);
-
     const canGift1 = state.balance >= cost1;
-    const canGift5 = state.balance >= cost5;
-    const canGift25 = state.balance >= cost25;
     this.giftBtn1El.disabled = !canGift1;
-    this.giftBtn5El.disabled = !canGift5;
-    this.giftBtn25El.disabled = !canGift25;
     this.giftBtn1El.classList.toggle('affordable', canGift1);
-    this.giftBtn5El.classList.toggle('affordable', canGift5);
-    this.giftBtn25El.classList.toggle('affordable', canGift25);
+
+    // Pack rows: live price per option, unaffordable ones grey out, the caret shows what is picked.
+    for (const row of this.subPackRowEls) {
+      const qty = Number(row.dataset.pack);
+      const cost = getGiftSubPackCost(state.subscribers, qty);
+      const costEl = row.querySelector('span');
+      if (costEl) costEl.textContent = formatMoney(cost);
+      const canBuy = state.balance >= cost;
+      row.disabled = !canBuy;
+      row.classList.toggle('selected', qty === this.subPackQty);
+      row.title = canBuy
+        ? `Подарить ${qty} подписок за ${formatMoney(cost)}`
+        : `Не хватает ${formatMoney(cost - state.balance)}`;
+    }
+    const packCost = getGiftSubPackCost(state.subscribers, this.subPackQty);
+    const packLabel = this.giftMenuBtnEl.querySelector('.tw-sub-pack-now');
+    if (packLabel) packLabel.textContent = `x${this.subPackQty}`;
+    this.giftCostPackEl.textContent = formatMoney(packCost);
+    this.giftMenuBtnEl.disabled = false;
+    this.giftMenuBtnEl.classList.toggle('affordable', state.balance >= packCost);
 
     this.subAvailDotEl.classList.toggle(
       'hidden',
@@ -366,7 +412,7 @@ export class UiController {
     }
 
     // Story diary
-    this.diaryStagePillEl.textContent = `Дневник Мии • Этап ${stats.storyChapter.stage}/4`;
+    this.diaryStagePillEl.textContent = 'Дневник Мии';
     this.diaryHeadlineEl.textContent = stats.storyChapter.headline;
     this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
 

@@ -313,6 +313,125 @@ const drawer = await page.evaluate(() => {
 console.log('G drawer', JSON.stringify(drawer));
 await shot('final_G_shop_drawer');
 
+// ---------- I) Face patches glued per plate, mic compact on the desk edge, gift-sub pack picker ----------
+const faceProbe = () =>
+  page.evaluate(() => {
+    const qa = window.__qaScene;
+    const st = qa.getState();
+    const a = qa.getFaceAnchorDebug();
+    const d = qa.getDeskMicDebug();
+    return {
+      subs: st.subscribers,
+      stage: st.displayedSubStage,
+      plate: qa.getActivePlateName(),
+      anchor: `${a.x},${a.y},${a.w},${a.h}`,
+      anchorTracksHead: a.w !== 348 || a.h !== 397,
+      micWidth: d.width,
+      micBehind: d.behindHeroine,
+      micClippedRight: d.x + d.width / 2 > d.visibleRight,
+      micOffLeft: d.x - d.width / 2 < d.visibleLeft,
+    };
+  });
+
+// Re-enter Day 2 from scratch (a reload resets to Day 1), then buy the desk mic.
+await load(1366, 820);
+await page.evaluate(() => {
+  const qa = window.__qaScene;
+  qa.addFunds(900000);
+  for (let i = 0; i < 10; i++) qa.buyUpgrade('desk_mic');
+  qa.setSubscribers(501);
+});
+await page.waitForTimeout(900);
+if (await page.locator('#btn-skip-farewell:visible').count() > 0) {
+  await page.click('#btn-skip-farewell');
+}
+await page.waitForTimeout(300);
+await page.click('#btn-start-day2');
+await page.waitForTimeout(700);
+const day2ready = await page.evaluate(() => window.__qaScene.getState().streamDay);
+if (day2ready !== 2) errors.push(`I: failed to enter Day 2 (streamDay=${day2ready})`);
+
+for (const [label, subs] of [
+  ['2500', 2500],
+  ['5000', 5001],
+]) {
+  await page.evaluate((target) => window.__qaScene.setSubscribers(target), subs);
+  await page.evaluate(() => {
+    window.__qaFreezeTicker?.();
+    window.__qaScene.forceFluster();
+  });
+  await page.waitForTimeout(420);
+  const probe = await faceProbe();
+  console.log(`I day2 ${label}`, JSON.stringify(probe));
+  if (probe.plate !== (label === '2500' ? 'heroine_t2_s3.webp' : 'heroine_t2_s4.webp')) {
+    errors.push(`I ${label}: wrong plate ${probe.plate}`);
+  }
+  // The leaning plates must use their own measured box, not the canonical one.
+  if (!probe.anchorTracksHead) errors.push(`I ${label}: face patch still on the canonical box (${probe.anchor})`);
+  if (probe.micOffLeft) errors.push(`I ${label}: mic slid off the left edge of the desk`);
+  await shot(`final_I_day2_${label}_face`);
+}
+
+// Gift-sub packs: the caret opens a Twitch-style picker with 5/25/50/100.
+await load(1366, 820);
+const packState = () =>
+  page.evaluate(() => {
+    const menu = document.getElementById('sub-pack-menu');
+    const rows = Array.from(document.querySelectorAll('#sub-pack-menu .sub-pack-row'));
+    return {
+      open: Boolean(menu) && !menu.hidden,
+      caret: document.querySelector('.tw-sub-pack-now')?.textContent ?? '',
+      caretCost: document.getElementById('gift-cost-pack')?.textContent ?? '',
+      single: document.getElementById('gift-cost-1')?.textContent ?? '',
+      rows: rows.map((r) => `${r.dataset.pack}:${r.querySelector('span')?.textContent}:${r.disabled ? 'off' : 'on'}`),
+      subs: window.__qaScene.getState().subscribers,
+      etapaText: [...document.querySelectorAll('*')].filter((el) =>
+        /\bЭтап \d/.test(el.textContent ?? ''),
+      ).length,
+    };
+  });
+
+const closed = await packState();
+if (closed.open) errors.push('I packs: menu is open on load');
+if (closed.etapaText > 0) errors.push(`I packs: "Этап N" still rendered in ${closed.etapaText} nodes`);
+await page.click('#btn-gift-sub-menu');
+await page.waitForTimeout(160);
+const opened = await packState();
+console.log('I packs open', JSON.stringify(opened));
+if (!opened.open) errors.push('I packs: caret did not open the picker');
+if (opened.rows.length !== 4) errors.push(`I packs: expected 4 pack sizes, got ${opened.rows.length}`);
+for (const need of ['5:', '25:', '50:', '100:']) {
+  if (!opened.rows.some((r) => r.startsWith(need))) errors.push(`I packs: missing pack ${need}`);
+}
+await shot('final_I_subpack_menu');
+
+// x50 must actually gift 50 subs and close the menu.
+await page.evaluate(() => window.__qaScene.addFunds(100000));
+// The picker is still open from the previous step: Escape proves it closes, then reopen it.
+await page.keyboard.press('Escape');
+await page.waitForTimeout(120);
+if ((await packState()).open) errors.push('I packs: Escape did not close the picker');
+await page.click('#btn-gift-sub-menu');
+await page.waitForTimeout(140);
+await page.click('#sub-pack-menu .sub-pack-row[data-pack="50"]');
+await page.waitForTimeout(320);
+const afterGift = await packState();
+console.log('I packs x50', JSON.stringify(afterGift));
+if (afterGift.open) errors.push('I packs: menu stayed open after picking a pack');
+if (afterGift.subs - opened.subs < 50) {
+  errors.push(`I packs: x50 gifted only ${afterGift.subs - opened.subs} subs`);
+}
+if (afterGift.caret.trim() !== 'x50') errors.push(`I packs: caret still shows ${afterGift.caret}`);
+
+// Clicking outside closes it, and the single-sub button is untouched.
+await page.click('#stat-viewers-val');
+await page.waitForTimeout(140);
+if ((await packState()).open) errors.push('I packs: outside click did not close the menu');
+await page.evaluate(() => window.__qaScene.giftSubs(1));
+await page.waitForTimeout(200);
+const single = await packState();
+if (single.subs - afterGift.subs < 1) errors.push('I packs: single-sub button stopped working');
+
 console.log('errors:', errors.length ? JSON.stringify(errors) : 'none');
 await browser.close();
 process.exit(0);

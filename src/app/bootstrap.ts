@@ -59,12 +59,14 @@ declare global {
     __qaScene?: {
       getState: () => GameState;
       getDeskMicDebug: () => unknown;
+      getFaceAnchorDebug: () => { x: number; y: number; w: number; h: number };
+      getActivePlateName: () => string;
       isWearingDay2Outfit: () => boolean;
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
-      giftSubs: (count: 1 | 5 | 25) => boolean;
+      giftSubs: (count: number) => boolean;
       setSubStage: (stage: SubGoalStageIndex) => boolean;
       buyUpgrade: (id: UpgradeId) => boolean;
       startDay2: () => boolean;
@@ -150,10 +152,10 @@ export async function bootstrapApp(): Promise<void> {
 
     if (isFeverTrigger) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
-      ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps));
+      ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps, state.streamDay));
     } else if (state.streamDay === 2 && state.totalTaps % 2 === 1) {
       // Day 2: every tap drags yesterday's strip ladder back into her head.
-      ui.showSpeech(pickDay2TapLine(zone, state.totalTaps));
+      ui.showSpeech(pickDay2TapLine(zone, state.totalTaps, state.displayedSubStage));
     } else {
       ui.showSpeech(outcome.line);
     }
@@ -216,7 +218,7 @@ export async function bootstrapApp(): Promise<void> {
     return { earned: outcome.earned, alert: outcome.triggeredDonationAlert };
   };
 
-  ui.onGiftSubs = (count: 1 | 5 | 25) => {
+  ui.onGiftSubs = (count: number) => {
     lastPlayerInteractionMs = performance.now();
     const res = buyGiftSubs(state, count);
     if (!res.ok) return;
@@ -246,6 +248,21 @@ export async function bootstrapApp(): Promise<void> {
           `★ ПОДАРЕНО ${count} ПОДПИСОК`,
           `VIP_Sponsor разгоняет фансервис! Всего: ${state.subscribers} сабов`,
         );
+      }
+      if (count >= 50) {
+        // Mass drops are a channel event: the chat echoes it the way Twitch does on a 50+ gift run.
+        ui.pushChatMessage({
+          id: `legion_${state.subscribers}`,
+          author: 'StreamBot',
+          color: '#ffd54f',
+          badge: 'MOD',
+          text:
+            count >= 100
+              ? `ПОЛНЫЙ ЗАХВАТ ЧАТА: +${count} сабов одним дропом! Мия уже не знает, куда деть руки :AWOOGA: :SubHype:`
+              : `ТЯЖЁЛЫЙ ЛЕГИОН: +${count} сабов! Мия, держись, это только начало :Pog: :SubHype:`,
+          isSystemHighlight: true,
+        });
+        stage.rig.triggerArchStretch('bold');
       }
     }
 
@@ -461,6 +478,8 @@ export async function bootstrapApp(): Promise<void> {
     window.__qaScene = {
       getState: () => state,
       getDeskMicDebug: () => stage.getDeskMicDebug(),
+      getFaceAnchorDebug: () => stage.rig.getFaceAnchorDebug(),
+      getActivePlateName: () => stage.getActivePlateName(),
       isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
       tapZone: (zone: TapZoneId) => {
@@ -484,7 +503,7 @@ export async function bootstrapApp(): Promise<void> {
         stage.app.render();
         return state.subscribers;
       },
-      giftSubs: (count: 1 | 5 | 25) => {
+      giftSubs: (count: number) => {
         const prevSubs = state.subscribers;
         ui.onGiftSubs?.(count);
         stage.app.render();

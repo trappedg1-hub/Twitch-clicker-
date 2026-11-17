@@ -12,6 +12,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
+import { CANONICAL_FACE, faceAnchorFor, type FaceAnchor } from './faceAnchors.ts';
 
 export interface HeroineTextures {
   stages: readonly [Texture, Texture, Texture, Texture, Texture];
@@ -80,6 +81,9 @@ export class HeroineRig {
   private readonly day1Stages: readonly Texture[];
   private readonly day2Textures: Texture[];
   private wardrobeDay: 1 | 2 = 1;
+
+  /** Where the canonical emotion/blink patch content lands on the CURRENT plate. */
+  private faceBox: FaceAnchor = CANONICAL_FACE;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -161,24 +165,24 @@ export class HeroineRig {
 
     // Resting confident allure layer that emerges smoothly at high boldness (stages 0..4)
     this.boldRestSprite = new Sprite(textures.bold);
-    this.boldRestSprite.position.set(338, 61);
-    this.boldRestSprite.width = 348;
-    this.boldRestSprite.height = 397;
+    this.boldRestSprite.position.set(CANONICAL_FACE.x, CANONICAL_FACE.y);
+    this.boldRestSprite.width = CANONICAL_FACE.w;
+    this.boldRestSprite.height = CANONICAL_FACE.h;
     this.boldRestSprite.alpha = 0;
     this.bodyContainer.addChild(this.boldRestSprite);
 
     // Subpixel-registered active emotion patch
     this.emotionSprite = new Sprite(textures.shy);
-    this.emotionSprite.position.set(338, 61);
-    this.emotionSprite.width = 348;
-    this.emotionSprite.height = 397;
+    this.emotionSprite.position.set(CANONICAL_FACE.x, CANONICAL_FACE.y);
+    this.emotionSprite.width = CANONICAL_FACE.w;
+    this.emotionSprite.height = CANONICAL_FACE.h;
     this.emotionSprite.alpha = 0;
     this.bodyContainer.addChild(this.emotionSprite);
 
     this.blinkSprite = new Sprite(textures.blink);
-    this.blinkSprite.position.set(338, 61);
-    this.blinkSprite.width = 348;
-    this.blinkSprite.height = 397;
+    this.blinkSprite.position.set(CANONICAL_FACE.x, CANONICAL_FACE.y);
+    this.blinkSprite.width = CANONICAL_FACE.w;
+    this.blinkSprite.height = CANONICAL_FACE.h;
     this.blinkSprite.alpha = 0;
     this.bodyContainer.addChild(this.blinkSprite);
 
@@ -187,16 +191,41 @@ export class HeroineRig {
   }
 
   private applyPosePatchGeometry(): void {
-    this.emotionSprite.position.set(338, 61);
-    this.emotionSprite.width = 348;
-    this.emotionSprite.height = 397;
-    this.emotionSprite.texture = this.emotionTextures[this.activeEmotion];
-
-    this.blinkSprite.position.set(338, 61);
-    this.blinkSprite.width = 348;
-    this.blinkSprite.height = 397;
-    this.blinkSprite.texture = this.uprightBlinkTex;
+    const box = this.faceBox;
+    const apply = (sprite: Sprite, texture: Texture): void => {
+      sprite.texture = texture;
+      sprite.position.set(box.x, box.y);
+      sprite.width = box.w;
+      sprite.height = box.h;
+    };
+    apply(this.emotionSprite, this.emotionTextures[this.activeEmotion]);
+    apply(this.blinkSprite, this.uprightBlinkTex);
+    apply(this.boldRestSprite, this.emotionTextures.bold);
     this.boldRestSprite.visible = true;
+  }
+
+  /**
+   * Keep the blush / blink / smirk patches glued to her real eyes. The leaning Day 2 plates
+   * (straps down at 2500, kneeling at 5000) draw her head bigger and higher than the canonical
+   * plate, so a fixed box drops the patches onto her neck. Boxes are measured off the plates.
+   */
+  public setFaceAnchorFor(plateName: string): void {
+    const next = faceAnchorFor(plateName);
+    if (
+      next.x === this.faceBox.x &&
+      next.y === this.faceBox.y &&
+      next.w === this.faceBox.w &&
+      next.h === this.faceBox.h
+    ) {
+      return;
+    }
+    this.faceBox = next;
+    this.applyPosePatchGeometry();
+  }
+
+  /** QA/debug: the patch box currently in use (plate pixels). */
+  public getFaceAnchorDebug(): FaceAnchor {
+    return { ...this.faceBox };
   }
 
   private rebuildHitZones(): void {
@@ -456,9 +485,11 @@ export class HeroineRig {
     // Sync face patch sprites with upper-body sway!
     const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
     const headArchY = -this.archDisp * 0.25;
-    this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
-    this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);
-    this.blinkSprite.position.set(338 + headSwayX, 61 + headArchY);
+    const patchX = this.faceBox.x + headSwayX;
+    const patchY = this.faceBox.y + headArchY;
+    this.boldRestSprite.position.set(patchX, patchY);
+    this.emotionSprite.position.set(patchX, patchY);
+    this.blinkSprite.position.set(patchX, patchY);
 
     for (let i = 0; i < data.length; i += 2) {
       const rx = rest[i]!;

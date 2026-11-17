@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   DAY2_OPENING_LINE,
   DAY2_SHAME_LINES,
+  pickDay2TapLine,
   pickDialogueLine,
   pickEmotionForContext,
   pickFeverOverheatLine,
@@ -39,7 +40,12 @@ import {
   SUB_GOAL_STAGES,
 } from '../src/domain/subGoals.ts';
 import { DAY1_FAREWELL_LINES, getStreamTitle } from '../src/domain/dialogue.ts';
-import type { TapZoneId } from '../src/domain/types.ts';
+import type { SubGoalStageIndex, TapZoneId } from '../src/domain/types.ts';
+import {
+  contradictsWardrobe,
+  getWardrobe,
+  WARDROBE_SAFE_LINES,
+} from '../src/domain/wardrobe.ts';
 import { getMicTier, getUpgradeCost, MIC_TIERS, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
 
 test('initial state starts bundled up at Stage 0 (0 subs, hoodie + leggings + socks)', () => {
@@ -429,4 +435,79 @@ test('stream titles follow the day (Day 1 socks goal vs Day 2 5000 subs finale)'
   assert.ok(getStreamTitle(3, 4000, 2).includes('5000'));
   assert.ok(getStreamTitle(4, 5000, 2).includes('ФИНАЛ ДНЯ 2'));
   assert.ok(getStreamTitle(4, 500, 1).includes('ПЕРВОГО ДНЯ'));
+});
+
+// ============ Wardrobe-consistent dialogue (art vs. what she says) ============
+const QA_ZONES: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
+
+test('every line she speaks matches what is actually on her right now', () => {
+  for (const day of [1, 2] as const) {
+    for (let stage = 0; stage <= 4; stage++) {
+      const w = getWardrobe(day, stage);
+      for (const line of WARDROBE_SAFE_LINES[day][stage as SubGoalStageIndex]!) {
+        assert.equal(contradictsWardrobe(line, w), null, `safe day${day}s${stage}: ${line}`);
+      }
+      for (const zone of QA_ZONES) {
+        for (const band of [1, 2, 3, 4] as const) {
+          for (let seed = 0; seed < 10; seed++) {
+            const line = pickDialogueLine(zone, band, seed, stage as SubGoalStageIndex, day);
+            assert.equal(
+              contradictsWardrobe(line, w, zone),
+              null,
+              `day${day}s${stage} ${zone}/b${band}/#${seed}: ${line}`,
+            );
+          }
+        }
+        for (let seed = 0; seed < 10; seed++) {
+          const d2 = pickDay2TapLine(zone, seed, stage as SubGoalStageIndex);
+          assert.equal(contradictsWardrobe(d2, getWardrobe(2, stage), zone), null, `day2 tap: ${d2}`);
+          const fever = pickFeverOverheatLine(zone, stage as SubGoalStageIndex, seed, day);
+          assert.equal(contradictsWardrobe(fever, w, zone), null, `fever: ${fever}`);
+        }
+      }
+      for (let seed = 0; seed < 10; seed++) {
+        const idle = pickIdleTeaseLine(stage as SubGoalStageIndex, seed, day);
+        assert.equal(contradictsWardrobe(idle, w), null, `idle: ${idle}`);
+      }
+    }
+  }
+});
+
+test('sub goal copy never invents clothing she is not wearing', () => {
+  for (const [day, stages] of [
+    [1, SUB_GOAL_STAGES],
+    [2, DAY2_SUB_GOAL_STAGES],
+  ] as const) {
+    stages.forEach((stage, idx) => {
+      const w = getWardrobe(day, idx);
+      const texts = [
+        stage.shortGoalTitle,
+        stage.outfitName,
+        stage.removedItemLabel ?? '',
+        stage.storyDesc,
+        stage.unlockLine ?? '',
+        ...stage.shyApproachLines,
+      ];
+      for (const text of texts) {
+        const why = contradictsWardrobe(text, w);
+        assert.equal(why, null, `day${day} stage${idx}: ${why ?? ''} :: ${text}`);
+      }
+    });
+  }
+});
+
+test('stream titles sell her arc, not her outfit', () => {
+  const garmentWords = [
+    'худи', 'гольф', 'носк', 'носочк', 'шорт', 'легинс', 'маек', 'тишк', 'кроп',
+    'бралет', 'бра-топ', 'бюст', 'топ ', 'платье', 'юбк', 'босы', 'босиком', 'ступн',
+  ];
+  for (const day of [1, 2]) {
+    for (let stage = 0; stage <= 4; stage++) {
+      const title = getStreamTitle(stage as SubGoalStageIndex, 1234, day);
+      for (const word of garmentWords) {
+        assert.ok(!title.toLowerCase().includes(word), `day${day}s${stage} title mentions "${word}": ${title}`);
+      }
+      assert.match(title, /SUB GOAL|САБОВ/, `title lost its goal tail: ${title}`);
+    }
+  }
 });

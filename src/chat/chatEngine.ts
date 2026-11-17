@@ -4,6 +4,7 @@ import type {
   TapZoneId,
   UpgradeId,
 } from '../domain/types.ts';
+import { contradictsWardrobe, getWardrobe } from '../domain/wardrobe.ts';
 
 export interface ChatMessage {
   id: string;
@@ -166,12 +167,12 @@ function nextMsgId(): string {
 /** Day 2: the chat shows up already dressed and instantly starts egging her on. */
 const AMBIENT_DAY2: readonly string[] = [
   'ну давай, Мия, повторим вчерашнее? чат уже готов :SubHype: :Pog:',
-  'в оверсайз худи она выглядит опаснее, чем вчера в бралетте :BOOBA: :AWOOGA:',
+  'худи на ней сидело опаснее, чем вчерашний бралетт :BOOBA: :AWOOGA:',
   'гольфы в полоску — это же ловушка, они долго не продержатся :Kreygasm: :LUL:',
   'она вспомнила вчерашний вечер и снова краснеет, лучшее украшение эфира :peepoShy:',
   'вчерашние саб-цели пробиты... сегодня мы их просто повторим :EZ: :ClipIt:',
   'сидит обняв колени, как будто мы не видели всё это 12 часов назад :AWOOGA: :miyaLove:',
-  'спорю, к концу эфира худи сползёт с плеча само :Pog: :Overheat:',
+  'спорю, к концу эфира она снимет и худи, и гольфы, и топ :Pog: :Overheat:',
   'чат, спокойно: она только СДЕЛАЛА ВИД, что подумает над «повтори» :LUL: :Nosebleed:',
 ];
 
@@ -184,7 +185,12 @@ export function createAmbientChatMessage(
   const viewer = VIEWER_NICKS[seed % VIEWER_NICKS.length]!;
   const pool =
     streamDay === 2 ? AMBIENT_DAY2 : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
-  const text = pool[(seed * 3) % pool.length]!;
+  // Same wardrobe truth the heroine's own lines use: chat may beg, but it should not narrate an
+  // outfit the plate contradicts ("she looks dangerous in the hoodie" at 5000 subs).
+  const wardrobe = getWardrobe(streamDay === 2 ? 2 : 1, displayedStage);
+  const usable = pool.filter((line) => contradictsWardrobe(line, wardrobe) === null);
+  const spoken = usable.length > 0 ? usable : pool;
+  const text = spoken[(seed * 3) % spoken.length]!;
   return {
     id: nextMsgId(),
     author: viewer.name,

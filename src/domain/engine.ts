@@ -234,7 +234,7 @@ export function applyTap(
     subResolved.newlyUnlockedSubStages[subResolved.newlyUnlockedSubStages.length - 1];
   const line = latestStageUnlock
     ? latestStageUnlock.unlockLine
-    : pickDialogueLine(zone, stats.dialogueBand, finalState.totalTaps, finalState.displayedSubStage);
+    : pickDialogueLine(zone, stats.dialogueBand, finalState.totalTaps, finalState.displayedSubStage, finalState.streamDay);
 
   return {
     state: finalState,
@@ -250,7 +250,8 @@ export function applyTap(
 
 export function buyGiftSubs(
   state: GameState,
-  count: 1 | 5 | 25,
+  /** Any pack size: 1 (single), or 5 / 25 / 50 / 100 from the gift-sub picker. */
+  count: number,
 ): {
   ok: boolean;
   state: GameState;

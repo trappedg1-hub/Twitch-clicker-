@@ -4,6 +4,12 @@ import type {
   TapZoneId,
   UpgradeId,
 } from './types.ts';
+import {
+  contradictsWardrobe,
+  getWardrobe,
+  safeWardrobeLine,
+  type Wardrobe,
+} from './wardrobe.ts';
 
 export type DialogueBand = 1 | 2 | 3 | 4;
 
@@ -74,9 +80,39 @@ const DAY2_TAP_LINES: Record<TapZoneId, readonly string[]> = {
   ],
 };
 
-export function pickDay2TapLine(zone: TapZoneId, seed: number): string {
-  const pool = DAY2_TAP_LINES[zone]!;
-  return pool[Math.abs(seed) % pool.length]!;
+/**
+ * Every line she speaks is checked against the outfit that is actually on the plate. If a pool
+ * turns out to be entirely wrong for this stage (chat begs for "bare feet" while the golf socks
+ * are still on), we fall back to a line that can only be true right now - so a subtitle can
+ * never contradict the art again.
+ */
+function pickFromPool(
+  pools: readonly (readonly string[])[],
+  w: Wardrobe,
+  seed: number,
+  zone?: TapZoneId,
+): string {
+  const usable: string[] = [];
+  for (const pool of pools) {
+    for (const line of pool) {
+      if (contradictsWardrobe(line, w, zone) === null) usable.push(line);
+    }
+  }
+  if (usable.length === 0) {
+    const fallback = safeWardrobeLine(w, seed);
+    return contradictsWardrobe(fallback, w, zone) === null
+      ? fallback
+      : 'М-м! Вы пишете так, что я уже забываю, о чём вообще был стрим... ♥';
+  }
+  return usable[Math.abs(seed) % usable.length]!;
+}
+
+export function pickDay2TapLine(
+  zone: TapZoneId,
+  seed: number,
+  displayedStage: SubGoalStageIndex = 0,
+): string {
+  return pickFromPool([DAY2_TAP_LINES[zone] ?? []], getWardrobe(2, displayedStage), seed, zone);
 }
 
 const STAGE_ZONE_OVERRIDES: Partial<
@@ -418,6 +454,11 @@ export function pickEmotionForContext(
 }
 
 /** Stream title under the avatar. Day 1 climbs 10/50/200/500, Day 2 — 1500/2000/2500/5000. */
+/**
+ * Stream title = her mood, not her outfit list. The ladder art already shows what she is wearing,
+ * so the title carries the arc: streamer-shy wallflower -> chat's little pick-me girl. The
+ * `SUB GOAL n/m` tail stays because that is what Twitch viewers read first.
+ */
 export function getStreamTitle(
   displayedStage: SubGoalStageIndex,
   subs: number,
@@ -426,28 +467,28 @@ export function getStreamTitle(
   if (streamDay === 2) {
     switch (displayedStage) {
       case 0:
-        return `День 2, я ещё стесняюсь... ★ SUB GOAL ${subs}/1500 — снимаю худи?!`;
+        return `День 2: я всё ещё краснею первой ♥ SUB GOAL ${subs}/1500 — но мне уже нравится~`;
       case 1:
-        return `Худи уже на полу ♥ SUB GOAL ${subs}/2000 — повяжу его на талии...`;
+        return `Была стесняшкой — стала той, что сама ищет ваш взгляд ★ SUB GOAL ${subs}/2000`;
       case 2:
-        return `Худи завязано на талии~ ★ SUB GOAL ${subs}/2500 — спущу лямки с плеч!`;
+        return `Я уже знаю, как задержать чат... и делаю вид, что случайно~ ♥ SUB GOAL ${subs}/2500`;
       case 3:
-        return `Топ, лямки на плечах, худи за спиной ♥ SUB GOAL ${subs}/5000 — долой топ и гольфы!`;
+        return `Ваша пикми-девочка смотрит прямо в камеру ♥ SUB GOAL ${subs}/5000 — добьёте?`;
       case 4:
-        return `5000 САБОВ ★ ФИНАЛ ДНЯ 2! На коленях у камеры, босые ступни — я сама так села~ ♥`;
+        return `5000 САБОВ ★ ФИНАЛ ДНЯ 2: из стесняшки в вашу пикми — и я хочу ещё~ ♥`;
     }
   }
   switch (displayedStage) {
     case 0:
-      return `Первый стрим, дико стесняюсь... ★ SUB GOAL ${subs}/10 — снимаю носочки?!`;
+      return `Первый стрим, голос дрожит... научите меня быть милой, я серьёзно ★ SUB GOAL ${subs}/10`;
     case 1:
-      return `Заставили снять носочки! ♥ SUB GOAL ${subs}/50 — неужели сниму легинсы?!`;
+      return `Мне 10 сабов и я уже не прячусь за вебкой~ ♥ SUB GOAL ${subs}/50`;
     case 2:
-      return `В одном худи с голыми ножками~ ★ SUB GOAL ${subs}/200 — снимаю худи в эфире!`;
+      return `Я вижу, что вы остались ради меня, а не ради игры ★ SUB GOAL ${subs}/200 — и это волнует`;
     case 3:
-      return `Осталась в тесной микро-тишке ♥ SUB GOAL ${subs}/500 — долой тишку (Бралетт!)`;
+      return `Скромница? Было. Теперь я считаю ваши клипы и улыбаюсь~ ♥ SUB GOAL ${subs}/500`;
     case 4:
-      return `500 САБОВ ★ ФИНАЛ ПЕРВОГО ДНЯ! В чёрном бралетте — завтра второй день, все вещи со мной! ♥`;
+      return `500 САБОВ ★ ФИНАЛ ПЕРВОГО ДНЯ: тихоня раскрепостилась и просит ещё — завтра День 2! ♥`;
   }
 }
 
@@ -456,26 +497,26 @@ export function pickDialogueLine(
   band: DialogueBand,
   seedIndex: number,
   displayedStage: SubGoalStageIndex = 3,
+  streamDay: number = 1,
 ): string {
+  const w = getWardrobe(streamDay, displayedStage);
   const stagePool = STAGE_ZONE_OVERRIDES[displayedStage]?.[zone];
-  if (
-    stagePool &&
-    stagePool.length > 0 &&
-    (band <= 2 || seedIndex % 2 === 0)
-  ) {
-    return stagePool[Math.abs(seedIndex) % stagePool.length]!;
+  const bandPool = ZONE_DIALOGUES[zone][band];
+  if (stagePool && stagePool.length > 0 && (band <= 2 || seedIndex % 2 === 0)) {
+    const line = pickFromPool([stagePool, bandPool], w, seedIndex, zone);
+    if (line !== safeWardrobeLine(w, seedIndex)) return line;
   }
-  const pool = ZONE_DIALOGUES[zone][band];
-  return pool[Math.abs(seedIndex) % pool.length]!;
+  return pickFromPool([bandPool], w, seedIndex, zone);
 }
 
 export function pickFeverOverheatLine(
   zone: TapZoneId,
   _displayedStage: SubGoalStageIndex,
   seed: number,
+  streamDay: number = 1,
 ): string {
   const pool = FEVER_OVERHEAT_BY_ZONE[zone];
-  return pool[Math.abs(seed) % pool.length]!;
+  return pickFromPool([pool], getWardrobe(streamDay, _displayedStage), seed);
 }
 
 export function pickIdleTeaseLine(
@@ -487,7 +528,7 @@ export function pickIdleTeaseLine(
     streamDay === 2
       ? DAY2_IDLE_LINES
       : (SPONTANEOUS_IDLE_TEASE_LINES[displayedStage] ?? SPONTANEOUS_IDLE_TEASE_LINES[0]!);
-  return pool[Math.abs(seed) % pool.length]!;
+  return pickFromPool([pool], getWardrobe(streamDay, displayedStage), seed);
 }
 
 export function pickReactionCalloutTag(
