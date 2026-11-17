@@ -20,6 +20,8 @@ export interface HeroineTextures {
   fluster: Texture;
   tease: Texture;
   bold: Texture;
+  /** Day 2 opening outfit plate (oversize beige hoodie + shorts + striped golf socks). */
+  day2Stage0?: Texture;
 }
 
 interface EnvelopeState {
@@ -74,7 +76,10 @@ export class HeroineRig {
   private readonly blinkSprite: Sprite;
   private readonly hitLayer = new Container();
 
-  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture];
+  private stageTextures: Texture[];
+  private readonly day1Stages: readonly Texture[];
+  private readonly day2Stage0Tex: Texture | null;
+  private wardrobeDay: 1 | 2 = 1;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -129,7 +134,9 @@ export class HeroineRig {
   ) => void;
 
   constructor(textures: HeroineTextures) {
-    this.stageTextures = textures.stages;
+    this.day1Stages = [...textures.stages];
+    this.stageTextures = [...textures.stages];
+    this.day2Stage0Tex = textures.day2Stage0 ?? null;
     this.uprightBlinkTex = textures.blink;
 
     this.emotionTextures = {
@@ -213,6 +220,35 @@ export class HeroineRig {
       });
       this.hitLayer.addChild(g);
     }
+  }
+
+  /**
+   * Day 2 starts Miya back in a closed-ish everyday look (oversize beige hoodie, shorts,
+   * black golf socks with two white stripes) while every purchased upgrade stays on the desk.
+   */
+  public setWardrobeDay(day: 1 | 2): void {
+    if (this.wardrobeDay === day) return;
+    this.wardrobeDay = day;
+    const day2Tex = this.day2Stage0Tex;
+    if (!day2Tex) return;
+    const base0 = this.day1Stages[0]!;
+    this.stageTextures = this.stageTextures.map((tex, idx) =>
+      idx === 0 ? (day === 2 ? day2Tex : base0) : tex,
+    );
+    const nextTex = this.stageTextures[this.currentStage] ?? this.stageTextures[0]!;
+    if (this.mesh.texture !== nextTex) {
+      this.mesh.texture = nextTex;
+      this.applyPosePatchGeometry();
+      this.triggerEmotion(day === 2 ? 'fluster' : 'shy', 2400);
+    }
+  }
+
+  public getWardrobeDay(): 1 | 2 {
+    return this.wardrobeDay;
+  }
+
+  public isWearingDay2Outfit(): boolean {
+    return this.wardrobeDay === 2 && this.currentStage === 0;
   }
 
   public setBoldness(boldness: number): void {
@@ -304,7 +340,7 @@ export class HeroineRig {
     celebrate = false,
     unlockEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): boolean {
-    const nextTex = this.stageTextures[stage] ?? this.stageTextures[0];
+    const nextTex = this.stageTextures[stage] ?? this.stageTextures[0]!;
     const stageChanged = this.currentStage !== stage || this.mesh.texture !== nextTex;
     this.currentStage = stage;
     if (stageChanged) {

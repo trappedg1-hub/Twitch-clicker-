@@ -100,7 +100,7 @@ export function computeStats(state: GameState): ComputedStats {
     3 + upgradeViewers + hypeViewers + boldnessViewers + tapOrganicViewers + subViewers,
   );
 
-  const storyChapter = getStoryChapter(effectiveBoldness);
+  const storyChapter = getStoryChapter(effectiveBoldness, state.streamDay);
   const dialogueBand: DialogueBand = storyChapter.stage;
 
   const nextMilestone =
@@ -306,9 +306,10 @@ export function isDay1FinaleReached(state: GameState): boolean {
 }
 
 /**
- * Start Day 2: ALL Day 1 upgrades (incl. desk microphone tier), unlocked wardrobe,
- * balance and boldness carry over permanently. Day 2 costume is still being decided,
- * so Miya keeps her Day 1 finale outfit (Stage 4 bralette) until the new ladder lands.
+ * Start Day 2 (only after the Day 1 farewell finishes): ALL Day 1 upgrades (incl. desk
+ * microphone tier), unlocked wardrobe, balance and boldness carry over permanently.
+ * The carried stage stays unlocked, but Miya changes into her Day 2 costume plate
+ * (oversize beige hoodie + shorts + black golf socks with two white stripes).
  */
 export function startDay2(state: GameState): { ok: boolean; state: GameState } {
   if (!isDay1FinaleReached(state)) {
@@ -325,7 +326,7 @@ export function startDay2(state: GameState): { ok: boolean; state: GameState } {
       streamDay: 2,
       carriedOverWardrobeStage: carried,
       unlockedSubStage: carried,
-      displayedSubStage: carried,
+      displayedSubStage: 0, // Day 2 opens fully dressed again — in the Day 2 wardrobe plate!
       hype: 100,
     },
   };
@@ -418,7 +419,11 @@ export function triggerStreamChallenge(
     ok: true,
     reward,
     gainedSubs,
-    line: latestUnlock ? latestUnlock.unlockLine : def.reactionLine,
+    line: latestUnlock
+      ? latestUnlock.unlockLine
+      : subResolved.state.streamDay === 2
+        ? (def.reactionLineDay2 ?? def.reactionLine)
+        : def.reactionLine,
     chatBurst: def.chatBurst,
     zoneFocus: def.zoneFocus,
     newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,

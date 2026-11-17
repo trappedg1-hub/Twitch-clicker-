@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  DAY2_OPENING_LINE,
+  DAY2_SHAME_LINES,
   pickDialogueLine,
   pickEmotionForContext,
   pickFeverOverheatLine,
@@ -252,13 +254,31 @@ test('Day 1 finale at 500 subs carries ALL upgrades, wardrobe, balance & boldnes
   assert.equal(d2.streamDay, 2);
   assert.equal(d2.carriedOverWardrobeStage, 4);
   assert.equal(d2.unlockedSubStage, 4);
-  assert.equal(d2.displayedSubStage, 4);
+  // Day 2 opens back in the new costume plate (stage 0 = Day 2 oversize-hoodie art),
+  // while every Day 1 unlock stays available.
+  assert.equal(d2.displayedSubStage, 0);
   // 100% carry-over: upgrades, mic tier, balance, boldness
   assert.equal(d2.upgrades.desk_mic, micBefore);
   assert.equal(d2.upgrades.ring_lamp, lampBefore);
   assert.equal(d2.balance, balanceBefore);
   assert.equal(d2.boldness, boldBefore);
   assert.equal(isDay1FinaleReached(d2), false);
+
+  // Day 2 costume logic: the Day 2 plate + labels come from the Sub Goal def, and the
+  // story chapter / challenge copy switch to the "ashamed about yesterday" arc.
+  const day0 = SUB_GOAL_STAGES[0]!;
+  assert.equal(day0.day2PlateUrl, '/art/heroine_t2_s0.webp');
+  assert.ok(day0.day2OutfitName?.includes('Оверсайз худи'));
+  for (const txt of [day0.day2StoryDesc!, day0.day2OutfitName!, DAY2_OPENING_LINE, ...DAY2_SHAME_LINES]) {
+    const low = txt.toLowerCase();
+    assert.ok(!low.includes('молни'), `Day 2 costume copy must not mention a zipper: ${txt}`);
+    assert.ok(!low.includes('застёжк'), `Day 2 hoodie has no fasteners: ${txt}`);
+  }
+  assert.notEqual(getStoryChapter(10, 2).badgeTitle, getStoryChapter(10, 1).badgeTitle);
+  assert.ok(getStoryChapter(10, 2).badgeTitle.startsWith('День 2'));
+  const feet = STREAM_CHALLENGES.find((c) => c.id === 'pose_feet')!;
+  assert.ok(!feet.desc.toLowerCase().includes('босым'));
+  assert.ok(feet.reactionLineDay2!.includes('гольфы'));
 
   // Cannot start Day 2 twice / before finale
   assert.equal(startDay2(d2).ok, false);

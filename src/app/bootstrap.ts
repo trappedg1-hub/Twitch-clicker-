@@ -1,7 +1,9 @@
 import type { Application } from 'pixi.js';
 import {
   createAmbientChatMessage,
+  createDay2ProvocationChatMessage,
   createDonationChatMessage,
+  createFarewellChatMessage,
   createSubGoalCascadeMessages,
   createSubNotificationMessage,
   createUpgradeChatMessage,
@@ -9,6 +11,10 @@ import {
   createZoneBurstMessage,
 } from '../chat/chatEngine.ts';
 import {
+  DAY1_FAREWELL_LINES,
+  DAY2_OPENING_LINE,
+  DAY2_SHAME_LINES,
+  pickDay2TapLine,
   pickFeverOverheatLine,
   pickIdleTeaseLine,
   pickReactionCalloutTag,
@@ -51,6 +57,8 @@ declare global {
     __qaFreezeTicker?: () => void;
     __qaScene?: {
       getState: () => GameState;
+      getDeskMicDebug: () => unknown;
+      isWearingDay2Outfit: () => boolean;
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
       addFunds: (amount: number) => void;
@@ -97,6 +105,7 @@ export async function bootstrapApp(): Promise<void> {
     stage.setHypeLevel(state.hype);
     stage.setMicTier(state.upgrades.desk_mic ?? 0);
     stage.rig.setBoldness(stats.boldness);
+    stage.setWardrobeDay(state.streamDay === 2 ? 2 : 1);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
     if (!isQa) {
@@ -140,6 +149,9 @@ export async function bootstrapApp(): Promise<void> {
     if (isFeverTrigger) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
       ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps));
+    } else if (state.streamDay === 2 && state.totalTaps % 2 === 1) {
+      // Day 2: every tap drags yesterday's strip ladder back into her head.
+      ui.showSpeech(pickDay2TapLine(zone, state.totalTaps));
     } else {
       ui.showSpeech(outcome.line);
     }
@@ -174,7 +186,7 @@ export async function bootstrapApp(): Promise<void> {
         );
       } else if (state.totalTaps % 2 === 1 || outcome.triggeredDonationAlert) {
         ui.pushChatMessage(
-          createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps),
+          createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, state.streamDay),
         );
       }
 
@@ -287,6 +299,15 @@ export async function bootstrapApp(): Promise<void> {
     syncAll();
   };
 
+  // Every farewell beat of the Day 1 finale: a viewer goodbye in chat + a shy wave.
+  ui.onFarewellBeat = (index: number) => {
+    ui.pushChatMessage(createFarewellChatMessage(index));
+    stage.rig.triggerEmotion(index >= DAY1_FAREWELL_LINES.length - 2 ? 'tease' : 'shy', 2300);
+    if (index === DAY1_FAREWELL_LINES.length - 1) {
+      stage.spawnReactionCallout('♥ ПОКА-ПОКА, ЧАТ!', true, index);
+    }
+  };
+
   ui.onStartDay2 = () => {
     lastPlayerInteractionMs = performance.now();
     const res = startDay2(state);
@@ -294,10 +315,20 @@ export async function bootstrapApp(): Promise<void> {
     state = res.state;
     const afterStats = computeStats(state);
     stage.rig.setBoldness(afterStats.boldness);
+    stage.setWardrobeDay(2);
     stage.rig.triggerEmotion('bold', 2600);
-    ui.showSpeech(
-      'Второй день! Все мои вещи, улучшения и микрофон на столе переехали со мной — продолжаем с того же места, только ещё горячее~ ★ ♥',
-    );
+    ui.showSpeech(DAY2_OPENING_LINE);
+    // Day 2 arc: she is mortified about yesterday, the chat instantly starts provoking her.
+    DAY2_SHAME_LINES.forEach((line, i) => {
+      window.setTimeout(() => {
+        ui.showSpeech(line);
+        ui.pushChatMessage(createDay2ProvocationChatMessage(i));
+        stage.rig.triggerEmotion(i % 2 === 0 ? 'shy' : 'fluster', 2400);
+        if (i === DAY2_SHAME_LINES.length - 1) {
+          stage.spawnReactionCallout('♥ ЧАТ ПОДНАИВАЕТ!', true, i);
+        }
+      }, 1500 + i * 4600);
+    });
     ui.pushChatMessage({
       id: `day2_${Date.now()}`,
       author: 'StreamBot',
@@ -377,7 +408,9 @@ export async function bootstrapApp(): Promise<void> {
       idleTeaseCounter += 1;
       const statsNow = computeStats(state);
       stage.rig.triggerEmotion(statsNow.boldness < 45 ? 'shy' : 'tease', 2200);
-      ui.showSpeech(pickIdleTeaseLine(state.displayedSubStage, idleTeaseCounter));
+      ui.showSpeech(
+        pickIdleTeaseLine(state.displayedSubStage, idleTeaseCounter, state.streamDay),
+      );
     }
 
     if (res.gainedOrganicSubs > 0) {
@@ -408,7 +441,9 @@ export async function bootstrapApp(): Promise<void> {
     const delayMs = Math.max(850, 3200 - Math.min(2200, viewers * 28));
     window.setTimeout(() => {
       chatCounter += 1;
-      ui.pushChatMessage(createAmbientChatMessage(viewers, state.displayedSubStage, chatCounter));
+      ui.pushChatMessage(
+        createAmbientChatMessage(viewers, state.displayedSubStage, chatCounter, state.streamDay),
+      );
       scheduleNextAmbientChat();
     }, delayMs);
   };
@@ -423,6 +458,8 @@ export async function bootstrapApp(): Promise<void> {
     };
     window.__qaScene = {
       getState: () => state,
+      getDeskMicDebug: () => stage.getDeskMicDebug(),
+      isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
       tapZone: (zone: TapZoneId) => {
         stage.rig.triggerTapReaction(zone);

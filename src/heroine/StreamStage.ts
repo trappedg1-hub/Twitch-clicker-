@@ -13,6 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
+import { SUB_GOAL_STAGES } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -35,11 +36,13 @@ export class StreamStage {
   public static readonly VIRTUAL_W = 1376;
   public static readonly VIRTUAL_H = 768;
 
-  // Desk microphone placement: beautifully on the wooden desk, right of Miya,
-  // inside the mobile-portrait visible frame (484..891) and clear of her face/chest.
-  public static readonly MIC_X = 815;
+  // Desk microphone placement: planted ON THE WOOD at the RIGHT EDGE of Miya's desk
+  // (exactly where the baked-in studio mic used to sit). It may clip off the frame on
+  // narrow mobile portrait — that is intentional: the mic must rest on the plank and
+  // NEVER float in front of her legs.
+  public static readonly MIC_X = 1245;
   public static readonly MIC_BASE_Y = 738;
-  public static readonly MIC_HEIGHT = 195;
+  public static readonly MIC_HEIGHT = 210;
 
   public app!: Application;
   public rig!: HeroineRig;
@@ -52,6 +55,7 @@ export class StreamStage {
   private fgDeskSprite!: Sprite;
   private deskMicSprite!: Sprite;
   private deskMicShadow = new Graphics();
+  private readonly micHolder = new Container();
   private micTextures: Texture[] = [];
   private micTier = 0;
   private micPopT = 1;
@@ -112,6 +116,7 @@ export class StreamStage {
       micT8Tex,
       micT9Tex,
       micT10Tex,
+      day2Tex,
     ] = await Promise.all([
       Assets.load<Texture>('/art/bg_room_t1.webp'),
       Assets.load<Texture>('/art/heroine_t1_s0.webp'),
@@ -135,6 +140,7 @@ export class StreamStage {
       Assets.load<Texture>('/art/mics/mic_t8.webp'),
       Assets.load<Texture>('/art/mics/mic_t9.webp'),
       Assets.load<Texture>('/art/mics/mic_t10.webp'),
+      Assets.load<Texture>(SUB_GOAL_STAGES[0]?.day2PlateUrl ?? '/art/heroine_t2_s0.webp'),
     ]);
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
@@ -191,6 +197,7 @@ export class StreamStage {
       fluster: flusterTex,
       tease: teaseTex,
       bold: boldTex,
+      day2Stage0: day2Tex,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -209,18 +216,19 @@ export class StreamStage {
 
     // Layer 2b: Desk Microphone (Tier 1..10) — appears on the wooden desk once purchased!
     this.micTextures = [micT1Tex, micT2Tex, micT3Tex, micT4Tex, micT5Tex, micT6Tex, micT7Tex, micT8Tex, micT9Tex, micT10Tex];
-    this.deskMicShadow
-      .ellipse(StreamStage.MIC_X, StreamStage.MIC_BASE_Y + 4, 62, 11)
-      .fill({ color: 0x1a1118, alpha: 0.42 });
+    // Shadow + mic share one holder so the whole rig can slide onto the visible desk edge
+    // on narrow screens without ever floating above Miya's legs.
+    this.deskMicShadow.ellipse(0, 4, 62, 11).fill({ color: 0x1a1118, alpha: 0.42 });
     this.deskMicShadow.visible = false;
-    this.root.addChild(this.deskMicShadow);
+    this.micHolder.addChild(this.deskMicShadow);
     this.deskMicSprite = new Sprite(micT1Tex);
     this.deskMicSprite.anchor.set(0.5, 1.0);
-    this.deskMicSprite.position.set(StreamStage.MIC_X, StreamStage.MIC_BASE_Y);
     this.deskMicSprite.height = StreamStage.MIC_HEIGHT;
     this.deskMicSprite.width = StreamStage.MIC_HEIGHT * (micT1Tex.width / micT1Tex.height);
     this.deskMicSprite.visible = false;
-    this.root.addChild(this.deskMicSprite);
+    this.micHolder.addChild(this.deskMicSprite);
+    this.micHolder.position.set(this.micAnchorX(), StreamStage.MIC_BASE_Y);
+    this.root.addChild(this.micHolder);
 
     // Layer 3: Click Heart / Ruble Popups
     this.root.addChild(this.fxLayer);
@@ -255,6 +263,38 @@ export class StreamStage {
     });
   }
 
+  /**
+   * Right edge of the wooden plank. On narrow portrait viewports the desk is cropped,
+   * so the anchor slides left just enough to keep the mic standing ON the visible wood
+   * (partially clipped is fine — floating in front of her legs is not).
+   */
+  private micAnchorX(): number {
+    const half = this.deskMicSprite ? this.deskMicSprite.width / 2 : 88;
+    const bounds = this.getVisibleVirtualBounds();
+    const minSafe = StreamStage.VIRTUAL_W * 0.5 + 130;
+    return Math.max(minSafe, Math.min(StreamStage.MIC_X, bounds.right - half - 8));
+  }
+
+  /** QA/debug helper: where the desk mic actually stands relative to the visible frame. */
+  public getDeskMicDebug(): {
+    tier: number;
+    x: number;
+    width: number;
+    visible: boolean;
+    visibleLeft: number;
+    visibleRight: number;
+  } {
+    const bounds = this.getVisibleVirtualBounds();
+    return {
+      tier: this.micTier,
+      x: Math.round(this.micHolder.x),
+      width: Math.round(this.deskMicSprite ? this.deskMicSprite.width : 0),
+      visible: Boolean(this.deskMicSprite && this.deskMicSprite.visible),
+      visibleLeft: Math.round(bounds.left),
+      visibleRight: Math.round(bounds.right),
+    };
+  }
+
   public setRingLampLevel(level: number): void {
     this.lampLevel = level;
   }
@@ -278,11 +318,17 @@ export class StreamStage {
       this.deskMicSprite.texture = tex;
       this.deskMicSprite.height = StreamStage.MIC_HEIGHT;
       this.deskMicSprite.width = StreamStage.MIC_HEIGHT * (tex.width / tex.height);
+      this.micHolder.x = this.micAnchorX();
     }
     this.deskMicSprite.visible = true;
     this.deskMicShadow.visible = true;
     this.micPopT = 0;
     this.app?.render();
+  }
+
+  /** Swap Miya's wardrobe plate set: Day 1 canonical ladder vs Day 2 oversize-hoodie look. */
+  public setWardrobeDay(day: 1 | 2): void {
+    this.rig?.setWardrobeDay(day);
   }
 
   public spawnReactionCallout(tagText: string, isFever = false, sideSeed = 0): void {
@@ -448,6 +494,9 @@ export class StreamStage {
     const baseY = (h - StreamStage.VIRTUAL_H * scale) * 0.5;
     const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
     this.root.position.set((w - StreamStage.VIRTUAL_W * scale) * 0.5, baseY + drawerShift);
+    if (this.deskMicSprite) {
+      this.micHolder.x = this.micAnchorX();
+    }
   }
 
   public spawnTapBurst(
@@ -526,8 +575,7 @@ export class StreamStage {
     this.fgDeskSprite.x = -14 + this.pointerNormX * 7.5;
     // Desk microphone rides with the foreground desk parallax so it stays planted on the wood!
     if (this.deskMicSprite?.visible) {
-      this.deskMicSprite.x = StreamStage.MIC_X + this.pointerNormX * 7.5;
-      this.deskMicShadow.x = this.pointerNormX * 7.5;
+      this.micHolder.x = this.micAnchorX() + this.pointerNormX * 7.5;
       // Gentle purchase pop-in animation
       if (this.micPopT < 1) {
         this.micPopT = Math.min(1, this.micPopT + safeDt / 420);

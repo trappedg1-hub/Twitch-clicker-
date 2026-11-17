@@ -1,5 +1,5 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
-import { getStreamTitle } from '../domain/dialogue.ts';
+import { DAY1_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
 import { getGiftSubPackCost, SUB_GOAL_STAGES } from '../domain/subGoals.ts';
 import type {
@@ -83,7 +83,14 @@ export class UiController {
 
   private readonly dayBadgeEl = document.getElementById('stream-day-badge')!;
   private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
+  private readonly finaleCardEl = document.querySelector('.day-finale-card') as HTMLElement;
+  private readonly farewellBlockEl = document.getElementById('finale-farewell')!;
+  private readonly farewellLineEl = document.getElementById('finale-farewell-line')!;
+  private readonly skipFarewellBtnEl = document.getElementById('btn-skip-farewell') as HTMLButtonElement;
   private readonly startDay2BtnEl = document.getElementById('btn-start-day2') as HTMLButtonElement;
+  // Day 1 finale farewell state machine: Miya says good-bye before Day 2 unlocks.
+  private farewellPhase: 'idle' | 'playing' | 'done' = 'idle';
+  private farewellTimers: number[] = [];
 
   private activeTab: BottomTabId = 'stream';
   private alertTimer?: number;
@@ -99,6 +106,8 @@ export class UiController {
   public onTriggerChallenge?: (id: ChallengeId) => void;
   public onTabChange?: (tab: BottomTabId) => void;
   public onStartDay2?: () => void;
+  /** Fired for every farewell beat so the app layer can push matching chat goodbyes. */
+  public onFarewellBeat?: (index: number) => void;
 
   public init(): void {
     this.setupTabs();
@@ -107,6 +116,7 @@ export class UiController {
     this.buildOutfitCards();
     this.buildChallengeCards();
     this.startDay2BtnEl.addEventListener('click', () => this.onStartDay2?.());
+    this.skipFarewellBtnEl.addEventListener('click', () => this.finishFarewell());
 
     // Auto-fade initial subtitle after 4.2s so video stays 100% pure when idle
     this.speechFadeTimer = window.setTimeout(() => {
@@ -191,11 +201,71 @@ export class UiController {
     }
   }
 
+  /** Play Miya's goodbye to the chat, beat by beat, then unlock the Day 2 button. */
+  private startFarewell(): void {
+    this.clearFarewellTimers();
+    this.farewellPhase = 'playing';
+    this.finaleCardEl.classList.remove('finale-ready');
+    this.skipFarewellBtnEl.classList.remove('hidden');
+    this.startDay2BtnEl.disabled = true;
+    const beatMs = 2900;
+    for (let i = 1; i < DAY1_FAREWELL_LINES.length; i++) {
+      this.farewellTimers.push(
+        window.setTimeout(() => this.showFarewellBeat(i), i * beatMs),
+      );
+    }
+    this.farewellTimers.push(
+      window.setTimeout(() => this.finishFarewell(), DAY1_FAREWELL_LINES.length * beatMs + 500),
+    );
+    this.showFarewellBeat(0);
+  }
+
+  private showFarewellBeat(index: number): void {
+    if (this.farewellPhase !== 'playing') return;
+    const line = DAY1_FAREWELL_LINES[index];
+    if (!line) return;
+    this.farewellLineEl.textContent = line;
+    this.farewellBlockEl.classList.remove('beat-in');
+    void this.farewellBlockEl.offsetWidth; // restart the fade-in animation
+    this.farewellBlockEl.classList.add('beat-in');
+    this.onFarewellBeat?.(index);
+  }
+
+  private finishFarewell(): void {
+    if (this.farewellPhase === 'done') return;
+    this.clearFarewellTimers();
+    const last = DAY1_FAREWELL_LINES[DAY1_FAREWELL_LINES.length - 1];
+    if (last) this.farewellLineEl.textContent = last;
+    this.farewellPhase = 'done';
+    this.skipFarewellBtnEl.classList.add('hidden');
+    this.finaleCardEl.classList.add('finale-ready');
+    this.startDay2BtnEl.disabled = false;
+  }
+
+  private resetFarewell(): void {
+    this.clearFarewellTimers();
+    this.farewellPhase = 'idle';
+    this.finaleCardEl.classList.remove('finale-ready');
+    this.skipFarewellBtnEl.classList.remove('hidden');
+    this.farewellLineEl.textContent =
+      'Мия поправляет наушники, смотрит в чат и собирается с мыслями...';
+  }
+
+  private clearFarewellTimers(): void {
+    this.farewellTimers.forEach((t) => window.clearTimeout(t));
+    this.farewellTimers = [];
+  }
+
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.stageBadgeEl.textContent = stats.storyChapter.badgeTitle;
     this.dayBadgeEl.textContent = state.streamDay === 2 ? 'День 2 ★' : 'День 1';
     const isFinale = state.streamDay === 1 && state.subscribers >= 500;
     this.finaleOverlayEl.classList.toggle('hidden', !isFinale);
+    if (isFinale) {
+      if (this.farewellPhase === 'idle') this.startFarewell();
+    } else if (this.farewellPhase !== 'idle') {
+      this.resetFarewell();
+    }
     this.titleEl.textContent = getStreamTitle(state.displayedSubStage, state.subscribers);
     this.subsValEl.textContent = String(state.subscribers);
     this.boldnessFillEl.style.width = `${stats.boldness}%`;
@@ -216,7 +286,7 @@ export class UiController {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
         state.streamDay === 2
-          ? 'День 2: костюм скоро... ★'
+          ? 'День 2: чат требует «повтори как вчера» ★'
           : 'Финал Дня 1 пробит — 500 сабов! ★';
       this.subgoalCountEl.textContent = `${state.subscribers} сабов`;
       this.subgoalPctEl.textContent = '100% ★';
@@ -296,7 +366,10 @@ export class UiController {
 
       let statusHtml = '';
       if (equipped) {
-        statusHtml = `✓ Сейчас в кадре (${st.subsRequired === 0 ? 'Старт' : `${st.subsRequired} сабов`})`;
+        statusHtml =
+          state.streamDay === 2 && st.stage === 0
+            ? '✓ Сейчас в кадре (образ Дня 2)'
+            : `✓ Сейчас в кадре (${st.subsRequired === 0 ? 'Старт' : `${st.subsRequired} сабов`})`;
       } else if (unlocked) {
         statusHtml = `Открыто (${st.subsRequired} сабов) • Нажмите, чтобы надеть`;
       } else {
@@ -307,10 +380,18 @@ export class UiController {
       const nextHtml = `
         <div>
           <div class="outfit-head">
-            <span class="outfit-name">${st.stage === 0 ? 'Старт: Худи + носочки' : `${st.subsRequired} сабов: ${st.shortGoalTitle}`}</span>
+            <span class="outfit-name">${
+              state.streamDay === 2 && st.day2OutfitName
+                ? st.day2OutfitName
+                : st.stage === 0
+                  ? 'Старт: Худи + носочки'
+                  : `${st.subsRequired} сабов: ${st.shortGoalTitle}`
+            }</span>
             <span class="outfit-mult">x${st.incomeMultiplier.toFixed(2)}</span>
           </div>
-          <p class="outfit-desc">${st.storyDesc}</p>
+          <p class="outfit-desc">${
+            state.streamDay === 2 && st.day2StoryDesc ? st.day2StoryDesc : st.storyDesc
+          }</p>
         </div>
         <div class="outfit-req ${equipped ? 'active-tag' : ''}">${statusHtml}</div>
       `;

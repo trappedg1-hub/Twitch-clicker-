@@ -60,6 +60,10 @@ export interface SubGoalStageDef {
   unlockLine: string;
   shyApproachLines: readonly string[];
   chatCascade: readonly SubGoalReactionMsg[];
+  /** Day 2 re-uses the same plate slot for a different costume — labels follow the outfit. */
+  day2OutfitName?: string;
+  day2StoryDesc?: string;
+  day2PlateUrl?: string;
 }
 
 export interface StreamChallengeDef {
@@ -73,6 +77,8 @@ export interface StreamChallengeDef {
   cooldownSec: number;
   zoneFocus: TapZoneId;
   reactionLine: string;
+  /** Spicy challenges keep working on Day 2 — but she is dressed, so the line must match. */
+  reactionLineDay2?: string;
   chatBurst: string;
 }
 

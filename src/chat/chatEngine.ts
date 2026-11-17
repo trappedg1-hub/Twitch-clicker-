@@ -163,13 +163,27 @@ function nextMsgId(): string {
   return `chat_${Date.now()}_${seqCounter}`;
 }
 
+/** Day 2: the chat shows up already dressed and instantly starts egging her on. */
+const AMBIENT_DAY2: readonly string[] = [
+  'ну давай, Мия, повторим вчерашнее? чат уже готов :SubHype: :Pog:',
+  'в оверсайз худи она выглядит опаснее, чем вчера в бралетте :BOOBA: :AWOOGA:',
+  'гольфы в полоску — это же ловушка, они долго не продержатся :Kreygasm: :LUL:',
+  'она вспомнила вчерашний вечер и снова краснеет, лучшее украшение эфира :peepoShy:',
+  'вчерашние саб-цели пробиты... сегодня мы их просто повторим :EZ: :ClipIt:',
+  'сидит обняв колени, как будто мы не видели всё это 12 часов назад :AWOOGA: :miyaLove:',
+  'спорю, к концу эфира худи сползёт с плеча само :Pog: :Overheat:',
+  'чат, спокойно: она только СДЕЛАЛА ВИД, что подумает над «повтори» :LUL: :Nosebleed:',
+];
+
 export function createAmbientChatMessage(
   _onlineViewers: number,
   displayedStage: SubGoalStageIndex = 0,
   seed = seqCounter,
+  streamDay = 1,
 ): ChatMessage {
   const viewer = VIEWER_NICKS[seed % VIEWER_NICKS.length]!;
-  const pool = AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0];
+  const pool =
+    streamDay === 2 ? AMBIENT_DAY2 : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
   const text = pool[(seed * 3) % pool.length]!;
   return {
     id: nextMsgId(),
@@ -184,8 +198,23 @@ export function createZoneBurstMessage(
   zone: TapZoneId,
   displayedStage: SubGoalStageIndex = 0,
   seed = seqCounter,
+  streamDay = 1,
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 3 + 2) % VIEWER_NICKS.length]!;
+  if (streamDay === 2) {
+    // Day 2 costume logic: knees hugged up, legs in opaque golf socks, hoodie fully on.
+    const day2Text =
+      zone === 'feet' || zone === 'legs'
+        ? 'гольфы остаются на ногах... пока чат не набьёт ещё сабов :SubHype: :AWOOGA:'
+        : 'худи на ней висит как платье, а чат уже требует вчерашнее шоу :BOOBA: :monkaS:';
+    return {
+      id: nextMsgId(),
+      author: viewer.name,
+      color: viewer.color,
+      badge: viewer.badge,
+      text: day2Text,
+    };
+  }
   if (zone === 'feet' && displayedStage === 0) {
     return {
       id: nextMsgId(),
@@ -281,6 +310,116 @@ export function createSubNotificationMessage(
     color: '#c084fc',
     badge: 'SUB',
     text: `оформил платную подписку Tier 1! (${totalSubs} сабов) :SubHype: :miyaLove:`,
+  };
+}
+
+const FAREWELL_CHAT: readonly {
+  author: string;
+  color: string;
+  badge?: ChatMessage['badge'];
+  text: string;
+  highlight?: boolean;
+}[] = [
+  {
+    author: 'StreamBot',
+    color: '#c084fc',
+    badge: 'MOD',
+    text: '★ ЭФИР ЗАКРЫВАЕТСЯ! Мия прощается с чатом после 500 сабов! :SubHype: :miyaLove:',
+    highlight: true,
+  },
+  {
+    author: 'k0tik_v_chate',
+    color: '#ff75c3',
+    badge: 'VIP',
+    text: 'НУ НЕЕЕ, только не уходи!! ещё пятак сабов и она останется :peepoShy: :monkaS:',
+  },
+  {
+    author: 'Pasha_Donater',
+    color: '#ffb703',
+    badge: 'SUB',
+    text: 'первый стрим и 500 сабов — это легенда. спокойной ночи, Мия! :Pog:',
+  },
+  {
+    author: 'feet_connoisseur',
+    color: '#f472b6',
+    badge: 'SUB',
+    text: 'гольф-носки и оверсайз худи завтра?? чат уже оформил подписки на второй день :AWOOGA: :Kreygasm:',
+  },
+  {
+    author: 'shadow_sniper99',
+    color: '#00e5ff',
+    text: 'клип с прощанием уже в залипнуто, всем спать, завтра 1000 сабов бьём :ClipIt: :LUL:',
+  },
+];
+
+const DAY2_PROVOCATION_CHAT: readonly {
+  author: string;
+  color: string;
+  badge?: ChatMessage['badge'];
+  text: string;
+  highlight?: boolean;
+}[] = [
+  {
+    author: 'StreamBot',
+    color: '#c084fc',
+    badge: 'MOD',
+    text: '★ ДЕНЬ 2 НАЧАЛСЯ! Чат требует: повторить вчерашний прогиб по саб-целям! :SubHype: :Pog:',
+    highlight: true,
+  },
+  {
+    author: 'feet_connoisseur',
+    color: '#f472b6',
+    badge: 'SUB',
+    text: 'ну давай, вчерашние носочки были лучше, чем эти гольфы :Kreygasm: :Kreygasm:',
+  },
+  {
+    author: 'Pasha_Donater',
+    color: '#ffb703',
+    badge: 'SUB',
+    text: 'она смущается ВСЕГО ЛИШЬ на 500% сильнее, чем вчера, это идеально :AWOOGA: :miyaLove:',
+  },
+  {
+    author: 'k0tik_v_chate',
+    color: '#ff75c3',
+    badge: 'VIP',
+    text: 'чат уже скинулся на «а теперь как вчера, только медленнее» :LUL: :ClipIt:',
+  },
+  {
+    author: 'shadow_sniper99',
+    color: '#00e5ff',
+    text: 'худи натянула до бровей? через сотню сабов всё равно спадёт с плеча, мы уже проходили :EZ:',
+  },
+  {
+    author: 'mod_kirito',
+    color: '#7ee787',
+    badge: 'MOD',
+    text: 'напоминаю: вчерашние клипы разлетелись по репостам. Мия, тебя узнали в очереди за кофе :Overheat:',
+  },
+];
+
+/** Chat eggs Miya on to repeat yesterday's strip ladder, beat by beat. */
+export function createDay2ProvocationChatMessage(index: number): ChatMessage {
+  const def = DAY2_PROVOCATION_CHAT[index % DAY2_PROVOCATION_CHAT.length]!;
+  return {
+    id: nextMsgId(),
+    author: def.author,
+    color: def.color,
+    badge: def.badge,
+    text: def.text,
+    isSystemHighlight: def.highlight ?? false,
+  };
+}
+
+/** One viewer goodbye line per farewell beat of the Day 1 finale. */
+export function createFarewellChatMessage(index: number): ChatMessage {
+  const def = FAREWELL_CHAT[index % FAREWELL_CHAT.length]!;
+  return {
+    id: nextMsgId(),
+    author: def.author,
+    color: def.color,
+    badge: def.badge,
+    text: def.text,
+    isSystemHighlight: def.highlight ?? false,
   };
 }
 

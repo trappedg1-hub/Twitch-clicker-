@@ -56,7 +56,7 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
   {
     id: 'pose_feet',
     name: 'Сжать пальчики у камеры',
-    desc: 'Медленно поиграть босыми ступнями и пяточками на крупном плане',
+    desc: 'Медленно поиграть ступнями и пяточками на крупном плане',
     icon: '♥',
     viewersRequired: 8,
     boldnessGain: 6.0,
@@ -65,6 +65,8 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     zoneFocus: 'feet',
     reactionLine:
       'Хи-хи, смотрите внимательнее — специально для ценителей медленно сжимаю и разжимаю пальчики~ ♥',
+    reactionLineDay2:
+      'Сегодня пальчики спрятаны в гольфы, так что наслаждайтесь вязкой с полосками... и не просите их снять, я сегодня сильнее, чем вчера~ ♥',
     chatBurst: 'ПАЛЬЧИКИ НА КРУПНОМ ПЛАНЕ!! :AWOOGA: :Nosebleed: :Kreygasm: +САБКА :SubHype:',
   },
   {
@@ -125,9 +127,30 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
   },
 ] as const;
 
-export function getStoryChapter(boldness: number): StoryChapterDef {
-  let result = STORY_CHAPTERS[0]!;
-  for (const ch of STORY_CHAPTERS) {
+/** Day 2 arc: ashamed of yesterday's strip ladder, but already learning how to milk the chat. */
+export const DAY2_STORY_CHAPTERS: readonly StoryChapterDef[] = [
+  {
+    stage: 1,
+    minBoldness: 0,
+    badgeTitle: 'День 2 • Стыдно за вчерашнее',
+    headline: 'Прячется в оверсайз худи, а чат требует «повтори как вчера»',
+    diaryThought:
+      '«Вчера я краснела от каждого взгляда и сама не поняла, как осталась в бралетте на весь Твич... Сегодня я хотя бы одета: бежевое худи через голову, шорты, гольфы. Но чат уже пишет «повтори» — и, кажется, я знаю, как это продать~»',
+  },
+  {
+    stage: 2,
+    minBoldness: 45,
+    badgeTitle: 'День 2 • Играю по-взрослому',
+    headline: 'Худи сползает с плеча, и я делаю вид, что не замечаю',
+    diaryThought:
+      '«Вчера я стеснялась носочков, а сегодня сама тяну время перед камерой, зная, что чат купится на любую паузу. Руки трясутся меньше, чем вчера — и это, apparently, называется ростом аудитории~ ♥»',
+  },
+] as const;
+
+export function getStoryChapter(boldness: number, streamDay = 1): StoryChapterDef {
+  const chapters = streamDay === 2 ? DAY2_STORY_CHAPTERS : STORY_CHAPTERS;
+  let result = chapters[0]!;
+  for (const ch of chapters) {
     if (boldness >= ch.minBoldness) {
       result = ch;
     }
