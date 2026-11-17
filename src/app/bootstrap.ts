@@ -24,10 +24,12 @@ import {
   SAVE_STORAGE_KEY,
   selectDisplayedSubStage,
   serializeState,
+  startDay2,
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
 import { pickShySubGoalApproachLine } from '../domain/subGoals.ts';
+import { getMicTier } from '../domain/upgrades.ts';
 import type {
   BottomTabId,
   ChallengeId,
@@ -55,6 +57,7 @@ declare global {
       giftSubs: (count: 1 | 5 | 25) => boolean;
       setSubStage: (stage: SubGoalStageIndex) => boolean;
       buyUpgrade: (id: UpgradeId) => boolean;
+      startDay2: () => boolean;
       runChallenge: (id: ChallengeId) => boolean;
       switchTab: (tab: BottomTabId) => void;
       forceBlink: () => void;
@@ -92,6 +95,7 @@ export async function bootstrapApp(): Promise<void> {
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
     stage.setHypeLevel(state.hype);
+    stage.setMicTier(state.upgrades.desk_mic ?? 0);
     stage.rig.setBoldness(stats.boldness);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
@@ -264,8 +268,45 @@ export async function bootstrapApp(): Promise<void> {
       'chest',
       id === 'webcam_focus' || id === 'ring_lamp' ? 'shy' : 'tease',
     );
-    ui.showSpeech(UPGRADE_REACTION_LINES[id]);
+    if (id === 'desk_mic') {
+      const tier = getMicTier(state.upgrades.desk_mic ?? 0);
+      ui.showSpeech(tier?.reactionLine ?? UPGRADE_REACTION_LINES[id]);
+      stage.spawnReactionCallout(
+        tier ? `🎙 Тир ${tier.tier} ★` : '🎙 Микрофон ★',
+        true,
+        state.upgrades.desk_mic ?? 0,
+      );
+      ui.showDonationAlert(
+        `🎙 МИКРОФОН ТИР ${state.upgrades.desk_mic ?? 0} НА СТОЛЕ!`,
+        tier?.modelName ?? 'Новый микрофон!',
+      );
+    } else {
+      ui.showSpeech(UPGRADE_REACTION_LINES[id]);
+    }
     ui.pushChatMessage(createUpgradeChatMessage(id));
+    syncAll();
+  };
+
+  ui.onStartDay2 = () => {
+    lastPlayerInteractionMs = performance.now();
+    const res = startDay2(state);
+    if (!res.ok) return;
+    state = res.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.rig.triggerEmotion('bold', 2600);
+    ui.showSpeech(
+      'Второй день! Все мои вещи, улучшения и микрофон на столе переехали со мной — продолжаем с того же места, только ещё горячее~ ★ ♥',
+    );
+    ui.pushChatMessage({
+      id: `day2_${Date.now()}`,
+      author: 'StreamBot',
+      color: '#c084fc',
+      badge: 'MOD',
+      text: '★ НАЧАЛСЯ ВТОРОЙ ДЕНЬ СТРИМА! Все улучшения и вещи из Дня 1 перенесены! :SubHype: :Pog:',
+      isSystemHighlight: true,
+    });
+    ui.showDonationAlert('★ ДЕНЬ 2 НАЧАЛСЯ!', 'Улучшения, микрофон и гардероб перенесены!');
     syncAll();
   };
 
@@ -416,6 +457,11 @@ export async function bootstrapApp(): Promise<void> {
         const prev = state.upgrades[id];
         ui.onBuyUpgrade?.(id);
         return state.upgrades[id] > prev;
+      },
+      startDay2: () => {
+        const prevDay = state.streamDay;
+        ui.onStartDay2?.();
+        return state.streamDay > prevDay;
       },
       runChallenge: (id: ChallengeId) => {
         const prevBold = state.boldness;

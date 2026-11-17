@@ -191,7 +191,7 @@ export const SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: '★★★ 500/500 САБОВ!! ФИНАЛЬНЫЙ SUB GOAL ВЫПОЛНЕН!! :SubHype: :Pog:',
+        text: '★★★ 500/500 САБОВ!! ФИНАЛ ПЕРВОГО ДНЯ! ЧЁРНЫЙ БРАЛЕТТ В ПРЯМОМ ЭФИРЕ!! :SubHype: :Pog:',
         isSystemHighlight: true,
       },
       {
@@ -211,61 +211,14 @@ export const SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'simp_police_ru',
         color: '#4ade80',
         badge: 'MOD',
-        text: 'А ДАЛЬШЕ 1000 САБОВ — КОСПЛЕЙ ТЁМНОЙ ВОЛШЕБНИЦЫ С ШНУРОВКОЙ НА ГРУДИ!! :Pog: :SubHype:',
-      },
-    ],
-  },
-  {
-    stage: 5,
-    subsRequired: 1000,
-    shortGoalTitle: 'Тёмная Волшебница: Декольте!',
-    outfitName: 'Косплей Тёмной Волшебницы со шнуровкой на груди',
-    removedItemLabel: '★ КОСПЛЕЙ ТЁМНОЙ ВОЛШЕБНИЦЫ!',
-    storyDesc:
-      '1000 сабов: магия декольте! Бархатная шляпа с полумесяцем, открытый корсет Тёмной Волшебницы на тонкой шнуровке, прозрачные рукава и ремешок-подвязка на бедре!',
-    plateUrl: '/art/heroine_t1_s5.webp',
-    incomeMultiplier: 5.5,
-    viewersBonus: 220,
-    boldnessBonus: 50,
-    unlockEmotion: 'tease',
-    unlockLine:
-      'ТЫСЯЧА САБОВ!! Вы реально наколдовали секретный Мега-Гол! Придерживаю поля шляпы Тёмной Волшебницы — а шнуровка на корсете еле сдерживает вашу любимую «магию» крупным планом~ ★ ♥',
-    shyApproachLines: [
-      'П-подождите, чат, мы уже ползем к 1000 сабов?! Там же в шкафу тот самый откровенный корсет Тёмной Волшебницы на одной шнуровке...',
-      'В этом костюме ведьмочки такой глубокий вырез до самого животика — меня же Твич моментально заколдует баном!!',
-      'Шляпа с полумесяцем и чокер со звёздочкой уже наготове... неужели вы реально разденете меня до косплея Тёмной Волшебницы?! ♥',
-    ],
-    chatCascade: [
-      {
-        author: 'StreamBot',
-        color: '#c084fc',
-        badge: 'MOD',
-        text: '★★★ 1000/1000 САБОВ!! КОСПЛЕЙ ТЁМНОЙ ВОЛШЕБНИЦЫ В ПРЯМОМ ЭФИРЕ!! :SubHype: :Pog:',
-        isSystemHighlight: true,
-      },
-      {
-        author: 'vlad_4k_monitor',
-        color: '#ffd54f',
-        badge: 'VIP',
-        text: 'ЭТА ШНУРОВКА НА КОРСЕТЕ ЕЛЕ ДЕРЖИТСЯ!! МАГИЯ ВЫСШЕГО УРОВНЯ :BOOBA: :AWOOGA: :Kreygasm:',
-        isSystemHighlight: true,
-      },
-      {
-        author: 'maksim_simp',
-        color: '#fb7185',
-        badge: 'SUB',
-        text: 'ШЛЯПА ВЕДЬМОЧКИ + ОТКРЫТОЕ ДЕКОЛЬТЕ + ПРОЗРАЧНЫЕ РУКАВА = Я ЗАКОЛДОВАН НАВСЕГДА :BOOBA: :Nosebleed:',
-      },
-      {
-        author: 'rich_uncle_msk',
-        color: '#ffd54f',
-        badge: 'DONATE',
-        text: 'ДЕРЖИ ЕЩЁ САБКИ МОЯ ЛЮБИМАЯ ТЁМНАЯ ВОЛШЕБНИЦА :EZ: :Kreygasm: :miyaLove:',
+        text: 'ФИНАЛ ДНЯ 1 ДОБИТ! ЗАВТРА ВТОРОЙ ДЕНЬ — ВСЕ УЛУЧШЕНИЯ И ВЕЩИ ПЕРЕЕЗЖАЮТ С НАМИ! :Pog: :SubHype:',
         isSystemHighlight: true,
       },
     ],
   },
 ] as const;
+
+export const DAY1_FINALE_SUBS = 500;
 
 export function getSubGoalStageForSubs(subs: number): SubGoalStageIndex {
   let stage: SubGoalStageIndex = 0;

@@ -2,7 +2,7 @@ export type TapZoneId = 'head' | 'chest' | 'belly' | 'legs' | 'feet';
 
 export type HeroineEmotion = 'neutral' | 'shy' | 'fluster' | 'tease' | 'bold';
 
-export type SubGoalStageIndex = 0 | 1 | 2 | 3 | 4 | 5;
+export type SubGoalStageIndex = 0 | 1 | 2 | 3 | 4;
 
 export type UpgradeId =
   | 'ring_lamp'
@@ -10,7 +10,8 @@ export type UpgradeId =
   | 'obs_alerts'
   | 'webcam_focus'
   | 'chat_emotes'
-  | 'clips_boost';
+  | 'clips_boost'
+  | 'desk_mic';
 
 export type ChallengeId =
   | 'lean_mic'
@@ -90,7 +91,17 @@ export interface MilestoneDef {
   rewardText: string;
 }
 
+export interface MicTierVisualDef {
+  tier: number; // 1..10
+  modelName: string;
+  shortDesc: string;
+  spriteUrl: string;
+  reactionLine: string;
+}
+
 export interface GameState {
+  streamDay: number; // День стрима (1 = Первый день до 500 сабов, 2 = Второй день с переносом всех вещей!)
+  carriedOverWardrobeStage: SubGoalStageIndex; // Перенесённая открытая одежда из прошлых дней
   balance: number;
   totalEarned: number;
   totalTaps: number;

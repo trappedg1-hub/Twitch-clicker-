@@ -14,15 +14,12 @@ import type {
 } from '../domain/types.ts';
 
 export interface HeroineTextures {
-  stages: readonly [Texture, Texture, Texture, Texture, Texture, Texture];
+  stages: readonly [Texture, Texture, Texture, Texture, Texture];
   blink: Texture;
   shy: Texture;
   fluster: Texture;
   tease: Texture;
   bold: Texture;
-  s5Blink: Texture;
-  s5Tease: Texture;
-  s5Fluster: Texture;
 }
 
 interface EnvelopeState {
@@ -77,10 +74,8 @@ export class HeroineRig {
   private readonly blinkSprite: Sprite;
   private readonly hitLayer = new Container();
 
-  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture, Texture];
+  private readonly stageTextures: readonly [Texture, Texture, Texture, Texture, Texture];
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
-  private readonly s5BlinkTex: Texture;
-  private readonly s5EmotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
   private currentStage: SubGoalStageIndex = 0;
@@ -136,19 +131,12 @@ export class HeroineRig {
   constructor(textures: HeroineTextures) {
     this.stageTextures = textures.stages;
     this.uprightBlinkTex = textures.blink;
-    this.s5BlinkTex = textures.s5Blink;
 
     this.emotionTextures = {
       shy: textures.shy,
       fluster: textures.fluster,
       tease: textures.tease,
       bold: textures.bold,
-    };
-    this.s5EmotionTextures = {
-      shy: textures.s5Fluster,
-      fluster: textures.s5Fluster,
-      tease: textures.s5Tease,
-      bold: textures.s5Tease,
     };
 
     this.view.addChild(this.bodyContainer);
@@ -190,50 +178,28 @@ export class HeroineRig {
   }
 
   private applyPosePatchGeometry(): void {
-    if (this.currentStage === 5) {
-      this.emotionSprite.position.set(368, 282);
-      this.emotionSprite.width = 304;
-      this.emotionSprite.height = 296;
-      this.emotionSprite.texture = this.s5EmotionTextures[this.activeEmotion];
+    this.emotionSprite.position.set(338, 61);
+    this.emotionSprite.width = 348;
+    this.emotionSprite.height = 397;
+    this.emotionSprite.texture = this.emotionTextures[this.activeEmotion];
 
-      this.blinkSprite.position.set(368, 282);
-      this.blinkSprite.width = 304;
-      this.blinkSprite.height = 296;
-      this.blinkSprite.texture = this.s5BlinkTex;
-      this.boldRestSprite.visible = false;
-    } else {
-      this.emotionSprite.position.set(338, 61);
-      this.emotionSprite.width = 348;
-      this.emotionSprite.height = 397;
-      this.emotionSprite.texture = this.emotionTextures[this.activeEmotion];
-
-      this.blinkSprite.position.set(338, 61);
-      this.blinkSprite.width = 348;
-      this.blinkSprite.height = 397;
-      this.blinkSprite.texture = this.uprightBlinkTex;
-      this.boldRestSprite.visible = true;
-    }
+    this.blinkSprite.position.set(338, 61);
+    this.blinkSprite.width = 348;
+    this.blinkSprite.height = 397;
+    this.blinkSprite.texture = this.uprightBlinkTex;
+    this.boldRestSprite.visible = true;
   }
 
   private rebuildHitZones(): void {
     this.hitLayer.removeChildren().forEach((c) => c.destroy());
 
-    // Stage 5 Dark Sorceress focuses close-up on her laced plunge corset & bust (thigh-up, no feet)!
-    const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] =
-      this.currentStage === 5
-        ? [
-            { id: 'head', x: 245, y: 35, w: 540, h: 560 },
-            { id: 'chest', x: 300, y: 600, w: 425, h: 430 },
-            { id: 'belly', x: 330, y: 1030, w: 365, h: 170 },
-            { id: 'legs', x: 185, y: 1200, w: 650, h: 326 },
-          ]
-        : [
-            { id: 'legs', x: 110, y: 690, w: 805, h: 420 },
-            { id: 'head', x: 335, y: 45, w: 360, h: 325 },
-            { id: 'chest', x: 355, y: 375, w: 345, h: 255 },
-            { id: 'belly', x: 405, y: 630, w: 245, h: 195 },
-            { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
-          ];
+    const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] = [
+      { id: 'legs', x: 110, y: 690, w: 805, h: 420 },
+      { id: 'head', x: 335, y: 45, w: 360, h: 325 },
+      { id: 'chest', x: 355, y: 375, w: 345, h: 255 },
+      { id: 'belly', x: 405, y: 630, w: 245, h: 195 },
+      { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
+    ];
 
     for (const z of zones) {
       const g = new Graphics();
@@ -260,17 +226,13 @@ export class HeroineRig {
     this.reactionCounter += 1;
     const chosen =
       forcedEmotion ??
-      (this.currentStage === 5 && zone === 'chest'
-        ? this.reactionCounter % 2 === 0
-          ? 'fluster'
-          : 'tease'
-        : pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter));
+      pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter);
 
     const swayDir = this.reactionCounter % 2 === 0 ? 1 : -1;
 
     if (zone === 'chest') {
-      this.chestVel -= this.currentStage === 5 ? 195 : 165;
-      this.archVel += this.currentStage === 5 ? 105 : 85;
+      this.chestVel -= 165;
+      this.archVel += 85;
       this.swayVel += swayDir * 42;
       this.chairRecoilVel += 44;
       this.triggerEmotion(chosen, 1850);
@@ -282,7 +244,7 @@ export class HeroineRig {
       this.chairRecoilVel += 38;
       this.triggerEmotion(chosen === 'bold' ? 'tease' : 'fluster', 1700);
     } else if (zone === 'legs' || zone === 'feet') {
-      this.hipVel -= this.currentStage === 5 && zone === 'feet' ? 185 : 135;
+      this.hipVel -= 135;
       this.chestVel -= 65;
       this.swayVel += swayDir * 48;
       if (zone === 'feet' || this.boldnessLevel < 45) {
@@ -294,7 +256,7 @@ export class HeroineRig {
       this.chestVel -= 52;
       this.swayVel += swayDir * 78;
       this.chairRecoilVel += 28;
-      this.triggerEmotion(this.currentStage === 5 ? 'tease' : chosen, 1600);
+      this.triggerEmotion(chosen, 1600);
     }
   }
 
@@ -317,10 +279,7 @@ export class HeroineRig {
     holdMs = 1650,
   ): void {
     this.activeEmotion = emotion;
-    this.emotionSprite.texture =
-      this.currentStage === 5
-        ? this.s5EmotionTextures[emotion]
-        : this.emotionTextures[emotion];
+    this.emotionSprite.texture = this.emotionTextures[emotion];
     this.emotionEnv.holdMs = holdMs;
     if (this.emotionEnv.phase === 'idle' || this.emotionEnv.phase === 'release') {
       this.emotionEnv.phase = 'attack';
@@ -347,14 +306,10 @@ export class HeroineRig {
   ): boolean {
     const nextTex = this.stageTextures[stage] ?? this.stageTextures[0];
     const stageChanged = this.currentStage !== stage || this.mesh.texture !== nextTex;
-    const poseSwitched = (this.currentStage === 5) !== (stage === 5);
     this.currentStage = stage;
     if (stageChanged) {
       this.mesh.texture = nextTex;
       this.applyPosePatchGeometry();
-      if (poseSwitched) {
-        this.rebuildHitZones();
-      }
     }
     if (celebrate) {
       this.chestVel -= 170;
@@ -379,13 +334,7 @@ export class HeroineRig {
     if (this.nextAmbientMicroExprMs <= 0) {
       if (this.emotionEnv.phase === 'idle') {
         const idleEmo =
-          this.currentStage === 5
-            ? 'tease'
-            : this.boldnessLevel < 30
-              ? 'shy'
-              : this.boldnessLevel < 65
-                ? 'tease'
-                : 'bold';
+          this.boldnessLevel < 30 ? 'shy' : this.boldnessLevel < 65 ? 'tease' : 'bold';
         this.triggerEmotion(idleEmo, 1300);
       }
       this.nextAmbientMicroExprMs = 6500 + Math.random() * 5500;
@@ -404,7 +353,7 @@ export class HeroineRig {
     const rawBlinkAlpha = stepEnvelope(this.blinkEnv, clampedDtMs);
 
     const targetBoldRest =
-      this.currentStage < 5 && this.boldnessLevel >= 68
+      this.boldnessLevel >= 68
         ? Math.min(0.96, (this.boldnessLevel - 68) / 26)
         : 0;
     this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha);
@@ -465,19 +414,12 @@ export class HeroineRig {
     const rest = this.restPositions;
     const W = HeroineRig.PLATE_W;
     const H = HeroineRig.PLATE_H;
-    const isS5 = this.currentStage === 5;
-
     // Sync face patch sprites with upper-body sway!
     const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
     const headArchY = -this.archDisp * 0.25;
-    if (isS5) {
-      this.emotionSprite.position.set(368 + headSwayX, 282 + headArchY);
-      this.blinkSprite.position.set(368 + headSwayX, 282 + headArchY);
-    } else {
-      this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
-      this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);
-      this.blinkSprite.position.set(338 + headSwayX, 61 + headArchY);
-    }
+    this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
+    this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);
+    this.blinkSprite.position.set(338 + headSwayX, 61 + headArchY);
 
     for (let i = 0; i < data.length; i += 2) {
       const rx = rest[i]!;
@@ -495,12 +437,12 @@ export class HeroineRig {
         dy -= this.archDisp * 0.35 * upperWeight;
       }
 
-      const cTop = isS5 ? 0.40 : 0.25;
-      const cBot = isS5 ? 0.69 : 0.54;
+      const cTop = 0.25;
+      const cBot = 0.54;
       if (v > cTop && v < cBot && u > 0.26 && u < 0.76) {
         const wy = Math.sin(((v - cTop) / (cBot - cTop)) * Math.PI);
         const wx = Math.sin(((u - 0.26) / (0.76 - 0.26)) * Math.PI);
-        const weight = wy * wx * (isS5 ? 1.24 : 1.0);
+        const weight = wy * wx;
         const lushExpand = this.archDisp * 0.55;
         dy += (-2.8 * breathWave + this.chestDisp - lushExpand * 0.4) * weight;
         dx +=
@@ -509,13 +451,13 @@ export class HeroineRig {
           weight;
       }
 
-      const lTop = isS5 ? 0.70 : 0.46;
-      const lBot = isS5 ? 0.99 : 0.88;
+      const lTop = 0.46;
+      const lBot = 0.88;
       if (v > lTop && v < lBot && u > 0.14 && u < 0.86) {
         const wy = Math.sin(((v - lTop) / (lBot - lTop)) * Math.PI);
         const wx = Math.sin(((u - 0.14) / (0.86 - 0.14)) * Math.PI);
         const weight = wy * wx;
-        dy += this.hipDisp * (isS5 ? 0.88 : 0.75) * weight;
+        dy += this.hipDisp * 0.75 * weight;
         dx += ((u - 0.5) * (-this.hipDisp * 0.22) + shiverWave * 0.8) * weight;
       }
 

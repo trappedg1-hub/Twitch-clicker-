@@ -42,8 +42,7 @@
               <span class="goal-step active" data-step="1">10 Носки</span>
               <span class="goal-step" data-step="2">50 Легинсы</span>
               <span class="goal-step" data-step="3">200 Худи</span>
-              <span class="goal-step" data-step="4">500 Тишка</span>
-              <span class="goal-step" data-step="5">1000 Косп.</span>
+              <span class="goal-step" data-step="4">500 Тишка ★</span>
             </div>
           </div>
 
@@ -63,22 +62,26 @@
           </div>
         </div>
 
-        <!-- Authentic Top-Center Twitch / StreamElements Sub & Donation Alert Card -->
+        <!-- Compact transparent Twitch/DonationAlerts-style alert with cute puppy mascot -->
         <div id="donation-alert" class="tw-alert-card hidden">
-          <div class="tw-alert-accent"></div>
-          <div class="tw-alert-body">
-            <div class="tw-alert-icon" aria-hidden="true">
-              <svg viewBox="0 0 20 20" class="tw-star-svg">
-                <path
-                  fill="currentColor"
-                  d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
-                />
-              </svg>
-            </div>
-            <div class="tw-alert-text">
-              <div class="alert-amount" id="donation-alert-amount">★ НОВЫЙ ДОНАТ +45 ₽</div>
-              <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
-            </div>
+          <img class="alert-puppy" src="/art/alert_puppy.webp" alt="" aria-hidden="true" />
+          <div class="tw-alert-text">
+            <div class="alert-amount" id="donation-alert-amount">★ НОВЫЙ ДОНАТ +45 ₽</div>
+            <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
+          </div>
+        </div>
+
+        <!-- Day 1 Finale -> Day 2 carry-over overlay (500 subs = end of Day 1!) -->
+        <div id="day-finale-overlay" class="day-finale-overlay hidden">
+          <div class="day-finale-card">
+            <div class="day-finale-kicker">★ ФИНАЛ ПЕРВОГО ДНЯ ★</div>
+            <div class="day-finale-title">500 сабов пробито!</div>
+            <p class="day-finale-desc">
+              Мия прошла путь от зажатой скромницы в худи и носочках до раскрепощённой звезды в чёрном бралетте.
+              Во второй день <strong>все улучшения, микрофон на столе, вещи и баланс переезжают с нами</strong>!
+              Над костюмом второго дня ещё думаем — пока она остаётся в финальном образе.
+            </p>
+            <button id="btn-start-day2" class="day-finale-btn" type="button">Начать День 2 →</button>
           </div>
         </div>
 
@@ -114,6 +117,7 @@
                   />
                 </svg>
                 <span id="story-stage-badge" class="stage-pill">Этап 1 • Закутанная скромница</span>
+                <span id="stream-day-badge" class="day-pill">День 1</span>
               </div>
               <div id="stream-title" class="stream-title">
                 Первый стрим, дико стесняюсь... ★ SUB GOAL 0/10 — снимаю носочки?!

@@ -10,7 +10,7 @@ import type {
   SubGoalStageIndex,
   UpgradeId,
 } from '../domain/types.ts';
-import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
+import { getMicTier, getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
 import { renderChatTextWithEmotes } from './twitchEmotes.ts';
 
 function formatMoney(n: number): string {
@@ -26,6 +26,7 @@ const UPGRADE_SVGS: Record<UpgradeId, string> = {
   webcam_focus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="13" rx="3"/><circle cx="12" cy="11.5" r="3.5"/><path d="M8 21h8"/></svg>`,
   chat_emotes: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20.5s-7-4.5-7-10.2A4.2 4.2 0 019.2 6c1.4 0 2.3.7 2.8 1.6.5-.9 1.4-1.6 2.8-1.6A4.2 4.2 0 0119 10.3c0 5.7-7 10.2-7 10.2z"/></svg>`,
   clips_boost: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5,4 19,12 5,20"/></svg>`,
+  desk_mic: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="3" width="6" height="10" rx="3"/><path d="M5.5 10.5a6.5 6.5 0 0013 0M12 17v4M8.5 21h7"/></svg>`,
 };
 
 export class UiController {
@@ -80,6 +81,10 @@ export class UiController {
   private readonly diaryHeadlineEl = document.getElementById('diary-headline')!;
   private readonly diaryThoughtEl = document.getElementById('diary-thought')!;
 
+  private readonly dayBadgeEl = document.getElementById('stream-day-badge')!;
+  private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
+  private readonly startDay2BtnEl = document.getElementById('btn-start-day2') as HTMLButtonElement;
+
   private activeTab: BottomTabId = 'stream';
   private alertTimer?: number;
   private speechPopTimer?: number;
@@ -93,6 +98,7 @@ export class UiController {
   public onSelectSubStage?: (stage: SubGoalStageIndex) => void;
   public onTriggerChallenge?: (id: ChallengeId) => void;
   public onTabChange?: (tab: BottomTabId) => void;
+  public onStartDay2?: () => void;
 
   public init(): void {
     this.setupTabs();
@@ -100,6 +106,7 @@ export class UiController {
     this.buildUpgradeCards();
     this.buildOutfitCards();
     this.buildChallengeCards();
+    this.startDay2BtnEl.addEventListener('click', () => this.onStartDay2?.());
 
     // Auto-fade initial subtitle after 4.2s so video stays 100% pure when idle
     this.speechFadeTimer = window.setTimeout(() => {
@@ -186,6 +193,9 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.stageBadgeEl.textContent = stats.storyChapter.badgeTitle;
+    this.dayBadgeEl.textContent = state.streamDay === 2 ? 'День 2 ★' : 'День 1';
+    const isFinale = state.streamDay === 1 && state.subscribers >= 500;
+    this.finaleOverlayEl.classList.toggle('hidden', !isFinale);
     this.titleEl.textContent = getStreamTitle(state.displayedSubStage, state.subscribers);
     this.subsValEl.textContent = String(state.subscribers);
     this.boldnessFillEl.style.width = `${stats.boldness}%`;
@@ -204,14 +214,17 @@ export class UiController {
       this.subgoalFillEl.style.width = `${pct}%`;
     } else {
       this.obsSubgoalEl.classList.add('completed');
-      this.subgoalTargetNameEl.textContent = 'Все цели пробиты — Мега-Косплей! ★';
+      this.subgoalTargetNameEl.textContent =
+        state.streamDay === 2
+          ? 'День 2: костюм скоро... ★'
+          : 'Финал Дня 1 пробит — 500 сабов! ★';
       this.subgoalCountEl.textContent = `${state.subscribers} сабов`;
       this.subgoalPctEl.textContent = '100% ★';
       this.subgoalFillEl.style.width = '100%';
     }
 
-    const stepLabels = ['10 Носки', '50 Легинсы', '200 Худи', '500 Тишка', '1000 Косп.'];
-    const shortStepLabels = ['10', '50', '200', '500', '1K'];
+    const stepLabels = ['10 Носки', '50 Легинсы', '200 Худи', '500 Тишка'];
+    const shortStepLabels = ['10', '50', '200', '500'];
     const isNarrow = window.innerWidth <= 680;
     this.subgoalStepEls.forEach((el, idx) => {
       const stepStage = idx + 1;
@@ -322,6 +335,13 @@ export class UiController {
       btn.classList.toggle('affordable', canAfford);
       const lvlPct = Math.min(100, Math.round((lvl / def.maxLevel) * 100));
       const svgIcon = UPGRADE_SVGS[def.id];
+      const micTier = def.id === 'desk_mic' ? getMicTier(lvl) : null;
+      const micPreviewHtml =
+        def.id === 'desk_mic'
+          ? micTier
+            ? `<div class="upg-mic-preview"><img src="${micTier.spriteUrl}" alt="" /><span class="upg-mic-name">Тир ${micTier.tier}: ${micTier.modelName}</span></div>`
+            : `<div class="upg-mic-preview"><span class="upg-mic-name">На столе пока пусто — купи Тир 1!</span></div>`
+          : '';
       const nextUpgHtml = `
         <div class="upg-icon-tile">${svgIcon}</div>
         <div class="upg-main">
@@ -330,6 +350,7 @@ export class UiController {
             <span class="upg-lvl">Ур. ${lvl}/${def.maxLevel}</span>
           </div>
           <div class="upg-sub">${def.subtitle}</div>
+          ${micPreviewHtml}
           <div class="upg-meta-row">
             <span class="upg-stat-chip">+${def.clickBonus} ₽/кл</span>
             <span class="upg-stat-chip">+${def.passivePerSec}/с</span>
@@ -399,7 +420,7 @@ export class UiController {
     }, 220);
     this.speechFadeTimer = window.setTimeout(() => {
       this.speechSubEl.classList.remove('visible');
-    }, 3900);
+    }, 5200);
   }
 
   public showDonationAlert(amountLabel: string | number, message: string): void {
@@ -410,7 +431,7 @@ export class UiController {
     window.clearTimeout(this.alertTimer);
     this.alertTimer = window.setTimeout(() => {
       this.alertBoxEl.classList.add('hidden');
-    }, 2400);
+    }, 3000);
   }
 
   public pushChatMessage(msg: ChatMessage): void {

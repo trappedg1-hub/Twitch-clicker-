@@ -16,8 +16,10 @@ import {
   computeStats,
   createInitialState,
   deserializeState,
+  isDay1FinaleReached,
   selectDisplayedSubStage,
   serializeState,
+  startDay2,
   tickEconomy,
   triggerStreamChallenge,
 } from '../src/domain/engine.ts';
@@ -31,7 +33,7 @@ import {
   SUB_GOAL_STAGES,
 } from '../src/domain/subGoals.ts';
 import type { TapZoneId } from '../src/domain/types.ts';
-import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
+import { getMicTier, getUpgradeCost, MIC_TIERS, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
 
 test('initial state starts bundled up at Stage 0 (0 subs, hoodie + leggings + socks)', () => {
   const s = createInitialState(1000);
@@ -48,7 +50,7 @@ test('initial state starts bundled up at Stage 0 (0 subs, hoodie + leggings + so
   assert.equal(stats.nextMilestone?.id, TIER1_MILESTONES[0]?.id);
 });
 
-test('Sub Goal strip-down & cosplay progression unlocks 10 -> 50 -> 200 -> 500 -> 1000 subs cleanly', () => {
+test('Sub Goal strip-down progression unlocks 10 -> 50 -> 200 -> 500 subs (Day 1 finale) cleanly', () => {
   let s = { ...createInitialState(1000), balance: 250_000 };
 
   // Gift 5 + 5 = 10 subs -> Stage 1 (remove socks)
@@ -86,20 +88,12 @@ test('Sub Goal strip-down & cosplay progression unlocks 10 -> 50 -> 200 -> 500 -
   }
   assert.equal(s.unlockedSubStage, 4);
   assert.equal(s.displayedSubStage, 4);
-  assert.equal(computeStats(s).nextSubGoalDef?.subsRequired, 1000);
-
-  // Gift up to 1000+ subs -> Stage 5 (Mega Cosplay: Feet on Desk!)
-  while (s.subscribers < 1000) {
-    const r = buyGiftSubs(s, 25);
-    assert.equal(r.ok, true);
-    s = r.state;
-  }
-  assert.equal(s.unlockedSubStage, 5);
-  assert.equal(s.displayedSubStage, 5);
+  assert.equal(computeStats(s).nextSubGoalDef, null);
+  assert.equal(isDay1FinaleReached(s), true);
 
   const maxStats = computeStats(s);
   assert.equal(maxStats.nextSubGoalDef, null);
-  assert.equal(maxStats.currentSubStageDef.plateUrl, '/art/heroine_t1_s5.webp');
+  assert.equal(maxStats.currentSubStageDef.plateUrl, '/art/heroine_t1_s4.webp');
 
   // Player can re-equip an earlier unlocked stage without losing Stage 4 income bonus
   const baseIncome = maxStats.clickIncome;
@@ -168,7 +162,7 @@ test('paid stream challenges boost boldness, grant subs, and respect viewer lock
 
   assert.equal(STORY_CHAPTERS.length, 4);
   assert.equal(getStoryChapter(90).stage, 4);
-  assert.equal(SUB_GOAL_STAGES.length, 6);
+  assert.equal(SUB_GOAL_STAGES.length, 5);
   assert.ok(STREAM_CHALLENGES.length >= 4);
 });
 
@@ -205,7 +199,7 @@ test('all 5 tap zones have Russian lines, shy Sub Goal lines, and emotion progre
   assert.equal(pickEmotionForContext(95, 4, 1), 'bold');
   assert.equal(pickEmotionForContext(95, 4, 3), 'tease');
 
-  for (const st of [0, 1, 2, 3, 4, 5] as const) {
+  for (const st of [0, 1, 2, 3, 4] as const) {
     assert.ok(pickIdleTeaseLine(st, 1).length > 15);
     assert.ok(pickFeverOverheatLine('chest', st, 1).length > 15);
   }
@@ -226,4 +220,74 @@ test('serialization round-trips subscribers & sub-goal stages cleanly', () => {
   const fallback = deserializeState('{broken_json', 7000);
   assert.equal(fallback.subscribers, 0);
   assert.equal(fallback.displayedSubStage, 0);
+});
+
+test('Day 1 finale at 500 subs carries ALL upgrades, wardrobe, balance & boldness into Day 2', () => {
+  let s = { ...createInitialState(1000), balance: 500_000 };
+  // Buy some upgrades incl. desk mic tier 3
+  s = buyUpgrade(s, 'ring_lamp').state;
+  s = buyUpgrade(s, 'desk_mic').state;
+  s = buyUpgrade(s, 'desk_mic').state;
+  s = buyUpgrade(s, 'desk_mic').state;
+  assert.equal(s.upgrades.desk_mic, 3);
+  assert.equal(s.streamDay, 1);
+
+  // Gift to 500 subs (Day 1 finale)
+  while (s.subscribers < 500) {
+    const r = buyGiftSubs(s, 25);
+    assert.equal(r.ok, true);
+    s = r.state;
+  }
+  assert.equal(s.unlockedSubStage, 4);
+  assert.equal(isDay1FinaleReached(s), true);
+
+  const balanceBefore = s.balance;
+  const boldBefore = s.boldness;
+  const micBefore = s.upgrades.desk_mic;
+  const lampBefore = s.upgrades.ring_lamp;
+
+  const day2 = startDay2(s);
+  assert.equal(day2.ok, true);
+  const d2 = day2.state;
+  assert.equal(d2.streamDay, 2);
+  assert.equal(d2.carriedOverWardrobeStage, 4);
+  assert.equal(d2.unlockedSubStage, 4);
+  assert.equal(d2.displayedSubStage, 4);
+  // 100% carry-over: upgrades, mic tier, balance, boldness
+  assert.equal(d2.upgrades.desk_mic, micBefore);
+  assert.equal(d2.upgrades.ring_lamp, lampBefore);
+  assert.equal(d2.balance, balanceBefore);
+  assert.equal(d2.boldness, boldBefore);
+  assert.equal(isDay1FinaleReached(d2), false);
+
+  // Cannot start Day 2 twice / before finale
+  assert.equal(startDay2(d2).ok, false);
+  assert.equal(startDay2(createInitialState(1000)).ok, false);
+
+  // Serialization round-trips Day 2
+  const loaded = deserializeState(serializeState(d2), 2000);
+  assert.equal(loaded.streamDay, 2);
+  assert.equal(loaded.carriedOverWardrobeStage, 4);
+  assert.equal(loaded.upgrades.desk_mic, 3);
+});
+
+test('desk microphone upgrade goes Tier 1..10 with visuals on the desk', () => {
+  assert.equal(MIC_TIERS.length, 10);
+  assert.equal(getMicTier(0), null);
+  assert.equal(getMicTier(1)?.spriteUrl, '/art/mics/mic_t1.webp');
+  assert.equal(getMicTier(10)?.spriteUrl, '/art/mics/mic_t10.webp');
+  assert.ok((getMicTier(10)?.modelName ?? '').includes('Neumann'));
+
+  let s = { ...createInitialState(1000), balance: 1_000_000 };
+  for (let tier = 1; tier <= 10; tier++) {
+    const res = buyUpgrade(s, 'desk_mic');
+    assert.equal(res.ok, true);
+    s = res.state;
+    assert.equal(s.upgrades.desk_mic, tier);
+    assert.equal(getMicTier(tier)?.tier, tier);
+  }
+  // Maxed out
+  assert.equal(buyUpgrade(s, 'desk_mic').ok, false);
+  // Costs grow steeply toward Tier 10
+  assert.ok(getUpgradeCost(TIER1_UPGRADES.find((u) => u.id === 'desk_mic')!, 9) > 5000);
 });

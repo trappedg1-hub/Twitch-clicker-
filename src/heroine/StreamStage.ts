@@ -35,6 +35,12 @@ export class StreamStage {
   public static readonly VIRTUAL_W = 1376;
   public static readonly VIRTUAL_H = 768;
 
+  // Desk microphone placement: beautifully on the wooden desk, right of Miya,
+  // inside the mobile-portrait visible frame (484..891) and clear of her face/chest.
+  public static readonly MIC_X = 815;
+  public static readonly MIC_BASE_Y = 738;
+  public static readonly MIC_HEIGHT = 195;
+
   public app!: Application;
   public rig!: HeroineRig;
 
@@ -44,7 +50,11 @@ export class StreamStage {
   private feverGlow = new Graphics();
   private chairShadow = new Graphics();
   private fgDeskSprite!: Sprite;
-  private micLed = new Graphics();
+  private deskMicSprite!: Sprite;
+  private deskMicShadow = new Graphics();
+  private micTextures: Texture[] = [];
+  private micTier = 0;
+  private micPopT = 1;
   private readonly dustLayer = new Container();
   private readonly fxLayer = new Container();
 
@@ -86,16 +96,22 @@ export class StreamStage {
       s2Tex,
       s3Tex,
       s4Tex,
-      s5Tex,
       blinkTex,
       shyTex,
       flusterTex,
       teaseTex,
       boldTex,
-      s5BlinkTex,
-      s5TeaseTex,
-      s5FlusterTex,
       fgDeskTex,
+      micT1Tex,
+      micT2Tex,
+      micT3Tex,
+      micT4Tex,
+      micT5Tex,
+      micT6Tex,
+      micT7Tex,
+      micT8Tex,
+      micT9Tex,
+      micT10Tex,
     ] = await Promise.all([
       Assets.load<Texture>('/art/bg_room_t1.webp'),
       Assets.load<Texture>('/art/heroine_t1_s0.webp'),
@@ -103,16 +119,22 @@ export class StreamStage {
       Assets.load<Texture>('/art/heroine_t1_s2.webp'),
       Assets.load<Texture>('/art/heroine_t1_base.webp'),
       Assets.load<Texture>('/art/heroine_t1_s4.webp'),
-      Assets.load<Texture>('/art/heroine_t1_s5.webp'),
       Assets.load<Texture>('/art/patch_t1_blink.webp'),
       Assets.load<Texture>('/art/patch_t1_shy.webp'),
       Assets.load<Texture>('/art/patch_t1_fluster.webp'),
       Assets.load<Texture>('/art/patch_t1_tease.webp'),
       Assets.load<Texture>('/art/patch_t1_bold.webp'),
-      Assets.load<Texture>('/art/patch_t1_s5_blink.webp'),
-      Assets.load<Texture>('/art/patch_t1_s5_tease.webp'),
-      Assets.load<Texture>('/art/patch_t1_s5_fluster.webp'),
       Assets.load<Texture>('/art/fg_desk_t1.webp'),
+      Assets.load<Texture>('/art/mics/mic_t1.webp'),
+      Assets.load<Texture>('/art/mics/mic_t2.webp'),
+      Assets.load<Texture>('/art/mics/mic_t3.webp'),
+      Assets.load<Texture>('/art/mics/mic_t4.webp'),
+      Assets.load<Texture>('/art/mics/mic_t5.webp'),
+      Assets.load<Texture>('/art/mics/mic_t6.webp'),
+      Assets.load<Texture>('/art/mics/mic_t7.webp'),
+      Assets.load<Texture>('/art/mics/mic_t8.webp'),
+      Assets.load<Texture>('/art/mics/mic_t9.webp'),
+      Assets.load<Texture>('/art/mics/mic_t10.webp'),
     ]);
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
@@ -161,17 +183,14 @@ export class StreamStage {
       .fill({ color: 0x1a1118, alpha: 0.36 });
     this.root.addChild(this.chairShadow);
 
-    // Layer 1: Heroine Rig (6 Sub Goal stages including Stage 5 Cosplay Feet-on-Desk!)
+    // Layer 1: Heroine Rig (5 Sub Goal stages 0..4 — Day 1 finale at 500 subs!)
     this.rig = new HeroineRig({
-      stages: [s0Tex, s1Tex, s2Tex, s3Tex, s4Tex, s5Tex],
+      stages: [s0Tex, s1Tex, s2Tex, s3Tex, s4Tex],
       blink: blinkTex,
       shy: shyTex,
       fluster: flusterTex,
       tease: teaseTex,
       bold: boldTex,
-      s5Blink: s5BlinkTex,
-      s5Tease: s5TeaseTex,
-      s5Fluster: s5FlusterTex,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -188,9 +207,20 @@ export class StreamStage {
     this.fgDeskSprite.position.set(-14, -2);
     this.root.addChild(this.fgDeskSprite);
 
-    // Subtle pulsing power LED on the right foreground USB microphone
-    this.micLed.circle(1253, 598, 5.5).fill({ color: 0x8ea8ff, alpha: 0.45 });
-    this.root.addChild(this.micLed);
+    // Layer 2b: Desk Microphone (Tier 1..10) — appears on the wooden desk once purchased!
+    this.micTextures = [micT1Tex, micT2Tex, micT3Tex, micT4Tex, micT5Tex, micT6Tex, micT7Tex, micT8Tex, micT9Tex, micT10Tex];
+    this.deskMicShadow
+      .ellipse(StreamStage.MIC_X, StreamStage.MIC_BASE_Y + 4, 62, 11)
+      .fill({ color: 0x1a1118, alpha: 0.42 });
+    this.deskMicShadow.visible = false;
+    this.root.addChild(this.deskMicShadow);
+    this.deskMicSprite = new Sprite(micT1Tex);
+    this.deskMicSprite.anchor.set(0.5, 1.0);
+    this.deskMicSprite.position.set(StreamStage.MIC_X, StreamStage.MIC_BASE_Y);
+    this.deskMicSprite.height = StreamStage.MIC_HEIGHT;
+    this.deskMicSprite.width = StreamStage.MIC_HEIGHT * (micT1Tex.width / micT1Tex.height);
+    this.deskMicSprite.visible = false;
+    this.root.addChild(this.deskMicSprite);
 
     // Layer 3: Click Heart / Ruble Popups
     this.root.addChild(this.fxLayer);
@@ -233,6 +263,28 @@ export class StreamStage {
     this.hypeLevel = Math.max(0, Math.min(100, hype));
   }
 
+  public setMicTier(level: number): void {
+    const clamped = Math.max(0, Math.min(10, Math.floor(level)));
+    if (clamped === this.micTier) return;
+    this.micTier = clamped;
+    if (!this.deskMicSprite) return;
+    if (clamped <= 0) {
+      this.deskMicSprite.visible = false;
+      this.deskMicShadow.visible = false;
+      return;
+    }
+    const tex = this.micTextures[clamped - 1];
+    if (tex) {
+      this.deskMicSprite.texture = tex;
+      this.deskMicSprite.height = StreamStage.MIC_HEIGHT;
+      this.deskMicSprite.width = StreamStage.MIC_HEIGHT * (tex.width / tex.height);
+    }
+    this.deskMicSprite.visible = true;
+    this.deskMicShadow.visible = true;
+    this.micPopT = 0;
+    this.app?.render();
+  }
+
   public spawnReactionCallout(tagText: string, isFever = false, sideSeed = 0): void {
     // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
     if (this.activeCalloutParticle) {
@@ -246,11 +298,8 @@ export class StreamStage {
     }
 
     const side = sideSeed % 2 === 0 ? -1 : 1;
-    const container = new Container();
-    container.position.set(
-      StreamStage.VIRTUAL_W * 0.5 + side * 295,
-      225 + (sideSeed % 3) * 44,
-    );
+    const desiredX = StreamStage.VIRTUAL_W * 0.5 + side * 295;
+    const desiredY = 225 + (sideSeed % 3) * 44;
 
     const style = new TextStyle({
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
@@ -268,12 +317,33 @@ export class StreamStage {
     });
     const label = new Text({ text: tagText, style });
     label.anchor.set(0.5);
+    const halfW = Math.max(60, label.width / 2);
+    const halfH = Math.max(16, label.height / 2);
+
+    // Clamp inside the ACTUAL visible viewport so left-side labels like
+    // "♥ Мурашки по коже!" are never clipped off-screen on narrow mobile portrait!
+    const bounds = this.getVisibleVirtualBounds();
+    const pad = 10;
+    const minX = bounds.left + halfW + pad;
+    const maxX = bounds.right - halfW - pad;
+    const clampedX = maxX >= minX ? Math.min(maxX, Math.max(minX, desiredX)) : (bounds.left + bounds.right) / 2;
+    const minY = bounds.top + halfH + pad;
+    const maxY = bounds.bottom - halfH - pad;
+    const clampedY = maxY >= minY ? Math.min(maxY, Math.max(minY, desiredY)) : desiredY;
+
+    const container = new Container();
+    container.position.set(clampedX, clampedY);
     container.addChild(label);
     this.fxLayer.addChild(container);
 
+    // Drift toward screen centre when clamped at an edge, so text never slides off!
+    const clampedLeft = clampedX <= minX + 0.5;
+    const clampedRight = clampedX >= maxX - 0.5;
+    const vx = clampedLeft ? 16 : clampedRight ? -16 : side * 18;
+
     const p: FloatingParticle = {
       node: container,
-      vx: side * 18,
+      vx,
       vy: -42,
       lifeMs: 0,
       maxLifeMs: isFever ? 1100 : 880,
@@ -282,6 +352,18 @@ export class StreamStage {
     this.activeCalloutParticle = p;
   }
 
+  private getVisibleVirtualBounds(): { left: number; top: number; right: number; bottom: number } {
+    const w = this.hostEl ? Math.max(320, Math.round(this.hostEl.clientWidth)) : 960;
+    const h = this.hostEl ? Math.max(180, Math.round(this.hostEl.clientHeight)) : 540;
+    const sx = this.root.scale.x || 1;
+    const sy = this.root.scale.y || 1;
+    return {
+      left: (0 - this.root.position.x) / sx,
+      top: (0 - this.root.position.y) / sy,
+      right: (w - this.root.position.x) / sx,
+      bottom: (h - this.root.position.y) / sy,
+    };
+  }
   public setSubStage(
     stage: SubGoalStageIndex,
     celebrate = false,
@@ -290,7 +372,7 @@ export class StreamStage {
   ): void {
     const didChange = this.rig?.setSubStage(stage, celebrate, unlockEmotion);
     if (didChange && this.rig && this.fgDeskSprite) {
-      // All stages (including Stage 5 Dark Sorceress thigh-up pose) sit naturally behind the wooden foreground desk!
+      // All stages sit naturally behind the wooden foreground desk!
       this.rig.view.y = 18;
       const deskIdx = this.root.getChildIndex(this.fgDeskSprite);
       const rigIdx = this.root.getChildIndex(this.rig.view);
@@ -442,8 +524,22 @@ export class StreamStage {
     this.bgSprite.x = -12 - this.pointerNormX * 5.5;
     this.bgSprite.y = -8 - this.pointerNormY * 3.0;
     this.fgDeskSprite.x = -14 + this.pointerNormX * 7.5;
-    this.micLed.x = this.pointerNormX * 7.5;
-    this.micLed.alpha = 0.3 + 0.25 * Math.sin(this.elapsedSec * 3.2);
+    // Desk microphone rides with the foreground desk parallax so it stays planted on the wood!
+    if (this.deskMicSprite?.visible) {
+      this.deskMicSprite.x = StreamStage.MIC_X + this.pointerNormX * 7.5;
+      this.deskMicShadow.x = this.pointerNormX * 7.5;
+      // Gentle purchase pop-in animation
+      if (this.micPopT < 1) {
+        this.micPopT = Math.min(1, this.micPopT + safeDt / 420);
+        const e = 1 - Math.pow(1 - this.micPopT, 3);
+        const pop = 0.72 + 0.28 * e;
+        this.deskMicSprite.scale.set(pop);
+        this.deskMicSprite.alpha = 0.35 + 0.65 * e;
+      } else {
+        this.deskMicSprite.scale.set(1);
+        this.deskMicSprite.alpha = 1;
+      }
+    }
 
     // Ring lamp subtle warm glow scales with upgrade level + rosy Fever aura at high hype
     const targetGlow = Math.min(0.16, 0.025 + this.lampLevel * 0.012);

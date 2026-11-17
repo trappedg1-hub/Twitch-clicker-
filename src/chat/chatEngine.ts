@@ -69,19 +69,11 @@ const AMBIENT_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
   ],
   4: [
     '500 САБОВ!! ЧЁРНЫЙ БРАЛЕТТ В ПРЯМОМ ЭФИРЕ!! :BOOBA: :AWOOGA: :Nosebleed:',
-    'чат там на 1000 сабов КОСПЛЕЙ ТЁМНОЙ ВОЛШЕБНИЦЫ СО ШНУРОВКОЙ!! жмём!! :EZ: :Pog:',
+    'первый день добит на 500! завтра второй день — все вещи и улучшения переезжают с нами! :EZ: :Pog:',
     'из зажатой скромницы в носочках в королеву фансервиса :Overheat: :Kreygasm: :miyaLove:',
-    'добиваем 1000 сабов ради декольте ведьмочки в корсете!! :SubHype: :AWOOGA:',
+    'второй день будет ещё горячее — Мия уже совсем раскрепостилась! :SubHype: :AWOOGA:',
     'я уже 15 клипов нарезал с этим бралеттом :ClipIt: :Nosebleed:',
     'пульс 160, вызывайте скорую в чат :Overheat: :BOOBA:',
-  ],
-  5: [
-    'ЭТА ШНУРОВКА НА ГРУДИ ТЁМНОЙ ВОЛШЕБНИЦЫ ЕЛЕ ДЕРЖИТСЯ!! :BOOBA: :AWOOGA: :Nosebleed:',
-    '1000 САБОВ НЕ ЗРЯ!! ШЛЯПА ВЕДЬМОЧКИ + ОТКРЫТЫЙ КОРСЕТ + ПРОЗРАЧНЫЕ РУКАВА :BOOBA: :Overheat: :ClipIt:',
-    'Твич умоляю не бань эту тёмную магию декольте :monkaS: :Kreygasm:',
-    'каждый вдох в этом корсете — гипноз 100 уровня :EZ: :BOOBA: :miyaLove:',
-    'чокер со звездой, ремешок на бедре и такой вырез крупным планом... я заколдован :Nosebleed: :Overheat:',
-    'ЭТОТ КОСПЛЕЙ ВОЙДЁТ В ЗОЛОТОЙ ФОНД JUST CHATTING :Pog: :ClipIt: :SubHype:',
   ],
 };
 
@@ -162,6 +154,7 @@ const UPGRADE_CHAT_REACTIONS: Record<UpgradeId, string> = {
   webcam_focus: 'Чёткость 1080p60!! Чат протираем запотевшие мониторы :AWOOGA: :BOOBA: :Pog:',
   chat_emotes: 'УРА НОВЫЕ 7TV СМАЙЛЫ ФАНСЕРВИСА :AWOOGA: :Nosebleed: :Overheat: :miyaLove:',
   clips_boost: 'РЕЙД С ВИРУСНОГО КЛИПА!! Добиваем Sub Goal всем чатом :ClipIt: :Pog: :SubHype:',
+  desk_mic: 'НА СТОЛЕ ПОЯВИЛСЯ МИКРОФОН! Теперь звук стрима стал в 10 раз чище :AWOOGA: :Pog:',
 };
 
 let seqCounter = 0;
@@ -200,15 +193,6 @@ export function createZoneBurstMessage(
       color: viewer.color,
       badge: viewer.badge,
       text: 'полосатые носочки милые, но го 10 сабов чтобы увидеть голые пяточки!! :SubHype: :AWOOGA:',
-    };
-  }
-  if (zone === 'feet' && displayedStage === 5) {
-    return {
-      id: nextMsgId(),
-      author: 'feet_inspector_77',
-      color: '#f9a8d4',
-      badge: 'VIP',
-      text: 'ОБЕ БОСЫЕ СТУПНИ ПРЯМО НА СТОЛЕ У ОБЪЕКТИВА!! СОХРАНЯЮ В 4K :ClipIt: :AWOOGA: :Nosebleed:',
     };
   }
   if (zone === 'legs' && displayedStage <= 1) {

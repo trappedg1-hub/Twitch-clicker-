@@ -1,6 +1,7 @@
 import { type DialogueBand, pickDialogueLine } from './dialogue.ts';
 import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
+  DAY1_FINALE_SUBS,
   getGiftSubPackCost,
   getGiftSubUnitCost,
   getNextSubGoalDef,
@@ -20,7 +21,7 @@ import type {
 } from './types.ts';
 import { getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES, UPGRADE_MAP } from './upgrades.ts';
 
-export const SAVE_STORAGE_KEY = 'twitch_clicker_save_v3';
+export const SAVE_STORAGE_KEY = 'twitch_clicker_save_v4';
 
 const ZONE_CLICK_BONUS_MULT: Record<TapZoneId, number> = {
   head: 1.0,
@@ -32,6 +33,8 @@ const ZONE_CLICK_BONUS_MULT: Record<TapZoneId, number> = {
 
 export function createInitialState(nowMs = Date.now()): GameState {
   return {
+    streamDay: 1,
+    carriedOverWardrobeStage: 0,
     balance: 0,
     totalEarned: 0,
     totalTaps: 0,
@@ -49,6 +52,7 @@ export function createInitialState(nowMs = Date.now()): GameState {
       webcam_focus: 0,
       chat_emotes: 0,
       clips_boost: 0,
+      desk_mic: 0,
     },
     unlockedMilestones: [],
     lastTickMs: nowMs,
@@ -141,7 +145,10 @@ function resolveSubGoalUnlocks(state: GameState): {
   state: GameState;
   newlyUnlockedSubStages: SubGoalStageDef[];
 } {
-  const targetStage = getSubGoalStageForSubs(state.subscribers);
+  const targetStage = Math.max(
+    getSubGoalStageForSubs(state.subscribers),
+    state.carriedOverWardrobeStage ?? 0,
+  ) as SubGoalStageIndex;
   if (targetStage <= state.unlockedSubStage) {
     return { state, newlyUnlockedSubStages: [] };
   }
@@ -290,6 +297,36 @@ export function selectDisplayedSubStage(
     state: {
       ...state,
       displayedSubStage: stage,
+    },
+  };
+}
+
+export function isDay1FinaleReached(state: GameState): boolean {
+  return state.streamDay === 1 && state.subscribers >= DAY1_FINALE_SUBS;
+}
+
+/**
+ * Start Day 2: ALL Day 1 upgrades (incl. desk microphone tier), unlocked wardrobe,
+ * balance and boldness carry over permanently. Day 2 costume is still being decided,
+ * so Miya keeps her Day 1 finale outfit (Stage 4 bralette) until the new ladder lands.
+ */
+export function startDay2(state: GameState): { ok: boolean; state: GameState } {
+  if (!isDay1FinaleReached(state)) {
+    return { ok: false, state };
+  }
+  const carried = Math.max(
+    state.carriedOverWardrobeStage ?? 0,
+    state.unlockedSubStage,
+  ) as SubGoalStageIndex;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      streamDay: 2,
+      carriedOverWardrobeStage: carried,
+      unlockedSubStage: carried,
+      displayedSubStage: carried,
+      hype: 100,
     },
   };
 }
@@ -527,14 +564,27 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
       }
     }
     const subscribers = Math.max(0, Math.floor(Number(parsed.subscribers) || 0));
-    const unlockedSubStage = getSubGoalStageForSubs(subscribers);
+    const rawCarried = Number(parsed.carriedOverWardrobeStage);
+    const carriedOverWardrobeStage: SubGoalStageIndex = (
+      Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4
+        ? rawCarried
+        : 0
+    ) as SubGoalStageIndex;
+    const unlockedSubStage = Math.max(
+      getSubGoalStageForSubs(subscribers),
+      carriedOverWardrobeStage,
+    ) as SubGoalStageIndex;
     const rawDisplayed = Number(parsed.displayedSubStage);
     const displayedSubStage: SubGoalStageIndex =
       Number.isInteger(rawDisplayed) && rawDisplayed >= 0 && rawDisplayed <= unlockedSubStage
-        ? (rawDisplayed as SubGoalStageIndex)
+        ? Math.min(4, rawDisplayed) as SubGoalStageIndex
         : unlockedSubStage;
+    const rawDay = Number(parsed.streamDay);
+    const streamDay = rawDay === 2 ? 2 : 1;
 
     return {
+      streamDay,
+      carriedOverWardrobeStage,
       balance: Math.max(0, parsed.balance),
       totalEarned: Math.max(0, Number(parsed.totalEarned) || 0),
       totalTaps: Math.max(0, Math.floor(Number(parsed.totalTaps) || 0)),
