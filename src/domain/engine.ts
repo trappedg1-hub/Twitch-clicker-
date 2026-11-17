@@ -620,7 +620,11 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
     }
     const subscribers = Math.max(0, Math.floor(Number(parsed.subscribers) || 0));
     const rawDay = Number(parsed.streamDay);
-    const streamDay = rawDay === 2 ? 2 : 1;
+    // Day 3 has to survive a reload: dropping it back to Day 1 here meant replaying the whole ladder
+    // just to look at one plate again. Note this deliberately does NOT consult isDay3Unlocked() —
+    // that flag only turns on after the async art probe resolves, so gating the load on it would
+    // throw Day 3 away on every hard reload, which is exactly the bug being fixed.
+    const streamDay = rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
     const rawCarried = Number(parsed.carriedOverWardrobeStage);
     const carriedOverWardrobeStage: SubGoalStageIndex = (
       Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4

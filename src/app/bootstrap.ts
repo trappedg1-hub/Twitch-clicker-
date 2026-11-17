@@ -41,7 +41,13 @@ import {
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
-import { isDay3Unlocked, pickShySubGoalApproachLine, probeDay3Art } from '../domain/subGoals.ts';
+import {
+  getSubGoalStagesForDay,
+  isDay3Unlocked,
+  pickShySubGoalApproachLine,
+  probeDay3Art,
+} from '../domain/subGoals.ts';
+import { debugGotoDayStage, debugMaxOutShop, debugSetBars, finaleSubsForDay } from '../domain/debug.ts';
 import { getMicTier } from '../domain/upgrades.ts';
 import type {
   BottomTabId,
@@ -55,6 +61,7 @@ import type {
 } from '../domain/types.ts';
 import type { HeroineRig } from '../heroine/HeroineRig.ts';
 import { StreamStage } from '../heroine/StreamStage.ts';
+import { AdminPanel, type AdminPanelApi } from '../presentation/adminPanel.ts';
 import { UiController } from '../presentation/uiController.ts';
 
 declare global {
@@ -102,6 +109,12 @@ export async function bootstrapApp(): Promise<void> {
     : deserializeState(localStorage.getItem(SAVE_STORAGE_KEY));
 
   let lastPlayerInteractionMs = performance.now();
+  /**
+   * The admin panel can hold the save back, so "let me look at the finale plate" never overwrites a
+   * real run's progress. It is a session flag on purpose: reload and normal saving is back.
+   */
+  let adminSaveSuppressed = false;
+  let adminPanel: AdminPanel | null = null;
   let idleTeaseCounter = 0;
   /** She keeps commenting on the stream: idle stares AND live numbers, never over a celebration. */
   let lastCelebrationMs = 0;
@@ -129,9 +142,10 @@ export async function bootstrapApp(): Promise<void> {
     stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
-    if (!isQa) {
+    if (!isQa && !adminSaveSuppressed) {
       localStorage.setItem(SAVE_STORAGE_KEY, serializeState(state));
     }
+    adminPanel?.refresh();
   };
 
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
@@ -568,6 +582,164 @@ export async function bootstrapApp(): Promise<void> {
     }, delayMs);
   };
   scheduleNextAmbientChat();
+
+  // ---- Admin panel: jump the ladder instead of replaying it -------------------------------
+  // Every button routes through `src/domain/debug.ts`, i.e. through the same engine gates a real run
+  // crosses, so what the panel shows is reachable state — only the grind is skipped. Hidden in QA
+  // mode (?qa), where the scripts drive the very same actions over `window.__qaScene`.
+  const adminApplyJump = (day: number, stageIdx: SubGoalStageIndex) => {
+    const before = state;
+    const res = debugGotoDayStage(before, day, stageIdx);
+    state = res.state;
+    const dayChanged = state.streamDay !== before.streamDay;
+    if (dayChanged) {
+      stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
+      ui.pushChatMessage({
+        id: `admin_day_${Date.now()}`,
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: `★ ADMIN: перемотка на День ${state.streamDay}, стадия ${state.displayedSubStage}.`,
+        isSystemHighlight: true,
+      });
+      const openLine = state.streamDay === 3 ? DAY3_OPENING_LINE : state.streamDay === 2 ? DAY2_OPENING_LINE : null;
+      if (openLine) ui.showSpeech(openLine);
+    }
+    const fresh = getSubGoalStagesForDay(state.streamDay).slice(
+      dayChanged ? 0 : before.unlockedSubStage + 1,
+      state.unlockedSubStage + 1,
+    );
+    syncAll();
+    if (fresh.length > 0) {
+      // The real unlock sequence (crossfade, callout, alert, her line) — a jump should not look
+      // flatter than earning it, otherwise the panel hides exactly the feedback the ladder needs.
+      celebrateSubGoalUnlocks(fresh);
+    } else {
+      stage.setSubStage(state.displayedSubStage, true);
+    }
+    stage.app.render();
+    return res.note;
+  };
+
+  const adminApi: AdminPanelApi = {
+    snapshot: () => {
+      const stats = computeStats(state);
+      return {
+        day: state.streamDay,
+        stage: state.displayedSubStage,
+        unlockedStage: state.unlockedSubStage,
+        subs: state.subscribers,
+        balance: state.balance,
+        hype: state.hype,
+        boldness: stats.boldness,
+        viewers: stats.onlineViewers,
+        incomePerSec: stats.passivePerSec,
+        // What is on screen right now, flash beat included — the panel should never lie about the
+        // frame you are looking at, or it reads as a broken jump.
+        plate: stage.isGhostFlashing()
+          ? `${stage.getActivePlateName()} → flash`
+          : stage.getActivePlateName(),
+        ladder: getSubGoalStagesForDay(state.streamDay).map((d) => ({
+          stage: d.stage,
+          label: d.shortGoalTitle,
+          subs: d.subsRequired,
+        })),
+        finaleSubs: finaleSubsForDay(state.streamDay),
+        day3Unlocked: isDay3Unlocked(),
+        saveSuppressed: adminSaveSuppressed,
+      };
+    },
+    gotoDay: (day) => {
+      const note = adminApplyJump(day, 0);
+      if (note) ui.showSpeech(note);
+    },
+    gotoStage: (stageIdx) => {
+      const note = adminApplyJump(state.streamDay, stageIdx);
+      if (note) ui.showSpeech(note);
+    },
+    addSubs: (delta) => {
+      state = debugSetSubscribers(state, Math.max(0, state.subscribers + delta));
+      syncAll();
+    },
+    setSubs: (count) => {
+      state = debugSetSubscribers(state, count);
+      syncAll();
+    },
+    dayFinale: () => {
+      state = debugSetSubscribers(state, finaleSubsForDay(state.streamDay));
+      syncAll();
+      ui.showSpeech('★ Финал дня пробит — вожми «Начать следующий день» в карточке финала.');
+    },
+    addFunds: (amount) => {
+      state = { ...state, balance: state.balance + amount, totalEarned: state.totalEarned + Math.max(0, amount) };
+      syncAll();
+    },
+    maxOutShop: () => {
+      const res = debugMaxOutShop(state);
+      state = res.state;
+      syncAll();
+      stage.app.render();
+      ui.showSpeech(
+        res.levels > 0
+          ? `★ Магазин выкуплен: +${res.levels} уровней за ${Math.round(res.spent).toLocaleString('ru-RU')} ₽.`
+          : 'Магазин уже выкуплен до последней полки.',
+      );
+    },
+    setBars: (hype, boldness) => {
+      state = debugSetBars(state, hype, boldness);
+      stage.rig.setBoldness(computeStats(state).boldness);
+      stage.setHypeLevel(state.hype);
+      syncAll();
+      stage.app.render();
+    },
+    ghostBoo: () => {
+      if (stage.triggerGhostBoo(650)) ui.showSpeech(GHOST_BOO_LINES[0]!);
+      else ui.showSpeech('«Бу!» живёт только в Дне 3 — прыгни туда кнопкой «День 3».');
+    },
+    forceEmotion: (emo) => {
+      stage.rig.triggerEmotion(emo, 3500);
+      stage.rig.update(120);
+      stage.app.render();
+    },
+    forceBlink: () => {
+      stage.rig.triggerBlink();
+      stage.rig.update(95);
+      stage.app.render();
+    },
+    tapZone: (zone) => {
+      stage.rig.triggerTapReaction(zone);
+      const res = stage.onHeroineTap?.(zone);
+      if (res) stage.spawnTapBurst(688, 340, res.earned, res.alert, zone);
+    },
+    setSaveSuppressed: (on) => {
+      adminSaveSuppressed = on;
+      if (!on) localStorage.setItem(SAVE_STORAGE_KEY, serializeState(state));
+    },
+    exportSave: () => serializeState(state),
+    importSave: (raw) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      try {
+        JSON.parse(trimmed) as unknown;
+      } catch {
+        ui.showSpeech('Это не JSON — импорт отменён, сейв не тронут.');
+        return;
+      }
+      state = deserializeState(trimmed);
+      stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
+      syncAll();
+      ui.showSpeech('Сейв импортирован.');
+    },
+    resetSave: () => {
+      localStorage.removeItem(SAVE_STORAGE_KEY);
+      state = createInitialState();
+      stage.setWardrobeDay(1);
+      syncAll();
+      ui.showSpeech('Сейв стёрт, День 1 начинается заново.');
+    },
+  };
+  adminPanel = new AdminPanel(adminApi);
+  adminPanel.init({ hidden: isQa || new URLSearchParams(window.location.search).has('noadmin') });
 
   if (isQa) {
     window.__pixiApp = stage.app;

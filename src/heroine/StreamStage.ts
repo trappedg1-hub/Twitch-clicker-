@@ -397,6 +397,11 @@ export class StreamStage {
     return this.rig?.hasGhostFlash() ?? false;
   }
 
+  /** True while the «Бу!» crossfade owns the mesh, i.e. the flash plate is the one on screen. */
+  public isGhostFlashing(): boolean {
+    return this.rig?.isGhostFlashing() ?? false;
+  }
+
   /** Day 3 «Бу!» flash frame; returns true when something actually flashed on screen. */
   public triggerGhostBoo(durationMs = 520): boolean {
     return this.rig?.triggerGhostBoo(durationMs) ?? false;
