@@ -9,3 +9,6 @@ assets/
 *.log
 .DS_Store
 __pycache__/
+
+# Plate masters stay local; the app ships the webp layer only.
+public/art/*.png

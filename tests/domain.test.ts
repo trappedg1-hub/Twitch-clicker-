@@ -536,7 +536,8 @@ test('Day 3 ghost ladder: sheet reveal beats 7000/10000/13000/15000 on its own p
   const mults = stages.map((s) => s.incomeMultiplier);
   for (let i = 1; i < mults.length; i++) assert.ok(mults[i]! > mults[i - 1]!, 'income must rise');
   const emotions = stages.map((s) => s.unlockEmotion).join(',');
-  assert.equal(emotions, 'shy,fluster,tease,fluster,bold');
+  // The finale keeps `bold`: stages 3 and 4 differ by what the sheet does, not by her courage.
+  assert.equal(emotions, 'shy,tease,fluster,bold,bold');
   for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t3_s[0-4]\.webp$/);
   // She never invents a garment: the whole day is one sheet, one bodysuit and one pair of fishnets.
   for (const s of stages) {
@@ -565,14 +566,20 @@ test('Day 3 ghost ladder: sheet reveal beats 7000/10000/13000/15000 on its own p
 test('Day 3 copy matches the sheet state on screen (nothing slips before its time)', () => {
   for (let stage = 0; stage <= 4; stage++) {
     const w = getWardrobe(3, stage);
-    assert.equal(w.sheet, (['full', 'shoulder', 'tight', 'lifted', 'cape'] as const)[stage]);
+    assert.equal(w.sheet, (['veil', 'hemLift', 'hood', 'off', 'cape'] as const)[stage]);
     assert.equal(w.fishnets, true, 'fishnets are permanent on the ghost day');
     // Stage 0 must reject every "it moved" claim; later stages must accept their own truth.
     if (stage === 0) {
       assert.ok(contradictsWardrobe('Простыня сползла с плеча', w));
       assert.ok(contradictsWardrobe('Под тканью видно бретельку боди', w));
       assert.ok(contradictsWardrobe('Я сижу в худи и гольфах', w));
+      assert.ok(contradictsWardrobe('Я задрала подол простыни, и живот открыт', w));
       assert.ok(contradictsWardrobe('Простыня полностью меня закрывает', w) === null);
+    }
+    if (stage === 4) {
+      // Only the finale may call the sheet a cape, and only the finale frame is a cape.
+      assert.ok(contradictsWardrobe('Простыня у меня на плечах как плащ', w) === null);
+      assert.ok(contradictsWardrobe('Ткань полностью меня закрывает', w));
     }
     for (const line of WARDROBE_SAFE_LINES[3][stage as SubGoalStageIndex]!) {
       assert.equal(contradictsWardrobe(line, w), null, `safe s${stage}: ${line}`);

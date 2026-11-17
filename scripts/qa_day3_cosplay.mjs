@@ -108,7 +108,7 @@ let day3 = await page.evaluate(() => {
 console.log('2 day3 start', JSON.stringify(day3));
 if (day3.day !== 3) errors.push(`streamDay should be 3, got ${day3.day}`);
 if (day3.mic !== 10) errors.push('desk mic must carry over to Day 3');
-if (day3.chips.join(' ') !== '7000 Плечо 10000 Обтяжка 13000 Задор 15000 Финал') {
+if (day3.chips.join(' ') !== '7000 Подол 10000 Четвереньки 13000 Бу! 15000 Плащ') {
   errors.push(`Day 3 chips wrong: ${day3.chips.join(' | ')}`);
 }
 if (day3.pill > 0) errors.push('the «Этап» pill came back');
@@ -147,8 +147,10 @@ for (const [stage, subs] of [
     };
   });
   console.log(`3 stage${stage}`, JSON.stringify(s));
-  // The sheet covers her face up to the "hem lifted" stage: blush/blink patches must stay off there.
-  const wantHidden = stage <= 3;
+  // Every Day 3 plate is a finished drawing with its own expression (a wink, an open-mouth «Бу!», a
+  // smirk through the eye holes) painted at ~1.4x the canonical face scale, so the blush/blink
+  // overlays are suppressed on ALL five frames — see FACE_PATCH_COVERED_PLATES.
+  const wantHidden = true;
   if (s.patches.hidden !== wantHidden) {
     errors.push(`stage ${stage}: facePatchesHidden=${s.patches.hidden}, expected ${wantHidden}`);
   }
