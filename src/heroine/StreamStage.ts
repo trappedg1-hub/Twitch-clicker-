@@ -290,19 +290,12 @@ export class StreamStage {
   ): void {
     const didChange = this.rig?.setSubStage(stage, celebrate, unlockEmotion);
     if (didChange && this.rig && this.fgDeskSprite) {
-      // In Stage 5 Cosplay, her bare heels & soles rest ON TOP OF the wooden desk!
+      // All stages (including Stage 5 Dark Sorceress thigh-up pose) sit naturally behind the wooden foreground desk!
+      this.rig.view.y = 18;
       const deskIdx = this.root.getChildIndex(this.fgDeskSprite);
       const rigIdx = this.root.getChildIndex(this.rig.view);
-      if (stage === 5) {
-        this.rig.view.y = 32;
-        if (rigIdx < deskIdx) {
-          this.root.setChildIndex(this.rig.view, deskIdx);
-        }
-      } else {
-        this.rig.view.y = 18;
-        if (rigIdx > deskIdx) {
-          this.root.setChildIndex(this.rig.view, deskIdx);
-        }
+      if (rigIdx > deskIdx) {
+        this.root.setChildIndex(this.rig.view, deskIdx);
       }
     }
     if (celebrate && bannerLabel) {

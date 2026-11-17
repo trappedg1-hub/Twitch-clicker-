@@ -191,14 +191,14 @@ export class HeroineRig {
 
   private applyPosePatchGeometry(): void {
     if (this.currentStage === 5) {
-      this.emotionSprite.position.set(340, 128);
-      this.emotionSprite.width = 344;
-      this.emotionSprite.height = 332;
+      this.emotionSprite.position.set(368, 316);
+      this.emotionSprite.width = 304;
+      this.emotionSprite.height = 292;
       this.emotionSprite.texture = this.s5EmotionTextures[this.activeEmotion];
 
-      this.blinkSprite.position.set(340, 128);
-      this.blinkSprite.width = 344;
-      this.blinkSprite.height = 332;
+      this.blinkSprite.position.set(368, 316);
+      this.blinkSprite.width = 304;
+      this.blinkSprite.height = 292;
       this.blinkSprite.texture = this.s5BlinkTex;
       this.boldRestSprite.visible = false;
     } else {
@@ -218,15 +218,14 @@ export class HeroineRig {
   private rebuildHitZones(): void {
     this.hitLayer.removeChildren().forEach((c) => c.destroy());
 
-    // Stage 5 v2 has her TWO GIANT glossy bare soles propped forward right into the lens (y=860..1510)!
+    // Stage 5 Dark Sorceress focuses close-up on her laced plunge corset & bust (thigh-up, no feet)!
     const zones: { id: TapZoneId; x: number; y: number; w: number; h: number }[] =
       this.currentStage === 5
         ? [
-            { id: 'head', x: 320, y: 55, w: 385, h: 390 },
-            { id: 'chest', x: 330, y: 450, w: 375, h: 245 },
-            { id: 'belly', x: 405, y: 695, w: 225, h: 175 },
-            { id: 'legs', x: 235, y: 690, w: 555, h: 280 },
-            { id: 'feet', x: 110, y: 865, w: 805, h: 645 },
+            { id: 'head', x: 245, y: 35, w: 540, h: 560 },
+            { id: 'chest', x: 300, y: 600, w: 425, h: 430 },
+            { id: 'belly', x: 330, y: 1030, w: 365, h: 170 },
+            { id: 'legs', x: 185, y: 1200, w: 650, h: 326 },
           ]
         : [
             { id: 'legs', x: 110, y: 690, w: 805, h: 420 },
@@ -261,18 +260,20 @@ export class HeroineRig {
     this.reactionCounter += 1;
     const chosen =
       forcedEmotion ??
-      (this.currentStage === 5 && zone === 'feet'
-        ? 'fluster'
+      (this.currentStage === 5 && zone === 'chest'
+        ? this.reactionCounter % 2 === 0
+          ? 'fluster'
+          : 'tease'
         : pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter));
 
     const swayDir = this.reactionCounter % 2 === 0 ? 1 : -1;
 
     if (zone === 'chest') {
-      this.chestVel -= 165;
-      this.archVel += 85;
+      this.chestVel -= this.currentStage === 5 ? 195 : 165;
+      this.archVel += this.currentStage === 5 ? 105 : 85;
       this.swayVel += swayDir * 42;
       this.chairRecoilVel += 44;
-      this.triggerEmotion(chosen, 1800);
+      this.triggerEmotion(chosen, 1850);
     } else if (zone === 'belly') {
       this.chestVel -= 95;
       this.hipVel -= 85;
@@ -470,8 +471,8 @@ export class HeroineRig {
     const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
     const headArchY = -this.archDisp * 0.25;
     if (isS5) {
-      this.emotionSprite.position.set(340 + headSwayX, 128 + headArchY);
-      this.blinkSprite.position.set(340 + headSwayX, 128 + headArchY);
+      this.emotionSprite.position.set(368 + headSwayX, 316 + headArchY);
+      this.blinkSprite.position.set(368 + headSwayX, 316 + headArchY);
     } else {
       this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
       this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);
@@ -488,28 +489,27 @@ export class HeroineRig {
       let dy = 0;
 
       // Upper-body seductive sway & arch (head + shoulders + torso)
-      if (v < 0.62) {
-        const upperWeight = Math.cos((v / 0.62) * (Math.PI * 0.5));
+      if (v < 0.68) {
+        const upperWeight = Math.cos((v / 0.68) * (Math.PI * 0.5));
         dx += this.swayDisp * upperWeight;
         dy -= this.archDisp * 0.35 * upperWeight;
       }
 
-      const cTop = isS5 ? 0.29 : 0.25;
-      const cBot = isS5 ? 0.56 : 0.54;
+      const cTop = isS5 ? 0.40 : 0.25;
+      const cBot = isS5 ? 0.69 : 0.54;
       if (v > cTop && v < cBot && u > 0.26 && u < 0.76) {
         const wy = Math.sin(((v - cTop) / (cBot - cTop)) * Math.PI);
         const wx = Math.sin(((u - 0.26) / (0.76 - 0.26)) * Math.PI);
-        const weight = wy * wx;
+        const weight = wy * wx * (isS5 ? 1.24 : 1.0);
         const lushExpand = this.archDisp * 0.55;
         dy += (-2.8 * breathWave + this.chestDisp - lushExpand * 0.4) * weight;
         dx +=
-          (u - 0.51) *
-          (3.6 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.24 + lushExpand * 0.65) *
+          (u - 0.5) *
+          (4.0 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.28 + lushExpand * 0.7) *
           weight;
       }
 
-      // In Stage 5, extend soft-body jiggle all the way through her bare soles on the desk (v=0.56..0.99)!
-      const lTop = isS5 ? 0.56 : 0.46;
+      const lTop = isS5 ? 0.70 : 0.46;
       const lBot = isS5 ? 0.99 : 0.88;
       if (v > lTop && v < lBot && u > 0.14 && u < 0.86) {
         const wy = Math.sin(((v - lTop) / (lBot - lTop)) * Math.PI);

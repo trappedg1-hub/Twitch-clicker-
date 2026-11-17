@@ -18,9 +18,9 @@
       "bold": { "url": "/art/patch_t1_bold.webp", "x": 338, "y": 61, "w": 348, "h": 397 }
     },
     "stage5Patches": {
-      "blink": { "url": "/art/patch_t1_s5_blink.webp", "x": 340, "y": 128, "w": 344, "h": 332 },
-      "tease": { "url": "/art/patch_t1_s5_tease.webp", "x": 340, "y": 128, "w": 344, "h": 332 },
-      "fluster": { "url": "/art/patch_t1_s5_fluster.webp", "x": 340, "y": 128, "w": 344, "h": 332 }
+      "blink": { "url": "/art/patch_t1_s5_blink.webp", "x": 368, "y": 316, "w": 304, "h": 292 },
+      "tease": { "url": "/art/patch_t1_s5_tease.webp", "x": 368, "y": 316, "w": 304, "h": 292 },
+      "fluster": { "url": "/art/patch_t1_s5_fluster.webp", "x": 368, "y": 316, "w": 304, "h": 292 }
     },
     "bg": "/art/bg_room_t1.webp",
     "fgDesk": "/art/fg_desk_t1.webp"
