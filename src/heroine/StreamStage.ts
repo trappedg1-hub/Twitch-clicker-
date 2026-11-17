@@ -344,6 +344,14 @@ export class StreamStage {
     };
   }
 
+  /** QA/debug: which plate is up, and whether her face patches are suppressed on it. */
+  public facePatchDebug(): { plate: string; hidden: boolean } {
+    return {
+      plate: this.getActivePlateName(),
+      hidden: this.rig?.facePatchesHiddenDebug() ?? false,
+    };
+  }
+
   /** QA/debug: file name of the plate currently shown for the current day + stage. */
   public getActivePlateName(): string {
     const day = this.rig?.getPlateDay() ?? 1;

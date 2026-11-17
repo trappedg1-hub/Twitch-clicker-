@@ -591,7 +591,7 @@ test('Day 3 copy matches the sheet state on screen (nothing slips before its tim
 });
 
 test('Day 3 is gated: no ghost plates means no cosplay day, and it starts only after Day 2', () => {
-  // Node has no window, so the art probe cannot unlock the day from a test.
+  // Node has no window, so the HEAD probe of heroine_t3_* cannot run from a test.
   assert.equal(isDay3Unlocked(), false);
   const day1 = createInitialState(1000);
   assert.equal(startDay3(day1).ok, false, 'Day 3 cannot start on Day 1');
@@ -600,7 +600,7 @@ test('Day 3 is gated: no ghost plates means no cosplay day, and it starts only a
   assert.equal(startDay3(afterDay1.state).ok, false, 'the Day 2 ladder is not finished yet');
   const day2Done = { ...afterDay1.state, subscribers: 5000 };
   assert.equal(isDay2FinaleReached(day2Done), true);
-  assert.equal(startDay3(day2Done).ok, false, 'locked until heroine_t3_* plates ship');
+  assert.equal(startDay3(day2Done).ok, false, 'locked while the heroine_t3_* art probe cannot run');
   // ...but everything the day needs to carry over is already in place.
   assert.equal(getStreamTitle(0, 100, 3).includes('7000'), true);
   assert.equal(DAY3_FLASH_PLATE, '/art/heroine_t3_flash.webp');

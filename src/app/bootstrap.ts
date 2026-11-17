@@ -67,6 +67,7 @@ declare global {
       getDeskMicDebug: () => unknown;
       getFaceAnchorDebug: () => { x: number; y: number; w: number; h: number };
       getActivePlateName: () => string;
+      facePatchDebug: () => { plate: string; hidden: boolean };
       situationLine: (seed: number) => string;
       tapLine: (zone: TapZoneId, seed: number, stage: number, day: number) => string;
       farewellLineCount: () => number;
@@ -645,6 +646,7 @@ export async function bootstrapApp(): Promise<void> {
       },
       isDay3Unlocked: () => isDay3Unlocked(),
       ghostBoo: (ms?: number) => stage.triggerGhostBoo(ms ?? 520),
+      facePatchDebug: () => stage.facePatchDebug(),
       ghostInfo: () => ({
         unlocked: isDay3Unlocked(),
         flashLive: stage.hasGhostFlash(),

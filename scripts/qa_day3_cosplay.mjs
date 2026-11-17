@@ -133,6 +133,7 @@ for (const [stage, subs] of [
     return {
       stage: st.displayedSubStage,
       plate: qa.getActivePlateName(),
+      patches: qa.facePatchDebug(),
       goal: document.getElementById('subgoal-target-name')?.textContent.trim(),
       chips: [...document.querySelectorAll('.goal-step')].map((el) => el.textContent.trim()),
       outfit: [...document.querySelectorAll('.outfit-card')].map((el) => el.textContent.trim().slice(0, 70)),
@@ -146,6 +147,11 @@ for (const [stage, subs] of [
     };
   });
   console.log(`3 stage${stage}`, JSON.stringify(s));
+  // The sheet covers her face up to the "hem lifted" stage: blush/blink patches must stay off there.
+  const wantHidden = stage <= 3;
+  if (s.patches.hidden !== wantHidden) {
+    errors.push(`stage ${stage}: facePatchesHidden=${s.patches.hidden}, expected ${wantHidden}`);
+  }
   if (s.stage !== stage) errors.push(`stage ${stage}: displayed ${s.stage}`);
   if (!s.plate.startsWith('heroine_t2_') && !s.plate.startsWith('heroine_t3_')) {
     errors.push(`Day 3 must show cosplay plates (t3) or the Day 2 fallback, got ${s.plate}`);

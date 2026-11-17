@@ -77,23 +77,18 @@ export const WARDROBES: Record<DayIndex, Record<SubGoalStageIndex, Wardrobe>> = 
   // Day 3 «призрачная стримерша»: sheet over a glossy bodysuit + fishnets. Every stage only
   // re-cuts, re-ties or lifts THE SAME sheet - no new garments, and the fishnets never come off.
   3: {
+    // Strapless glossy bodysuit (belly open, but only from the cape stage up), FULL fishnet
+    // stockings - mesh over the legs AND the feet - and the sheet is the only garment that moves.
     0: W(3, 0, 'off', 'bodysuit', false, 'up', { sheet: 'full', fishnets: true }),
-    1: W(3, 1, 'off', 'bodysuit', false, 'up', {
-      sheet: 'shoulder',
-      fishnets: true,
-      strapsDown: true,
-    }),
+    1: W(3, 1, 'off', 'bodysuit', false, 'up', { sheet: 'shoulder', fishnets: true }),
     2: W(3, 2, 'off', 'bodysuit', false, 'up', { sheet: 'tight', fishnets: true }),
-    3: W(3, 3, 'off', 'bodysuit', false, 'up', {
-      sheet: 'lifted',
-      fishnets: true,
-      midriff: true,
-    }),
+    // The lifted hem still leaves the sheet over her stomach - the belly only escapes at the cape.
+    3: W(3, 3, 'off', 'bodysuit', false, 'up', { sheet: 'lifted', fishnets: true }),
+    // The cape is the only stage where the sheet lets go of her front: belly bare, no straps exist.
     4: W(3, 4, 'off', 'bodysuit', false, 'up', {
       sheet: 'cape',
       fishnets: true,
       midriff: true,
-      strapsDown: true,
     }),
   },
 };
@@ -109,7 +104,7 @@ export function getWardrobe(streamDay: number, stage: number): Wardrobe {
  * present-tense claims about what is on her body right now get checked.
  */
 const REMOVAL_TALK =
-  /(снят|снял|снять|сниму|снимай|стянул|стяну|стянет|стягива|убра|убер|улетел|уносит|полетел|осталась|остался|уже не|больше не|никак|без этого|дожд|заставил|попрос|прятал|цел\b|сабов|вчера|вчерашни|раньше|до этого)/i;
+  /(снят|снял|снять|сниму|снимай|стянул|стяну|стянет|стягива|убра|убер|улетел|уш[ио]л[иа]?|ушли|ушло|уносил|уносит|полетел|осталась|остался|уже не|больше не|никак|без этого|дожд|заставил|попрос|прятал|цел\b|сабов|вчера|вчерашни|раньше|до этого)/i;
 
 /**
  * A slouch claim only counts when it is about the knee-highs themselves. "Худи сползло с плеч, а
@@ -117,6 +112,10 @@ const REMOVAL_TALK =
  */
 const GOLF_SLOUCH = /гольф[ыаоеу]?[^.!?]{0,26}(сполз|съехал|спустил|спущен|спуска|собран|гармошк|свалил|ослаб)/i;
 const GOLF_TIGHT = /гольф[ыаоеу]?[^.!?]{0,26}(натянут|натянул|туго|по колено|до колена)/i;
+
+/** "Бретелек тут нет", "без единой бретельки" - saying the straps are ABSENT is the whole gag. */
+const NEGATED_STRAP_TALK =
+  /(без|не|нет|никак\w*|ни одной|ни единой)[^.!?]{0,18}(бретел|лямк)|(бретел|лямк)\w*[^.!?]{0,10}(нет|не было|не будет|не было видно)/i;
 
 /**
  * Returns the reason a line contradicts the current outfit, or `null` when the line is safe.
@@ -237,11 +236,10 @@ export function contradictsWardrobe(
   if (/ретелях|лямк/i.test(line) && !removal && w.top === 'underHoodie') {
     return 'mentions thin straps while she is bundled in the hoodie';
   }
-  if (w.day === 3 && /бретел|лямк/i.test(line) && !removal && w.sheet === 'full') {
-    return 'mentions a visible strap while the sheet still covers her shoulders';
-  }
-  if (w.day === 3 && /бретел/i.test(line) && w.sheet === 'tight') {
-    return 'claims the strap shows again while the sheet is pulled taut over the shoulders';
+  // The Day 3 bodysuit has no straps at all - that is the whole joke of «сползает само». Only a
+  // line that says so out loud ("бретелек тут нет") is allowed through.
+  if (w.day === 3 && /бретел|лямк/i.test(line) && !NEGATED_STRAP_TALK.test(line)) {
+    return 'mentions a strap on a strapless bodysuit';
   }
   if (/лямк[^.!?]{0,18}(?<!не )(подня|на месте|верну)/i.test(line) && w.strapsDown) {
     return 'claims the straps are up while they are already down';
@@ -261,9 +259,13 @@ export function contradictsWardrobe(
   }
 
   // Fishnets are Day 3's permanent legwear: never claim they came off, never claim bare legs.
-  if (w.day === 3 && w.fishnets && /сетк|чулк/i.test(line)) {
-    if (/без сетк|сетк[ауи]? (снят|нет|ушел|улетел)|голые ноги|ноги без/i.test(line) && !removal) {
+  if (w.day === 3 && w.fishnets && /сетк|чулк|ступн|пальц|пяток|носок/i.test(line)) {
+    if (/без сетк|сетк[ауи]? (снят|нет|ушл|улетел)|голые ноги|ноги без/i.test(line) && !removal) {
       return 'claims the fishnets are off while they are on all day';
+    }
+    // Full stockings: the net runs over the instep to the toes. "Голая стопа" contradicts the plate.
+    if (/(ступн|пяток|пальц\w* (ног|ступен)|подошв)[^.!?]{0,18}(голы|без сетк|нат\b)/i.test(line)) {
+      return 'claims a bare foot while the fishnet covers it down to the toes';
     }
   }
 

@@ -307,7 +307,7 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.dayBadgeEl.textContent =
-      state.streamDay === 3 ? 'День 3 ★ КОСПЛЕЙ' : state.streamDay === 2 ? 'День 2 ★' : 'День 1';
+      state.streamDay === 3 ? 'День 3 ★ ПРИЗРАК' : state.streamDay === 2 ? 'День 2 ★' : 'День 1';
     const finaleDay: 1 | 2 | 3 =
       state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
     const stagesForDay = getSubGoalStagesForDay(finaleDay);

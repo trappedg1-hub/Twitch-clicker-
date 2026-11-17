@@ -15,7 +15,12 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { CANONICAL_FACE, faceAnchorFor, type FaceAnchor } from './faceAnchors.ts';
+import {
+  CANONICAL_FACE,
+  FACE_PATCH_COVERED_PLATES,
+  faceAnchorFor,
+  type FaceAnchor,
+} from './faceAnchors.ts';
 
 export interface HeroineTextures {
   stages: readonly [Texture, Texture, Texture, Texture, Texture];
@@ -100,6 +105,8 @@ export class HeroineRig {
 
   /** Where the canonical emotion/blink patch content lands on the CURRENT plate. */
   private faceBox: FaceAnchor = CANONICAL_FACE;
+  /** Day 3: while a costume layer covers her face, the blush/blink/emotion patches stay off. */
+  private facePatchesHidden = false;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -234,6 +241,17 @@ export class HeroineRig {
    */
   public setFaceAnchorFor(plateName: string): void {
     const next = faceAnchorFor(plateName);
+    const hidden = FACE_PATCH_COVERED_PLATES.has(plateName);
+    if (hidden !== this.facePatchesHidden) {
+      this.facePatchesHidden = hidden;
+      if (hidden) {
+        // A sheet with scissor-cut holes is on her face: a pasted blush or a blinking eye would
+        // float on the fabric, so the patches fade out until the plate shows her again.
+        this.emotionSprite.alpha = 0;
+        this.blinkSprite.alpha = 0;
+        this.boldRestSprite.alpha = 0;
+      }
+    }
     if (
       next.x === this.faceBox.x &&
       next.y === this.faceBox.y &&
@@ -244,6 +262,11 @@ export class HeroineRig {
     }
     this.faceBox = next;
     this.applyPosePatchGeometry();
+  }
+
+  /** QA/debug: true while a costume layer hides her face (Day 3 sheet stages). */
+  public facePatchesHiddenDebug(): boolean {
+    return this.facePatchesHidden;
   }
 
   /** QA/debug: the patch box currently in use (plate pixels). */
@@ -488,10 +511,11 @@ export class HeroineRig {
       this.boldnessLevel >= 68
         ? Math.min(0.96, (this.boldnessLevel - 68) / 26)
         : 0;
-    this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha);
-    this.emotionSprite.alpha = emoAlpha;
+    const patchGate = this.facePatchesHidden ? 0 : 1;
+    this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha) * patchGate;
+    this.emotionSprite.alpha = emoAlpha * patchGate;
     this.blinkSprite.alpha =
-      rawBlinkAlpha * (1 - emoAlpha * 0.92) * (1 - this.boldRestSprite.alpha * 0.75);
+      rawBlinkAlpha * (1 - emoAlpha * 0.92) * (1 - this.boldRestSprite.alpha * 0.75) * patchGate;
 
     // 3. Damped harmonic springs
     const stepSpring = (
@@ -621,6 +645,7 @@ export class HeroineRig {
       emotionAlpha: Number(this.emotionSprite.alpha.toFixed(3)),
       boldRestAlpha: Number(this.boldRestSprite.alpha.toFixed(3)),
       blinkAlpha: Number(this.blinkSprite.alpha.toFixed(3)),
+      facePatchesHidden: this.facePatchesHidden,
       chestDisp: Number(this.chestDisp.toFixed(2)),
     };
   }

@@ -234,7 +234,8 @@ const AMBIENT_DAY3: readonly string[] = [
   'дырки кривые, глаза светятся, улыбка в третьей дырке. косплей года, без шуток :miyaLove: :SubHype:',
 ];
 
-const AMBIENT_DAY3_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+/** Exported for scripts/linescan_days.ts: the viewers' per-stage chatter about the costume. */
+export const AMBIENT_DAY3_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
   0: [
     'она стоит белым прямоугольником и молчит. 7000 сабов или призрак не отпустит :Pog: :monkaS:',
     'простыня до середины бедра, сетка внизу, и НИЧЕГО больше. это лучший троллинг чата :EZ: :ClipIt:',
@@ -244,7 +245,7 @@ const AMBIENT_DAY3_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
   ],
   1: [
     'ПЛЕЧО ОТКРЫТО. простыня съехала на одно плечо, и чат потерял рассудок :Pog: :Nosebleed:',
-    'Бретелька боди под тканью = 47 клипов за минуту, статистика не врёт :ClipIt: :LUL:',
+    'Боди без бретелек сползло набок = 47 клипов за минуту, статистика не врёт :ClipIt: :LUL:',
     'она держит ткань одной рукой и делает вид, что так и было задумано :peepoShy: :monkaS:',
     'сетка стала видна выше, и это, чат, прогресс. 10000 сабов, легион, потихоньку :SubHype: :sub2:',
     'призрак с голым плечом — новый жанр, я уже рисую фанарт :Kreygasm: :miyaLove:',
