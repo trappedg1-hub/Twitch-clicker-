@@ -1,7 +1,15 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
 import { DAY1_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
-import { getGiftSubPackCost, SUB_GOAL_STAGES } from '../domain/subGoals.ts';
+import {
+  DAY1_SHORT_STEP_LABELS,
+  DAY1_STEP_LABELS,
+  DAY2_SHORT_STEP_LABELS,
+  DAY2_STEP_LABELS,
+  getGiftSubPackCost,
+  getSubGoalStagesForDay,
+  SUB_GOAL_STAGES,
+} from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
@@ -266,14 +274,19 @@ export class UiController {
     } else if (this.farewellPhase !== 'idle') {
       this.resetFarewell();
     }
-    this.titleEl.textContent = getStreamTitle(state.displayedSubStage, state.subscribers);
+    this.titleEl.textContent = getStreamTitle(
+      state.displayedSubStage,
+      state.subscribers,
+      state.streamDay,
+    );
     this.subsValEl.textContent = String(state.subscribers);
     this.boldnessFillEl.style.width = `${stats.boldness}%`;
     this.boldnessPctEl.textContent = `${Math.floor(stats.boldness)}%`;
 
-    // Top-Left Twitch Creator Sub Goal Bar
+    // Top-Left Twitch Creator Sub Goal Bar (Day 1: 10/50/200/500 — Day 2: 1500/2000/2500/5000)
+    const dayLadder = getSubGoalStagesForDay(state.streamDay);
     const nextGoal = stats.nextSubGoalDef;
-    const prevFloor = SUB_GOAL_STAGES[state.unlockedSubStage]?.subsRequired ?? 0;
+    const prevFloor = dayLadder[state.unlockedSubStage]?.subsRequired ?? 0;
     if (nextGoal) {
       this.obsSubgoalEl.classList.remove('completed');
       this.subgoalTargetNameEl.textContent = `${nextGoal.subsRequired} сабов — ${nextGoal.shortGoalTitle}`;
@@ -286,15 +299,16 @@ export class UiController {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
         state.streamDay === 2
-          ? 'День 2: чат требует «повтори как вчера» ★'
+          ? 'День 2: финал пробит — 5000 сабов! ★'
           : 'Финал Дня 1 пробит — 500 сабов! ★';
       this.subgoalCountEl.textContent = `${state.subscribers} сабов`;
       this.subgoalPctEl.textContent = '100% ★';
       this.subgoalFillEl.style.width = '100%';
     }
 
-    const stepLabels = ['10 Носки', '50 Легинсы', '200 Худи', '500 Тишка'];
-    const shortStepLabels = ['10', '50', '200', '500'];
+    const isDay2Plate = state.streamDay === 2;
+    const stepLabels = isDay2Plate ? DAY2_STEP_LABELS : DAY1_STEP_LABELS;
+    const shortStepLabels = isDay2Plate ? DAY2_SHORT_STEP_LABELS : DAY1_SHORT_STEP_LABELS;
     const isNarrow = window.innerWidth <= 680;
     this.subgoalStepEls.forEach((el, idx) => {
       const stepStage = idx + 1;
@@ -356,8 +370,8 @@ export class UiController {
     this.diaryHeadlineEl.textContent = stats.storyChapter.headline;
     this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
 
-    // Sub Goal Outfit Stage Cards (0 / 10 / 50 / 200 / 500 subs)
-    for (const st of SUB_GOAL_STAGES) {
+    // Sub Goal Outfit Stage Cards — the CURRENT DAY's ladder (10/50/200/500 or 1500/2000/2500/5000)
+    for (const st of dayLadder) {
       const card = this.outfitCards.get(st.stage);
       if (!card) continue;
       const unlocked = state.unlockedSubStage >= st.stage;
@@ -370,6 +384,8 @@ export class UiController {
           state.streamDay === 2 && st.stage === 0
             ? '✓ Сейчас в кадре (образ Дня 2)'
             : `✓ Сейчас в кадре (${st.subsRequired === 0 ? 'Старт' : `${st.subsRequired} сабов`})`;
+      } else if (unlocked && state.streamDay === 2) {
+        statusHtml = `Открыто (${st.subsRequired} сабов) • Надеть этот образ`;
       } else if (unlocked) {
         statusHtml = `Открыто (${st.subsRequired} сабов) • Нажмите, чтобы надеть`;
       } else {
@@ -381,17 +397,15 @@ export class UiController {
         <div>
           <div class="outfit-head">
             <span class="outfit-name">${
-              state.streamDay === 2 && st.day2OutfitName
-                ? st.day2OutfitName
-                : st.stage === 0
-                  ? 'Старт: Худи + носочки'
-                  : `${st.subsRequired} сабов: ${st.shortGoalTitle}`
+              st.stage === 0 && state.streamDay === 1
+                ? 'Старт: Худи + носочки'
+                : state.streamDay === 2
+                  ? `День 2 • ${st.subsRequired === 0 ? '' : `${st.subsRequired}: `}${st.outfitName}`
+                  : st.outfitName
             }</span>
             <span class="outfit-mult">x${st.incomeMultiplier.toFixed(2)}</span>
           </div>
-          <p class="outfit-desc">${
-            state.streamDay === 2 && st.day2StoryDesc ? st.day2StoryDesc : st.storyDesc
-          }</p>
+          <p class="outfit-desc">${st.storyDesc}</p>
         </div>
         <div class="outfit-req ${equipped ? 'active-tag' : ''}">${statusHtml}</div>
       `;

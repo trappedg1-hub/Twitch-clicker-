@@ -20,8 +20,8 @@ export interface HeroineTextures {
   fluster: Texture;
   tease: Texture;
   bold: Texture;
-  /** Day 2 opening outfit plate (oversize beige hoodie + shorts + striped golf socks). */
-  day2Stage0?: Texture;
+  /** Day 2 Sub Goal ladder plates (stages 0..4): hoodie tee-knot camisole bralette. */
+  day2Stages?: Texture[];
 }
 
 interface EnvelopeState {
@@ -78,7 +78,7 @@ export class HeroineRig {
 
   private stageTextures: Texture[];
   private readonly day1Stages: readonly Texture[];
-  private readonly day2Stage0Tex: Texture | null;
+  private readonly day2Textures: Texture[];
   private wardrobeDay: 1 | 2 = 1;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
@@ -136,7 +136,9 @@ export class HeroineRig {
   constructor(textures: HeroineTextures) {
     this.day1Stages = [...textures.stages];
     this.stageTextures = [...textures.stages];
-    this.day2Stage0Tex = textures.day2Stage0 ?? null;
+    this.day2Textures = textures.day2Stages && textures.day2Stages.length === textures.stages.length
+      ? [...textures.day2Stages]
+      : [...textures.stages];
     this.uprightBlinkTex = textures.blink;
 
     this.emotionTextures = {
@@ -223,24 +225,25 @@ export class HeroineRig {
   }
 
   /**
-   * Day 2 starts Miya back in a closed-ish everyday look (oversize beige hoodie, shorts,
-   * black golf socks with two white stripes) while every purchased upgrade stays on the desk.
+   * Day 2 swaps the WHOLE plate ladder (her own 1500/2000/2500/5000 goals) while every purchased
+   * upgrade stays on the desk. Day 2 starts with the closed everyday look: oversize beige pullover
+   * hoodie, shorts, black golf socks with two white stripes.
    */
   public setWardrobeDay(day: 1 | 2): void {
     if (this.wardrobeDay === day) return;
     this.wardrobeDay = day;
-    const day2Tex = this.day2Stage0Tex;
-    if (!day2Tex) return;
-    const base0 = this.day1Stages[0]!;
-    this.stageTextures = this.stageTextures.map((tex, idx) =>
-      idx === 0 ? (day === 2 ? day2Tex : base0) : tex,
-    );
+    this.stageTextures = day === 2 ? [...this.day2Textures] : [...this.day1Stages];
     const nextTex = this.stageTextures[this.currentStage] ?? this.stageTextures[0]!;
     if (this.mesh.texture !== nextTex) {
       this.mesh.texture = nextTex;
       this.applyPosePatchGeometry();
       this.triggerEmotion(day === 2 ? 'fluster' : 'shy', 2400);
     }
+  }
+
+  /** QA/debug: which Sub Goal stage plate is on screen right now (0..4). */
+  public getStageIndex(): SubGoalStageIndex {
+    return this.currentStage;
   }
 
   public getWardrobeDay(): 1 | 2 {

@@ -5,8 +5,8 @@ import {
   getGiftSubPackCost,
   getGiftSubUnitCost,
   getNextSubGoalDef,
+  getSubGoalStagesForDay,
   getSubGoalStageForSubs,
-  SUB_GOAL_STAGES,
 } from './subGoals.ts';
 import type {
   ChallengeId,
@@ -76,10 +76,12 @@ export function computeStats(state: GameState): ComputedStats {
     }
   }
 
-  // Economy always rewards the highest unlocked Sub Goal stage even if re-wearing an earlier layer
-  const unlockedStageDef = SUB_GOAL_STAGES[state.unlockedSubStage] ?? SUB_GOAL_STAGES[0]!;
-  const currentSubStageDef = SUB_GOAL_STAGES[state.displayedSubStage] ?? unlockedStageDef;
-  const nextSubGoalDef = getNextSubGoalDef(state.unlockedSubStage);
+  // Economy always rewards the highest unlocked Sub Goal stage even if re-wearing an earlier layer.
+  // Day 2 climbs its OWN ladder (1500/2000/2500/5000), so both lookups are day-aware.
+  const dayLadder = getSubGoalStagesForDay(state.streamDay);
+  const unlockedStageDef = dayLadder[state.unlockedSubStage] ?? dayLadder[0]!;
+  const currentSubStageDef = dayLadder[state.displayedSubStage] ?? unlockedStageDef;
+  const nextSubGoalDef = getNextSubGoalDef(state.unlockedSubStage, state.streamDay);
   const outfitMult = unlockedStageDef.incomeMultiplier;
 
   const effectiveBoldness = Math.max(
@@ -145,9 +147,13 @@ function resolveSubGoalUnlocks(state: GameState): {
   state: GameState;
   newlyUnlockedSubStages: SubGoalStageDef[];
 } {
+  const dayLadder = getSubGoalStagesForDay(state.streamDay);
+  // Day 1: the carried-over wardrobe floor keeps earlier stages unlocked. Day 2 re-earns its
+  // own stages from scratch (she starts dressed, then strips at 1500 / 2000 / 2500 / 5000).
+  const carriedFloor = state.streamDay === 1 ? (state.carriedOverWardrobeStage ?? 0) : 0;
   const targetStage = Math.max(
-    getSubGoalStageForSubs(state.subscribers),
-    state.carriedOverWardrobeStage ?? 0,
+    getSubGoalStageForSubs(state.subscribers, state.streamDay),
+    carriedFloor,
   ) as SubGoalStageIndex;
   if (targetStage <= state.unlockedSubStage) {
     return { state, newlyUnlockedSubStages: [] };
@@ -156,7 +162,7 @@ function resolveSubGoalUnlocks(state: GameState): {
   const newlyUnlockedSubStages: SubGoalStageDef[] = [];
   let addedBoldness = 0;
   for (let s = (state.unlockedSubStage + 1) as SubGoalStageIndex; s <= targetStage; s = (s + 1) as SubGoalStageIndex) {
-    const def = SUB_GOAL_STAGES[s];
+    const def = dayLadder[s];
     if (def) {
       newlyUnlockedSubStages.push(def);
       addedBoldness += def.boldnessBonus;
@@ -173,6 +179,15 @@ function resolveSubGoalUnlocks(state: GameState): {
   };
 
   return { state: nextState, newlyUnlockedSubStages };
+}
+
+/**
+ * QA/debug helper: jump the subscriber counter straight to `subs` and replay Sub Goal
+ * unlocks for the CURRENT day's ladder. Not used by gameplay (gifts go through buyGiftSubs).
+ */
+export function debugSetSubscribers(state: GameState, subs: number): GameState {
+  const next: GameState = { ...state, subscribers: Math.max(0, Math.floor(subs)) };
+  return resolveSubGoalUnlocks(next).state;
 }
 
 export function applyTap(
@@ -325,7 +340,9 @@ export function startDay2(state: GameState): { ok: boolean; state: GameState } {
       ...state,
       streamDay: 2,
       carriedOverWardrobeStage: carried,
-      unlockedSubStage: carried,
+      // Day 2 has its own Sub Goal ladder, so wardrobe progress restarts at stage 0 while
+      // balance, upgrades (mic tier!), items and boldness stay exactly where Day 1 left them.
+      unlockedSubStage: 0,
       displayedSubStage: 0, // Day 2 opens fully dressed again — in the Day 2 wardrobe plate!
       hype: 100,
     },
@@ -569,23 +586,24 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
       }
     }
     const subscribers = Math.max(0, Math.floor(Number(parsed.subscribers) || 0));
+    const rawDay = Number(parsed.streamDay);
+    const streamDay = rawDay === 2 ? 2 : 1;
     const rawCarried = Number(parsed.carriedOverWardrobeStage);
     const carriedOverWardrobeStage: SubGoalStageIndex = (
       Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4
         ? rawCarried
         : 0
     ) as SubGoalStageIndex;
+    const carriedFloor = streamDay === 1 ? carriedOverWardrobeStage : 0;
     const unlockedSubStage = Math.max(
-      getSubGoalStageForSubs(subscribers),
-      carriedOverWardrobeStage,
+      getSubGoalStageForSubs(subscribers, streamDay),
+      carriedFloor,
     ) as SubGoalStageIndex;
     const rawDisplayed = Number(parsed.displayedSubStage);
     const displayedSubStage: SubGoalStageIndex =
       Number.isInteger(rawDisplayed) && rawDisplayed >= 0 && rawDisplayed <= unlockedSubStage
         ? Math.min(4, rawDisplayed) as SubGoalStageIndex
         : unlockedSubStage;
-    const rawDay = Number(parsed.streamDay);
-    const streamDay = rawDay === 2 ? 2 : 1;
 
     return {
       streamDay,

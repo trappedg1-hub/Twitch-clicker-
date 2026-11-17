@@ -26,6 +26,7 @@ import {
   buyUpgrade,
   computeStats,
   createInitialState,
+  debugSetSubscribers,
   deserializeState,
   SAVE_STORAGE_KEY,
   selectDisplayedSubStage,
@@ -62,6 +63,7 @@ declare global {
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
       addFunds: (amount: number) => void;
+      setSubscribers: (count: number) => number;
       giftSubs: (count: 1 | 5 | 25) => boolean;
       setSubStage: (stage: SubGoalStageIndex) => boolean;
       buyUpgrade: (id: UpgradeId) => boolean;
@@ -475,6 +477,12 @@ export async function bootstrapApp(): Promise<void> {
           totalEarned: state.totalEarned + amount,
         };
         syncAll();
+      },
+      setSubscribers: (count: number) => {
+        state = debugSetSubscribers(state, count);
+        syncAll();
+        stage.app.render();
+        return state.subscribers;
       },
       giftSubs: (count: 1 | 5 | 25) => {
         const prevSubs = state.subscribers;

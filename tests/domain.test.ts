@@ -31,9 +31,14 @@ import {
   STREAM_CHALLENGES,
 } from '../src/domain/progression.ts';
 import {
+  DAY2_SUB_GOAL_STAGES,
+  getGiftSubUnitCost,
+  getSubGoalStageForSubs,
+  getSubGoalStagesForDay,
   pickShySubGoalApproachLine,
   SUB_GOAL_STAGES,
 } from '../src/domain/subGoals.ts';
+import { DAY1_FAREWELL_LINES, getStreamTitle } from '../src/domain/dialogue.ts';
 import type { TapZoneId } from '../src/domain/types.ts';
 import { getMicTier, getUpgradeCost, MIC_TIERS, TIER1_MILESTONES, TIER1_UPGRADES } from '../src/domain/upgrades.ts';
 
@@ -253,7 +258,8 @@ test('Day 1 finale at 500 subs carries ALL upgrades, wardrobe, balance & boldnes
   const d2 = day2.state;
   assert.equal(d2.streamDay, 2);
   assert.equal(d2.carriedOverWardrobeStage, 4);
-  assert.equal(d2.unlockedSubStage, 4);
+  // Day 2 has its own Sub Goal ladder (1500/2000/2500/5000), so the wardrobe stage restarts at 0.
+  assert.equal(d2.unlockedSubStage, 0);
   // Day 2 opens back in the new costume plate (stage 0 = Day 2 oversize-hoodie art),
   // while every Day 1 unlock stays available.
   assert.equal(d2.displayedSubStage, 0);
@@ -310,4 +316,117 @@ test('desk microphone upgrade goes Tier 1..10 with visuals on the desk', () => {
   assert.equal(buyUpgrade(s, 'desk_mic').ok, false);
   // Costs grow steeply toward Tier 10
   assert.ok(getUpgradeCost(TIER1_UPGRADES.find((u) => u.id === 'desk_mic')!, 9) > 5000);
+});
+
+test('Day 2 ladder: 1500 / 2000 / 2500 / 5000 subs, its own plates, rising fanservice', () => {
+  assert.equal(DAY2_SUB_GOAL_STAGES.length, 5);
+  assert.deepEqual(
+    DAY2_SUB_GOAL_STAGES.map((st) => st.subsRequired),
+    [0, 1500, 2000, 2500, 5000],
+  );
+  assert.equal(getSubGoalStagesForDay(1), SUB_GOAL_STAGES);
+  assert.equal(getSubGoalStagesForDay(2), DAY2_SUB_GOAL_STAGES);
+  assert.equal(getSubGoalStageForSubs(1499, 2), 0);
+  assert.equal(getSubGoalStageForSubs(1500, 2), 1);
+  assert.equal(getSubGoalStageForSubs(2499, 2), 2);
+  assert.equal(getSubGoalStageForSubs(5000, 2), 4);
+  // Day 1 thresholds must not leak into Day 2 (624 subs used to instantly strip her!)
+  assert.equal(getSubGoalStageForSubs(624, 2), 0);
+  assert.equal(getSubGoalStageForSubs(624, 1), 4);
+
+  // Every stage has its own Day 2 plate, and the multiplier/pacing strictly grow.
+  DAY2_SUB_GOAL_STAGES.forEach((st, idx) => {
+    assert.equal(st.plateUrl, `/art/heroine_t2_s${idx}.webp`);
+    if (idx > 0) {
+      assert.ok(st.incomeMultiplier > DAY2_SUB_GOAL_STAGES[idx - 1]!.incomeMultiplier);
+      assert.ok(st.boldnessBonus > DAY2_SUB_GOAL_STAGES[idx - 1]!.boldnessBonus);
+      assert.ok(st.unlockLine.length > 40);
+      assert.ok(st.shortGoalTitle.length > 4);
+    }
+  });
+
+  // Costume logic: zipper-less pullover, golf socks stay ON until the very last stage.
+  for (const st of DAY2_SUB_GOAL_STAGES) {
+    const blob = [
+      st.shortGoalTitle,
+      st.outfitName,
+      st.removedItemLabel,
+      st.storyDesc,
+      st.unlockLine,
+      ...st.shyApproachLines,
+      ...st.chatCascade.map((m) => m.text),
+    ]
+      .join(' ')
+      .toLowerCase();
+    assert.ok(!blob.includes('молни'), `pullover hoodie has no zipper: ${st.shortGoalTitle}`);
+    assert.ok(!blob.includes('застёжк'), `no fasteners on the hoodie: ${st.shortGoalTitle}`);
+    const socksOn = st.stage >= 1 && st.stage <= 3;
+    if (socksOn) {
+      assert.ok(blob.includes('гольф'), `stage ${st.stage} must keep the golf socks on`);
+    } else if (st.stage === 4) {
+      assert.ok(
+        blob.includes('гольф') || blob.includes('босы'),
+        'the finale is where the golf socks finally come off',
+      );
+      assert.ok(blob.includes('босы'), 'finale plate is barefoot');
+      assert.ok(!blob.includes('на месте'), 'finale must not claim the socks are still on');
+    }
+  }
+
+  // No invented garments: the Day 2 wardrobe stays hoodie + shorts + golf socks (top layers
+  // only get removed or re-tied — nothing like a dress or a skirt may ever appear in the copy).
+  const forbidden = ['платье', 'платьиц', 'юбк', 'сарафан', 'халат', 'комбинезон', 'молни'];
+  for (const st of DAY2_SUB_GOAL_STAGES) {
+    const blob = [
+      st.shortGoalTitle,
+      st.outfitName,
+      st.removedItemLabel,
+      st.storyDesc,
+      st.unlockLine,
+      ...st.shyApproachLines,
+      ...st.chatCascade.map((msg) => msg.text),
+      ...DAY2_OPENING_LINE,
+      ...DAY2_SHAME_LINES,
+    ]
+      .join(' ')
+      .toLowerCase();
+    for (const word of forbidden) {
+      assert.ok(!blob.includes(word), `Day 2 copy must not invent "${word}": ${st.shortGoalTitle}`);
+    }
+  }
+
+  // Gift-sub pricing keeps up with the Day 2 grind.
+  assert.equal(getGiftSubUnitCost(499), 75);
+  assert.equal(getGiftSubUnitCost(500), 110);
+  assert.equal(getGiftSubUnitCost(2000), 150);
+  assert.equal(getGiftSubUnitCost(4999), 195);
+  assert.equal(getGiftSubUnitCost(5000), 240);
+});
+
+test('Day 1 farewell is a plain sweet goodbye: no sock bragging, no carry-over lecture', () => {
+  assert.ok(DAY1_FAREWELL_LINES.length >= 4);
+  for (const line of DAY1_FAREWELL_LINES) {
+    const low = line.toLowerCase();
+    assert.ok(!low.includes('носо'), `farewell must not talk about socks: ${line}`);
+    assert.ok(!low.includes('гольф'), `farewell must not list her socks: ${line}`);
+    assert.ok(!low.includes('звезд'), 'no "star of the stream" bragging');
+    assert.ok(!low.includes('улучшен'), 'no upgrade/carry-over talk in the farewell');
+    assert.ok(!low.includes('переезжа'), 'no carry-over talk in the farewell');
+    assert.ok(!low.includes('баланс'), 'no balance talk in the farewell');
+  }
+  // She is shy: her own lines barely mention socks/legs gear, the chat does the shouting.
+  const herLines = [DAY2_OPENING_LINE, ...DAY2_SHAME_LINES];
+  let sockTalk = 0;
+  for (const line of herLines) {
+    if (line.toLowerCase().includes('носо')) sockTalk += 1;
+  }
+  assert.equal(sockTalk, 0, 'Day 2 shame arc must not repeat sock talk from her');
+});
+
+test('stream titles follow the day (Day 1 socks goal vs Day 2 5000 subs finale)', () => {
+  assert.ok(getStreamTitle(0, 3, 1).includes('/10'));
+  assert.ok(getStreamTitle(0, 600, 2).includes('1500'));
+  assert.ok(getStreamTitle(3, 4000, 2).includes('5000'));
+  assert.ok(getStreamTitle(4, 5000, 2).includes('ФИНАЛ ДНЯ 2'));
+  assert.ok(getStreamTitle(4, 500, 1).includes('ПЕРВОГО ДНЯ'));
 });

@@ -191,6 +191,100 @@ const ambient = await page.evaluate(() => {
 console.log('E2 chat day2', JSON.stringify(ambient));
 await page.evaluate(() => window.__qaScene.switchTab('stream'));
 
+// ---------- H) Day 2 Sub Goal ladder: 1500 / 2000 / 2500 / 5000 ----------
+const ladderSnap = (label) =>
+  page.evaluate(
+    (lbl) => {
+      const qa = window.__qaScene;
+      const st = qa.getState();
+      const plate = qa.getDeskMicDebug?.().plate ?? '';
+      const chips = Array.from(document.querySelectorAll('#subgoal-steps-row .goal-step')).map((n) =>
+        (n.textContent ?? '').trim(),
+      );
+      const mic = qa.getDeskMicDebug();
+      return {
+        lbl,
+        subs: st.subscribers,
+        day: st.streamDay,
+        unlocked: st.unlockedSubStage,
+        displayed: st.displayedSubStage,
+        plate,
+        goal: (document.getElementById('subgoal-target-name')?.textContent ?? '').trim(),
+        chips,
+        speech: (document.getElementById('speech-subtitle')?.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 60),
+        micBehind: mic.behindHeroine,
+        micX: mic.x,
+        micClippedRight: mic.x + mic.width / 2 > mic.visibleRight,
+        outfitCard0: (
+          document.querySelector('#outfits-grid .outfit-card')?.textContent ?? ''
+        )
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 60),
+        outfitCards: Array.from(document.querySelectorAll('#outfits-grid .outfit-card')).map((n) =>
+          [
+            (n.querySelector('.outfit-name')?.textContent ?? '').trim(),
+            (n.querySelector('.outfit-req')?.textContent ?? '').trim(),
+          ].join(' | '),
+        ),
+      };
+    },
+    label,
+  );
+
+const climb = (target) =>
+  page.evaluate((t) => {
+    // QA-only setter: no chat flood, no money grind — just replay the day's ladder.
+    window.__qaScene.setSubscribers(t);
+  }, target);
+
+console.log('H day2 start', JSON.stringify(await ladderSnap('day2-start')));
+await climb(1500);
+await page.waitForTimeout(900);
+const h1 = await ladderSnap('1500');
+console.log('H stage1', JSON.stringify(h1));
+await shot('final_H1_day2_1500');
+if (h1.displayed !== 1 || !String(h1.plate).includes('heroine_t2_s1')) {
+  errors.push(`Day 2 stage 1 (1500 subs) did not swap the plate: ${JSON.stringify(h1)}`);
+}
+if (!h1.micBehind) errors.push('Desk mic is drawn OVER the heroine plate — it must sit behind her');
+
+for (const [goal, expect] of [[2000, 'heroine_t2_s2'], [2500, 'heroine_t2_s3']]) {
+  await climb(goal);
+  await page.waitForTimeout(700);
+  const mid = await ladderSnap(String(goal));
+  console.log(`H stage${goal}`, JSON.stringify(mid));
+  await shot(`final_H_day2_${goal}`);
+  if (!String(mid.plate).includes(expect)) {
+    errors.push(`Day 2 ${goal} subs must show ${expect}, got ${mid.plate}`);
+  }
+}
+
+await climb(5000);
+await page.waitForTimeout(1400);
+const h4 = await ladderSnap('5000');
+console.log('H finale', JSON.stringify(h4));
+await shot('final_H2_day2_finale');
+if (h4.unlocked !== 4 || !String(h4.plate).includes('heroine_t2_s4')) {
+  errors.push(`Day 2 finale (5000 subs) plate not applied: ${JSON.stringify(h4)}`);
+}
+if (JSON.stringify(h4.chips) !== JSON.stringify(['✓ 1500 Худи', '✓ 2000 Талия', '✓ 2500 Лямки', '✓ 5000 Гольфы'])) {
+  errors.push(`Day 2 chip row wrong at the finale: ${JSON.stringify(h4.chips)}`);
+}
+if (!h4.chips.every((c) => c.startsWith('\u2713'))) {
+  errors.push(`Day 2 sub goal chips not all done at 5000 subs: ${JSON.stringify(h4.chips)}`);
+}
+if (!String(h4.outfitCards?.[4] ?? '').includes('Сейчас в кадре')) {
+  errors.push(`Day 2 finale outfit card not marked equipped: ${JSON.stringify(h4.outfitCards)}`);
+}
+if (!/босы|гольф/.test(String(h4.outfitCards?.[4] ?? '').toLowerCase())) {
+  errors.push(`Day 2 finale card must describe the socks coming off: ${h4.outfitCards?.[4]}`);
+}
+if (/носки|носочк/.test(h4.speech)) {
+  errors.push(`Day 2 unlock speech still talks about socks: ${h4.speech}`);
+}
+await page.evaluate(() => window.__qaScene.switchTab('stream'));
+
 // ---------- F) Mobile Day 2 look ----------
 await load(390, 844);
 m = await page.evaluate(() => {

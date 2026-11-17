@@ -13,7 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { SUB_GOAL_STAGES } from '../domain/subGoals.ts';
+import { getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -116,7 +116,6 @@ export class StreamStage {
       micT8Tex,
       micT9Tex,
       micT10Tex,
-      day2Tex,
     ] = await Promise.all([
       Assets.load<Texture>('/art/bg_room_t1.webp'),
       Assets.load<Texture>('/art/heroine_t1_s0.webp'),
@@ -140,8 +139,12 @@ export class StreamStage {
       Assets.load<Texture>('/art/mics/mic_t8.webp'),
       Assets.load<Texture>('/art/mics/mic_t9.webp'),
       Assets.load<Texture>('/art/mics/mic_t10.webp'),
-      Assets.load<Texture>(SUB_GOAL_STAGES[0]?.day2PlateUrl ?? '/art/heroine_t2_s0.webp'),
     ]);
+
+    // The whole Day 2 ladder (5 plates) loads separately so the tuple types above stay exact.
+    const day2StagesTex = await Promise.all(
+      getSubGoalStagesForDay(2).map((def) => Assets.load<Texture>(def.plateUrl)),
+    );
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
@@ -197,7 +200,7 @@ export class StreamStage {
       fluster: flusterTex,
       tease: teaseTex,
       bold: boldTex,
-      day2Stage0: day2Tex,
+      day2Stages: day2StagesTex,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -229,6 +232,9 @@ export class StreamStage {
     this.micHolder.addChild(this.deskMicSprite);
     this.micHolder.position.set(this.micAnchorX(), StreamStage.MIC_BASE_Y);
     this.root.addChild(this.micHolder);
+    // Drawn just UNDER the heroine plate: the mic pokes in from the right corner of the desk and
+    // can never cover her, even when the portrait crop leaves no free strip at the edge.
+    this.root.setChildIndex(this.micHolder, this.root.getChildIndex(this.rig.view) - 1);
 
     // Layer 3: Click Heart / Ruble Popups
     this.root.addChild(this.fxLayer);
@@ -272,7 +278,9 @@ export class StreamStage {
     const half = this.deskMicSprite ? this.deskMicSprite.width / 2 : 88;
     const bounds = this.getVisibleVirtualBounds();
     const minSafe = StreamStage.VIRTUAL_W * 0.5 + 130;
-    return Math.max(minSafe, Math.min(StreamStage.MIC_X, bounds.right - half - 8));
+    // Let the far side of the mic run past the visible right edge (30% of its half-width) so it
+    // peeks from behind the corner instead of being paraded in front of Miya on narrow screens.
+    return Math.max(minSafe, Math.min(StreamStage.MIC_X, bounds.right - half * 0.3));
   }
 
   /** QA/debug helper: where the desk mic actually stands relative to the visible frame. */
@@ -283,6 +291,8 @@ export class StreamStage {
     visible: boolean;
     visibleLeft: number;
     visibleRight: number;
+    behindHeroine: boolean;
+    plate: string;
   } {
     const bounds = this.getVisibleVirtualBounds();
     return {
@@ -292,7 +302,18 @@ export class StreamStage {
       visible: Boolean(this.deskMicSprite && this.deskMicSprite.visible),
       visibleLeft: Math.round(bounds.left),
       visibleRight: Math.round(bounds.right),
+      behindHeroine:
+        this.root.getChildIndex(this.micHolder) < this.root.getChildIndex(this.rig.view),
+      plate: this.getActivePlateName(),
     };
+  }
+
+  /** QA/debug: file name of the plate currently shown for the current day + stage. */
+  public getActivePlateName(): string {
+    const day = (this.rig?.getWardrobeDay() ?? 1) === 2 ? 2 : 1;
+    const stage = this.rig?.getStageIndex() ?? 0;
+    const url = getSubGoalStagesForDay(day)[stage]?.plateUrl ?? '';
+    return String(url).split('/').pop() ?? '';
   }
 
   public setRingLampLevel(level: number): void {
