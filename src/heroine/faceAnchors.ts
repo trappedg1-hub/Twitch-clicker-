@@ -24,8 +24,10 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   // canonical scale there, so an overlay authored for the Day 1 face would land on her cheekbone
   // or her neck. Every Day 3 plate is therefore in FACE_PATCH_COVERED_PLATES below, and these
   // boxes are the measured faces, kept for the debug overlay only.
-  "heroine_t3_s0.webp": { x: 392, y: 188, w: 340, h: 296 },
-  "heroine_t3_s1.webp": { x: 404, y: 196, w: 336, h: 288 },
+  // s0/s1 were re-measured after their raws were re-framed for the desk (t3_dsk_a1/a2): the face
+  // band here is the skin visible through the torn eye holes, rows 120-520 only.
+  "heroine_t3_s0.webp": { x: 413, y: 208, w: 224, h: 300 },
+  "heroine_t3_s1.webp": { x: 396, y: 200, w: 240, h: 300 },
   "heroine_t3_s2.webp": { x: 560, y: 208, w: 300, h: 260 },
   "heroine_t3_s3.webp": { x: 408, y: 176, w: 368, h: 300 },
   "heroine_t3_s4.webp": { x: 396, y: 176, w: 396, h: 288 },
