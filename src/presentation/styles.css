@@ -58,13 +58,25 @@ body,
   display: block;
 }
 
+/* Unified Top HUD Row — Physically Impossible for Left Sub Goal & Right Status Badges to Collide */
+.stage-top-hud {
+  position: absolute;
+  top: 12px;
+  left: 14px;
+  right: 14px;
+  z-index: 9;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  pointer-events: none;
+}
+
 /* Authentic Top-Left Twitch / StreamElements Creator Sub Goal Overlay */
 .obs-subgoal {
-  position: absolute;
-  top: 14px;
-  left: 16px;
-  z-index: 9;
-  width: min(376px, 37vw);
+  position: relative;
+  flex: 0 1 368px;
+  min-width: 0;
   background: rgba(24, 24, 27, 0.9);
   border: 1px solid rgba(169, 112, 255, 0.35);
   border-left: 3px solid #9147ff;
@@ -153,11 +165,19 @@ body,
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   font-size: 10.5px;
   font-weight: 800;
   color: #fff;
+  white-space: nowrap;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
   font-variant-numeric: tabular-nums;
+}
+
+.tw-goal-nums {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tw-goal-pct {
@@ -196,10 +216,8 @@ body,
 
 /* Authentic Top-Right Twitch Video Player Status Badges */
 .tw-player-top-right {
-  position: absolute;
-  top: 14px;
-  right: 16px;
-  z-index: 9;
+  position: relative;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -584,12 +602,15 @@ body,
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .channel-name {
   font-size: 15px;
   font-weight: 800;
   color: #fff;
+  flex-shrink: 0;
 }
 
 .verified-icon {
@@ -607,6 +628,9 @@ body,
   padding: 1px 7px;
   border-radius: 999px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .stream-title {
@@ -625,6 +649,14 @@ body,
   gap: 6px;
   margin-top: 3px;
   font-size: 11px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1440px) {
+  .category-link,
+  .category-link + .dot-sep {
+    display: none;
+  }
 }
 
 .category-link {
@@ -707,6 +739,10 @@ body,
   height: 3px;
   border-radius: 3px 3px 0 0;
   background: var(--twitch-purple);
+}
+
+.tab-label-short {
+  display: none;
 }
 
 .tab-notify-dot {
@@ -942,14 +978,19 @@ body,
   background: linear-gradient(90deg, #9147ff, #ff4da6);
 }
 
-/* Optional Expandable Tab Drawer (floats cleanly right above channel-bar without resizing WebGL canvas!) */
+/* Optional Expandable Tab Drawer (floats cleanly above channel-bar on wide desktop, docks in-flow on mobile/tablet) */
 .tab-drawer {
   position: absolute;
   bottom: 100%;
   left: 0;
   right: 0;
-  height: 186px;
-  overflow: hidden;
+  min-height: 192px;
+  max-height: min(240px, 40dvh);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
   z-index: 20;
   background: linear-gradient(180deg, rgba(24, 24, 29, 0.98), rgba(14, 14, 18, 0.99));
   border-top: 2px solid #9147ff;
@@ -967,6 +1008,7 @@ body,
 .tab-panel {
   display: none;
   width: 100%;
+  min-width: 0;
 }
 
 .tab-panel.active {
@@ -979,11 +1021,13 @@ body,
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(76px, 1fr);
   gap: 10px;
 }
 
 .upgrade-card {
+  min-width: 0;
+  overflow: hidden;
   background: #1f1f25;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -1179,11 +1223,13 @@ body,
   width: 100%;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(78px, 1fr);
   gap: 10px;
 }
 
 .outfit-card {
+  min-width: 0;
+  overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 9px;
@@ -1191,6 +1237,7 @@ body,
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 4px;
 }
 
 .outfit-card.equipped {
@@ -1303,11 +1350,13 @@ body,
 .challenges-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: minmax(76px, 1fr);
   gap: 8px;
 }
 
 .challenge-card {
+  min-width: 0;
+  overflow: hidden;
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: 9px;
@@ -1315,6 +1364,7 @@ body,
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: 4px;
   cursor: pointer;
   text-align: left;
   color: inherit;
@@ -1365,7 +1415,7 @@ body,
 }
 
 body.drawer-open .speech-subtitle {
-  bottom: 194px;
+  bottom: 202px;
   font-size: 12.5px;
   max-width: min(860px, 78vw);
   white-space: nowrap;
@@ -1374,12 +1424,12 @@ body.drawer-open .speech-subtitle {
 }
 
 body.drawer-open .obs-chat-overlay {
-  bottom: 198px;
+  bottom: 206px;
 }
 
 @media (max-width: 1120px) {
   .channel-bar {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     height: auto;
     padding: 8px 12px;
     row-gap: 6px;
@@ -1389,3 +1439,311 @@ body.drawer-open .obs-chat-overlay {
     height: 36px;
   }
 }
+
+/* Tablet & Mobile Portrait Responsive Overhaul (Zero Overlaps!) */
+@media (max-width: 960px) {
+  .upgrades-grid,
+  .outfits-grid,
+  .challenges-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-rows: auto;
+  }
+
+  .story-split {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .tw-alert-card {
+    top: 88px;
+    max-width: min(380px, 90vw);
+  }
+}
+
+@media (max-width: 820px) {
+  /* Dock tab-drawer cleanly in-flow below stream stage so stream stays unobstructed & drawer scrolls smoothly */
+  .tab-drawer {
+    position: relative;
+    bottom: auto;
+    min-height: 0;
+    max-height: 34dvh;
+    padding: 10px 12px;
+    box-shadow: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  body.drawer-open .speech-subtitle {
+    bottom: 7px;
+  }
+
+  body.drawer-open .obs-chat-overlay {
+    bottom: 30px;
+  }
+}
+
+@media (max-width: 680px) {
+  .stage-top-hud {
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    gap: 6px;
+  }
+
+  .obs-subgoal {
+    flex: 1 1 auto;
+    max-width: calc(100% - 148px);
+    padding: 6px 8px;
+    gap: 4px;
+  }
+
+  .tw-goal-icon-badge {
+    width: 21px;
+    height: 21px;
+  }
+
+  .tw-star-svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .tw-goal-kicker {
+    font-size: 8px;
+  }
+
+  .tw-goal-main {
+    font-size: 11px;
+  }
+
+  .tw-goal-bar-wrap {
+    height: 17px;
+  }
+
+  .tw-goal-bar-labels {
+    padding: 0 6px;
+    font-size: 9.5px;
+  }
+
+  .goal-step {
+    font-size: 8.5px;
+    padding: 1px 2px;
+  }
+
+  .tw-player-top-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+
+  .tw-quality-badge,
+  .tw-hype-pill .hype-bar-track {
+    display: none;
+  }
+
+  .tw-live-corner-badge {
+    font-size: 9.5px;
+    padding: 3px 7px;
+  }
+
+  .tw-hype-pill {
+    padding: 3px 7px;
+    font-size: 9.5px;
+  }
+
+  .obs-chat-overlay {
+    left: 8px;
+    right: auto;
+    bottom: 28px;
+    width: min(230px, 60vw);
+    height: min(104px, 28%);
+  }
+
+  .chat-msg {
+    font-size: 11px;
+    line-height: 1.28;
+  }
+
+  .tw-emote {
+    width: 19px;
+    height: 19px;
+    vertical-align: -4px;
+  }
+
+  .speech-subtitle {
+    bottom: 5px;
+    max-width: 92vw;
+    font-size: 11.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Clean 3-row mobile Twitch channel bar where Balance, Viewers, Gift Subs, and ALL 4 Tabs fit 100% */
+  .channel-bar {
+    grid-template-columns: 1fr;
+    padding: 7px 10px 6px;
+    gap: 6px;
+  }
+
+  .avatar-ring-wrap,
+  .channel-avatar-img {
+    width: 38px;
+    height: 38px;
+  }
+
+  .channel-info {
+    gap: 9px;
+  }
+
+  .channel-name {
+    font-size: 13.5px;
+  }
+
+  .stage-pill {
+    font-size: 9.5px;
+    padding: 1px 6px;
+  }
+
+  .stream-title {
+    font-size: 11px;
+  }
+
+  .category-link,
+  .category-link + .dot-sep {
+    display: none;
+  }
+
+  .boldness-track {
+    width: 64px;
+  }
+
+  .stream-metrics {
+    width: 100%;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .tw-gift-group {
+    height: 31px;
+  }
+
+  .tw-sub-btn-primary {
+    padding: 0 7px;
+    gap: 4px;
+    font-size: 11px;
+  }
+
+  .tw-gift-svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .tw-sub-price {
+    padding: 1px 4px;
+    font-size: 10px;
+  }
+
+  .tw-sub-btn-split {
+    padding: 0 6px;
+    font-size: 9.5px;
+  }
+
+  .tw-sub-btn-split small {
+    font-size: 8px;
+  }
+
+  .viewer-goal,
+  .mini-goal-track {
+    display: none;
+  }
+
+  .viewer-counter {
+    gap: 4px;
+  }
+
+  .viewer-svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .viewer-num {
+    font-size: 12.5px;
+  }
+
+  .wallet-pill {
+    padding: 3px 7px;
+    border-radius: 6px;
+  }
+
+  .wallet-label {
+    font-size: 8px;
+  }
+
+  .wallet-val {
+    font-size: 12.5px;
+  }
+
+  .wallet-rate {
+    font-size: 8.5px;
+  }
+
+  .twitch-tabs {
+    width: 100%;
+    height: 34px;
+    justify-content: space-between;
+    gap: 2px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .tw-tab {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 0 4px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+
+  .tab-label-full {
+    display: none;
+  }
+
+  .tab-label-short {
+    display: inline;
+  }
+
+  /* 1-column spacious Upgrades on mobile portrait — zero overlap! */
+  .upgrades-grid {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .upgrade-card {
+    padding: 7px 9px;
+    gap: 8px;
+  }
+
+  /* 2-column spacious Sub Goal Outfits & Challenges on mobile portrait — zero overlap! */
+  .outfits-grid,
+  .challenges-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .outfit-name {
+    font-size: 10.8px;
+    line-height: 1.2;
+  }
+
+  .outfit-head {
+    align-items: flex-start;
+  }
+
+  .outfit-mult {
+    flex-shrink: 0;
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+}
+

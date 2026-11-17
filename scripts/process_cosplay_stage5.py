@@ -18,10 +18,10 @@ OUT_DIR = ROOT / "public" / "art"
 QA_DIR = ROOT / ".qa-out"
 
 # Portrait crop box in 848x1264 raw coordinates used for head expression generation
-HEAD_CROP_BOX = (237, 203, 627, 593)
+HEAD_CROP_BOX = (237, 175, 627, 565)
 
 # Patch crop coordinates in the 1024x1526 target space for Stage 5 Dark Sorceress head
-S5_PX, S5_PY, S5_PW, S5_PH = 368, 316, 304, 292
+S5_PX, S5_PY, S5_PW, S5_PH = 368, 282, 304, 296
 
 
 def stitch_head_expression(master_rgb: np.ndarray, head_expr_path: Path) -> np.ndarray:
@@ -157,10 +157,10 @@ def main() -> None:
     target_size = base_webp.size  # (1024, 1526)
     W, H = target_size
 
-    master_rgb = np.array(Image.open(RAW_DIR / "t1_stage5_s1style.png").convert("RGB"))
-    blink_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_s1style_blink.png")
-    tease_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_s1style_tease.png")
-    fluster_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_s1style_fluster.png")
+    master_rgb = np.array(Image.open(RAW_DIR / "t1_stage5_canon_witch.png").convert("RGB"))
+    blink_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_canon_blink.png")
+    tease_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_canon_tease.png")
+    fluster_rgb = stitch_head_expression(master_rgb, RAW_DIR / "s5_canon_fluster.png")
 
     s5_base_rgba = remove_plum_matte_witch(master_rgb, target_size)
     s5_blink_rgba = remove_plum_matte_witch(blink_rgb, target_size)

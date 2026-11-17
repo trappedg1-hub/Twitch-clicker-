@@ -191,14 +191,14 @@ export class HeroineRig {
 
   private applyPosePatchGeometry(): void {
     if (this.currentStage === 5) {
-      this.emotionSprite.position.set(368, 316);
+      this.emotionSprite.position.set(368, 282);
       this.emotionSprite.width = 304;
-      this.emotionSprite.height = 292;
+      this.emotionSprite.height = 296;
       this.emotionSprite.texture = this.s5EmotionTextures[this.activeEmotion];
 
-      this.blinkSprite.position.set(368, 316);
+      this.blinkSprite.position.set(368, 282);
       this.blinkSprite.width = 304;
-      this.blinkSprite.height = 292;
+      this.blinkSprite.height = 296;
       this.blinkSprite.texture = this.s5BlinkTex;
       this.boldRestSprite.visible = false;
     } else {
@@ -471,8 +471,8 @@ export class HeroineRig {
     const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
     const headArchY = -this.archDisp * 0.25;
     if (isS5) {
-      this.emotionSprite.position.set(368 + headSwayX, 316 + headArchY);
-      this.blinkSprite.position.set(368 + headSwayX, 316 + headArchY);
+      this.emotionSprite.position.set(368 + headSwayX, 282 + headArchY);
+      this.blinkSprite.position.set(368 + headSwayX, 282 + headArchY);
     } else {
       this.boldRestSprite.position.set(338 + headSwayX, 61 + headArchY);
       this.emotionSprite.position.set(338 + headSwayX, 61 + headArchY);

@@ -43,7 +43,6 @@ export class UiController {
   private readonly subgoalStepEls = Array.from(
     document.querySelectorAll<HTMLElement>('#subgoal-steps-row .goal-step'),
   );
-  private readonly moodIndicatorEl = document.getElementById('mood-indicator-label')!;
   private readonly giftBtn1El = document.getElementById('btn-gift-sub-1') as HTMLButtonElement;
   private readonly giftBtn5El = document.getElementById('btn-gift-sub-5') as HTMLButtonElement;
   private readonly giftBtn25El = document.getElementById('btn-gift-sub-25') as HTMLButtonElement;
@@ -212,25 +211,17 @@ export class UiController {
     }
 
     const stepLabels = ['10 Носки', '50 Легинсы', '200 Худи', '500 Тишка', '1000 Косп.'];
+    const shortStepLabels = ['10', '50', '200', '500', '1K'];
+    const isNarrow = window.innerWidth <= 680;
     this.subgoalStepEls.forEach((el, idx) => {
       const stepStage = idx + 1;
       const done = state.unlockedSubStage >= stepStage;
       const active = state.unlockedSubStage + 1 === stepStage;
       el.classList.toggle('done', done);
       el.classList.toggle('active', active);
-      el.textContent = done ? `✓ ${stepLabels[idx]}` : stepLabels[idx]!;
+      const lbl = isNarrow ? shortStepLabels[idx]! : stepLabels[idx]!;
+      el.textContent = done ? `✓${isNarrow ? '' : ' '}${lbl}` : lbl;
     });
-
-    // Top-right mood badge reflecting shyness -> boldness arc
-    if (stats.boldness < 25) {
-      this.moodIndicatorEl.textContent = 'В панике стесняется';
-    } else if (stats.boldness < 55) {
-      this.moodIndicatorEl.textContent = 'Заливается румянцем';
-    } else if (stats.boldness < 82) {
-      this.moodIndicatorEl.textContent = 'Игриво кокетничает';
-    } else {
-      this.moodIndicatorEl.textContent = 'Полностью раскрепощена ♥';
-    }
 
     const cost1 = getGiftSubPackCost(state.subscribers, 1);
     const cost5 = getGiftSubPackCost(state.subscribers, 5);

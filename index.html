@@ -11,37 +11,55 @@
       <main class="stage-shell">
         <div id="stream-stage-host" class="stream-stage-host"></div>
 
-        <!-- Authentic Twitch / StreamElements OBS Creator Sub Goal Overlay (Top-Left) -->
-        <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель подписок канала">
-          <div class="tw-goal-header">
-            <div class="tw-goal-icon-badge" aria-hidden="true">
-              <svg viewBox="0 0 20 20" class="tw-star-svg">
-                <path
-                  fill="currentColor"
-                  d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
-                />
-              </svg>
+        <!-- Unified Non-Overlapping Top HUD Row (Sub Goal Left + Status Badges Right) -->
+        <div class="stage-top-hud">
+          <!-- Authentic Twitch / StreamElements OBS Creator Sub Goal Overlay (Top-Left) -->
+          <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель подписок канала">
+            <div class="tw-goal-header">
+              <div class="tw-goal-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 20 20" class="tw-star-svg">
+                  <path
+                    fill="currentColor"
+                    d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
+                  />
+                </svg>
+              </div>
+              <div class="tw-goal-titles">
+                <span class="tw-goal-kicker">SUB GOAL КАНАЛА</span>
+                <span id="subgoal-target-name" class="tw-goal-main">Снять носочки</span>
+              </div>
             </div>
-            <div class="tw-goal-titles">
-              <span class="tw-goal-kicker">SUB GOAL КАНАЛА</span>
-              <span id="subgoal-target-name" class="tw-goal-main">Снять носочки</span>
+
+            <div class="tw-goal-bar-wrap">
+              <div id="subgoal-fill" class="tw-goal-bar-fill"></div>
+              <div class="tw-goal-bar-labels">
+                <span id="subgoal-count" class="tw-goal-nums">0 / 10 сабов</span>
+                <span id="subgoal-pct" class="tw-goal-pct">0%</span>
+              </div>
+            </div>
+
+            <div id="subgoal-steps-row" class="tw-goal-steps">
+              <span class="goal-step active" data-step="1">10 Носки</span>
+              <span class="goal-step" data-step="2">50 Легинсы</span>
+              <span class="goal-step" data-step="3">200 Худи</span>
+              <span class="goal-step" data-step="4">500 Тишка</span>
+              <span class="goal-step" data-step="5">1000 Косп.</span>
             </div>
           </div>
 
-          <div class="tw-goal-bar-wrap">
-            <div id="subgoal-fill" class="tw-goal-bar-fill"></div>
-            <div class="tw-goal-bar-labels">
-              <span id="subgoal-count" class="tw-goal-nums">0 / 10 сабов</span>
-              <span id="subgoal-pct" class="tw-goal-pct">0%</span>
+          <!-- Authentic Top-Right Twitch Player Status Badges (Hype Multiplier + 1080p60 + LIVE — no duplicate boldness!) -->
+          <div class="tw-player-top-right" aria-label="Статус трансляции">
+            <div class="tw-hype-pill" title="Множитель хайпа чата">
+              <span class="tw-hype-tag">ХАЙП <strong id="stat-hype-mult">x1.00</strong></span>
+              <div class="hype-bar-track">
+                <div id="stat-hype-fill" class="hype-bar-fill"></div>
+              </div>
             </div>
-          </div>
-
-          <div id="subgoal-steps-row" class="tw-goal-steps">
-            <span class="goal-step active" data-step="1">10 Носки</span>
-            <span class="goal-step" data-step="2">50 Легинсы</span>
-            <span class="goal-step" data-step="3">200 Худи</span>
-            <span class="goal-step" data-step="4">500 Тишка</span>
-            <span class="goal-step" data-step="5">1000 Косп.</span>
+            <div class="tw-quality-badge">1080p60</div>
+            <div class="tw-live-corner-badge">
+              <span class="tw-live-dot"></span>
+              В ЭФИРЕ
+            </div>
           </div>
         </div>
 
@@ -61,23 +79,6 @@
               <div class="alert-amount" id="donation-alert-amount">★ НОВЫЙ ДОНАТ +45 ₽</div>
               <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
             </div>
-          </div>
-        </div>
-
-        <!-- Authentic Top-Right Twitch Player Status Badges (LIVE + 1080p60 + Hype Train Pill) -->
-        <div class="tw-player-top-right" aria-label="Статус трансляции">
-          <div class="tw-hype-pill" title="Эмоция Мии и множитель хайпа чата">
-            <span id="mood-indicator-label" class="tw-mood-label">Смущается</span>
-            <span class="tw-hype-sep">•</span>
-            <span class="tw-hype-tag">ХАЙП <strong id="stat-hype-mult">x1.00</strong></span>
-            <div class="hype-bar-track">
-              <div id="stat-hype-fill" class="hype-bar-fill"></div>
-            </div>
-          </div>
-          <div class="tw-quality-badge">1080p60</div>
-          <div class="tw-live-corner-badge">
-            <span class="tw-live-dot"></span>
-            В ЭФИРЕ
           </div>
         </div>
 
@@ -139,10 +140,14 @@
               <span id="upg-avail-dot" class="tab-notify-dot hidden"></span>
             </button>
             <button class="tw-tab" data-tab="outfits" type="button">
-              Sub Goal • Одежда
+              <span class="tab-label-full">Sub Goal • Одежда</span>
+              <span class="tab-label-short">Sub Goal</span>
               <span id="sub-avail-dot" class="tab-notify-dot hidden"></span>
             </button>
-            <button class="tw-tab" data-tab="story" type="button">Фансервис и сюжет</button>
+            <button class="tw-tab" data-tab="story" type="button">
+              <span class="tab-label-full">Фансервис и сюжет</span>
+              <span class="tab-label-short">Фансервис</span>
+            </button>
           </nav>
 
           <!-- Right: Authentic Twitch Gift-Sub Button Group + Viewer Counter + Wallet -->
@@ -156,7 +161,8 @@
                     d="M16 6h-2.18A2.99 2.99 0 0014 5a3 3 0 00-4-2.83A3 3 0 006 5c0 .35.07.69.18 1H4a2 2 0 00-2 2v2c0 .55.45 1 1 1v6a2 2 0 002 2h10a2 2 0 002-2v-6c.55 0 1-.45 1-1V8a2 2 0 00-2-2zm-4-2a1 1 0 110 2h-1V5a1 1 0 011-1zM8 4a1 1 0 011 1v1H8a1 1 0 110-2zm1 13H5v-6h4v6zm0-8H4V8h5v1zm6 8h-4v-6h4v6zm1-8h-5V8h5v1z"
                   />
                 </svg>
-                <span>Подарить саб</span>
+                <span class="tab-label-full">Подарить саб</span>
+                <span class="tab-label-short">Саб</span>
                 <span id="gift-cost-1" class="tw-sub-price">18 ₽</span>
               </button>
               <button id="btn-gift-sub-5" class="tw-sub-btn-split" type="button" title="Саб-бомба: подарить 5 подписок">

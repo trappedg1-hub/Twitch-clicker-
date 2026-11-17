@@ -364,7 +364,7 @@ export class StreamStage {
 
     this.root.scale.set(scale);
     const baseY = (h - StreamStage.VIRTUAL_H * scale) * 0.5;
-    const drawerShift = this.drawerOpen ? -42 : 0;
+    const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
     this.root.position.set((w - StreamStage.VIRTUAL_W * scale) * 0.5, baseY + drawerShift);
   }
 
