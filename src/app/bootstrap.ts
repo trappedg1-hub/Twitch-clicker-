@@ -17,6 +17,9 @@ import {
   DAY2_SHAME_LINES,
   DAY3_FAREWELL_LINES,
   DAY3_OPENING_LINE,
+  DAY4_DONE_LINES,
+  DAY4_FAREWELL_LINES,
+  DAY4_OPENING_LINE,
   GHOST_BOO_LINES,
   pickStageTapLine,
   pickSituationLine,
@@ -38,6 +41,7 @@ import {
   serializeState,
   startDay2,
   startDay3,
+  startDay4,
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
@@ -45,8 +49,10 @@ import {
   dayFinaleSubs,
   getSubGoalStagesForDay,
   isDay3Unlocked,
+  isDay4Unlocked,
   pickShySubGoalApproachLine,
   probeDay3Art,
+  probeDay4Art,
 } from '../domain/subGoals.ts';
 import { debugGotoDayStage, debugMaxOutShop, debugSetBars, finaleSubsForDay } from '../domain/debug.ts';
 import { getMicTier } from '../domain/upgrades.ts';
@@ -89,9 +95,12 @@ declare global {
       buyUpgrade: (id: UpgradeId) => boolean;
       startDay2: () => boolean;
       startDay3: () => boolean;
+      startDay4: () => boolean;
       isDay3Unlocked: () => boolean;
+      isDay4Unlocked: () => boolean;
       ghostBoo: (ms?: number) => boolean;
       ghostInfo: () => { unlocked: boolean; flashLive: boolean; day: number };
+      yogaInfo: () => { unlocked: boolean; plates: boolean; flashLive: boolean; day: number };
       runChallenge: (id: ChallengeId) => boolean;
       switchTab: (tab: BottomTabId) => void;
       forceBlink: () => void;
@@ -136,13 +145,21 @@ export async function bootstrapApp(): Promise<void> {
     stage.setDrawerOpen(tab !== 'stream');
   };
 
+  /**
+   * Which plate ladder the rig should wear for a saved `streamDay`. Days 3 and 4 each own a ladder,
+   * and the rig falls back to the Day 2 art inside `setWardrobeDay` when that day's plates are not in
+   * the build yet — so this map is about INTENT, never about availability.
+   */
+  const wardrobeDayOf = (streamDay: number): 1 | 2 | 3 | 4 =>
+    streamDay >= 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
+
   const syncAll = () => {
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
     stage.setHypeLevel(state.hype);
     stage.setMicTier(state.upgrades.desk_mic ?? 0);
     stage.rig.setBoldness(stats.boldness);
-    stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
+    stage.setWardrobeDay(wardrobeDayOf(state.streamDay));
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
     // A closed day is an announcement, not a takeover: the finale card waits for the player's own
@@ -159,9 +176,11 @@ export async function bootstrapApp(): Promise<void> {
         isSystemHighlight: true,
       });
       ui.showSpeech(
-        state.streamDay === 3
-          ? 'Цель закрыта, чат, а я ещё в кадре. Кликай на здоровье — переход только когда скажешь.'
-          : 'Днём я своё заработала. Не выгоняю: кликай сколько надо, а карточку я держу в углу.',
+        state.streamDay === 4
+          ? 'Двадцать шесть тысяч, и я всё ещё сижу в кресле. Карточку держу — переходишь, когда решишь, что тебе нужнее: сон или следующий день.'
+          : state.streamDay === 3
+            ? 'Цель закрыта, чат, а я ещё в кадре. Кликай на здоровье — переход только когда скажешь.'
+            : 'Днём я своё заработала. Не выгоняю: кликай сколько надо, а карточку я держу в углу.',
       );
     }
     if (!isQa && !adminSaveSuppressed) {
@@ -207,8 +226,16 @@ export async function bootstrapApp(): Promise<void> {
     // Day 3 tap gimmick: a «Бу!» and the sheet flashes up for a beat (crossfade to the reveal plate),
     // and the chat explodes with clips like any decent haunt would.
     const isBoo = state.streamDay === 3 && state.totalTaps % 3 === 0;
-    const booFlashed = isBoo ? stage.triggerGhostBoo(state.hype >= 72 ? 700 : 480) : false;
-    if (booFlashed) {
+    // Yoga day owns the same crossfade: every third tap holds the finale frame for a beat and she asks
+    // the chat «Готово?». The plate swap is the joke, so the copy never claims a garment moved.
+    const isDone = state.streamDay === 4 && state.totalTaps % 3 === 0;
+    const booFlashed =
+      isBoo || isDone ? stage.triggerGhostBoo(state.hype >= 72 ? 700 : 480) : false;
+    if (booFlashed && isDone) {
+      ui.showSpeech(DAY4_DONE_LINES[state.totalTaps % DAY4_DONE_LINES.length]!);
+      stage.spawnReactionCallout('♥ ГОТОВО? ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 4));
+    } else if (booFlashed) {
       ui.showSpeech(GHOST_BOO_LINES[state.totalTaps % GHOST_BOO_LINES.length]!);
       stage.spawnReactionCallout('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 3));
@@ -248,7 +275,7 @@ export async function bootstrapApp(): Promise<void> {
     } else {
       if (isFeverTrigger || state.totalTaps % 7 === 0) {
         ui.pushChatMessage(
-          createViralClipChatMessage(zone, afterStats.onlineViewers, state.totalTaps),
+          createViralClipChatMessage(zone, afterStats.onlineViewers, state.totalTaps, state.streamDay),
         );
       } else if (state.totalTaps % 2 === 1 || outcome.triggeredDonationAlert) {
         ui.pushChatMessage(
@@ -261,7 +288,7 @@ export async function bootstrapApp(): Promise<void> {
           `★ ГОРЯЧИЙ ДОНАТ +${outcome.earned} ₽`,
           '«Не прикрывайся, ты сводишь весь чат с ума! ♥»',
         );
-        ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps));
+        ui.pushChatMessage(createDonationChatMessage(outcome.earned, state.totalTaps, state.streamDay));
       }
     }
 
@@ -385,15 +412,25 @@ export async function bootstrapApp(): Promise<void> {
     ui.pushChatMessage(createFarewellChatMessage(index, state.streamDay));
     // Which day is closing decides the beat count, the emotion curve and the last callout.
     const beats =
-      state.streamDay === 3
-        ? DAY3_FAREWELL_LINES.length
-        : state.streamDay === 2
-          ? DAY2_FAREWELL_LINES.length
-          : DAY1_FAREWELL_LINES.length;
-    stage.rig.triggerEmotion(index >= beats - 2 ? 'tease' : 'shy', 2300);
+      state.streamDay === 4
+        ? DAY4_FAREWELL_LINES.length
+        : state.streamDay === 3
+          ? DAY3_FAREWELL_LINES.length
+          : state.streamDay === 2
+            ? DAY2_FAREWELL_LINES.length
+            : DAY1_FAREWELL_LINES.length;
+    // Days 3 and 4 close on a wink, not on a blush: by now she likes being watched.
+    stage.rig.triggerEmotion(
+      state.streamDay >= 3 ? 'bold' : index >= beats - 2 ? 'tease' : 'shy',
+      2300,
+    );
     if (index === beats - 1) {
       stage.spawnReactionCallout(
-        state.streamDay === 3 ? '♥ КОСПЛЕЙ-ДЕНЬ ЗАКРЫТ!' : '♥ ПОКА-ПОКА, ЧАТ!',
+        state.streamDay === 4
+          ? '♥ ЙОГА-ДЕНЬ ЗАКРЫТ!'
+          : state.streamDay === 3
+            ? '♥ КОСПЛЕЙ-ДЕНЬ ЗАКРЫТ!'
+            : '♥ ПОКА-ПОКА, ЧАТ!',
         true,
         index,
       );
@@ -402,6 +439,10 @@ export async function bootstrapApp(): Promise<void> {
 
   ui.onStartDay2 = () => {
     lastPlayerInteractionMs = performance.now();
+    if (state.streamDay === 3) {
+      startDay4Flow();
+      return;
+    }
     if (state.streamDay === 2) {
       startDay3Flow();
       return;
@@ -442,9 +483,44 @@ export async function bootstrapApp(): Promise<void> {
    * closed; same rule as Day 2: only money, subs, upgrades, items and boldness carry over.
    */
   // Day 3 unlocks itself the moment the cosplay plates land in /art - no flag flipping needed.
-  void probeDay3Art().then(() => {
+  // Day 4 rides the same trick with its own four yoga plates, so the ship order of art and code is
+  // irrelevant: the buttons light up as soon as the files exist.
+  void Promise.all([probeDay3Art(), probeDay4Art()]).then(() => {
     syncAll();
   });
+
+  /**
+   * Day 4 = yoga day «Растяжка с Мией». Same entry shape as Day 3: the plates are already probed, the
+   * ladder swaps in one call, and the day's own flash beat («Готово?») is demoed immediately so the
+   * player learns the crossfade exists without reading a word about it.
+   */
+  const startDay4Flow = () => {
+    lastPlayerInteractionMs = performance.now();
+    const res = startDay4(state);
+    if (!res.ok) return;
+    state = res.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.setWardrobeDay(4);
+    stage.rig.triggerEmotion('bold', 2600);
+    ui.showSpeech(DAY4_OPENING_LINE);
+    window.setTimeout(() => {
+      if (stage.triggerGhostBoo(760)) {
+        ui.showSpeech(DAY4_DONE_LINES[0]!);
+        stage.spawnReactionCallout('♥ ГОТОВО? МЫ ТОЛЬКО НАЧАЛИ!', true, 0);
+      }
+    }, 900);
+    ui.pushChatMessage({
+      id: `day4_${Date.now()}`,
+      author: 'StreamBot',
+      color: '#c084fc',
+      badge: 'MOD',
+      text: '★ ДЕНЬ 4: «РАСТЯЖКА С МИЕЙ»! Коврик дома, кресло в работе, вязаный топ без бретелей :SubHype: :Pog:',
+      isSystemHighlight: true,
+    });
+    ui.showDonationAlert('★ ДЕНЬ 4: ЙОГА!', 'Гардероб перенесён, цели обновлены, кресло закреплено!');
+    syncAll();
+  };
 
   const startDay3Flow = () => {
     lastPlayerInteractionMs = performance.now();
@@ -505,7 +581,12 @@ export async function bootstrapApp(): Promise<void> {
     });
     window.setTimeout(() => {
       ui.pushChatMessage(
-        createViralClipChatMessage(res.zoneFocus, afterStats.onlineViewers, Math.floor(res.reward)),
+        createViralClipChatMessage(
+          res.zoneFocus,
+          afterStats.onlineViewers,
+          Math.floor(res.reward),
+          state.streamDay,
+        ),
       );
     }, 380);
 
@@ -615,7 +696,7 @@ export async function bootstrapApp(): Promise<void> {
     state = res.state;
     const dayChanged = state.streamDay !== before.streamDay;
     if (dayChanged) {
-      stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
+      stage.setWardrobeDay(wardrobeDayOf(state.streamDay));
       ui.pushChatMessage({
         id: `admin_day_${Date.now()}`,
         author: 'StreamBot',
@@ -624,7 +705,14 @@ export async function bootstrapApp(): Promise<void> {
         text: `★ ADMIN: перемотка на День ${state.streamDay}, стадия ${state.displayedSubStage}.`,
         isSystemHighlight: true,
       });
-      const openLine = state.streamDay === 3 ? DAY3_OPENING_LINE : state.streamDay === 2 ? DAY2_OPENING_LINE : null;
+      const openLine =
+        state.streamDay === 4
+          ? DAY4_OPENING_LINE
+          : state.streamDay === 3
+            ? DAY3_OPENING_LINE
+            : state.streamDay === 2
+              ? DAY2_OPENING_LINE
+              : null;
       if (openLine) ui.showSpeech(openLine);
     }
     const fresh = getSubGoalStagesForDay(state.streamDay).slice(
@@ -668,6 +756,7 @@ export async function bootstrapApp(): Promise<void> {
         })),
         finaleSubs: finaleSubsForDay(state.streamDay),
         day3Unlocked: isDay3Unlocked(),
+        day4Unlocked: isDay4Unlocked(),
         saveSuppressed: adminSaveSuppressed,
       };
     },
@@ -715,6 +804,12 @@ export async function bootstrapApp(): Promise<void> {
       stage.app.render();
     },
     ghostBoo: () => {
+      // The same button drives both flash gimmicks: the rig picks the plate for the live day.
+      if (state.streamDay === 4) {
+        if (stage.triggerGhostBoo(650)) ui.showSpeech(DAY4_DONE_LINES[0]!);
+        else ui.showSpeech('«Готово?» живёт в Дне 4 — прыгни туда кнопкой «4».');
+        return;
+      }
       if (stage.triggerGhostBoo(650)) ui.showSpeech(GHOST_BOO_LINES[0]!);
       else ui.showSpeech('«Бу!» живёт только в Дне 3 — прыгни туда кнопкой «День 3».');
     },
@@ -748,7 +843,7 @@ export async function bootstrapApp(): Promise<void> {
         return;
       }
       state = deserializeState(trimmed);
-      stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
+      stage.setWardrobeDay(wardrobeDayOf(state.streamDay));
       syncAll();
       ui.showSpeech('Сейв импортирован.');
     },
@@ -791,11 +886,13 @@ export async function bootstrapApp(): Promise<void> {
         });
       },
       farewellLineCount: () =>
-        state.streamDay === 3
-          ? DAY3_FAREWELL_LINES.length
-          : state.streamDay === 2
-            ? DAY2_FAREWELL_LINES.length
-            : DAY1_FAREWELL_LINES.length,
+        state.streamDay === 4
+          ? DAY4_FAREWELL_LINES.length
+          : state.streamDay === 3
+            ? DAY3_FAREWELL_LINES.length
+            : state.streamDay === 2
+              ? DAY2_FAREWELL_LINES.length
+              : DAY1_FAREWELL_LINES.length,
       isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
       tapZone: (zone: TapZoneId) => {
@@ -839,10 +936,17 @@ export async function bootstrapApp(): Promise<void> {
         return state.upgrades[id] > prev;
       },
       isDay3Unlocked: () => isDay3Unlocked(),
+      isDay4Unlocked: () => isDay4Unlocked(),
       ghostBoo: (ms?: number) => stage.triggerGhostBoo(ms ?? 520),
       facePatchDebug: () => stage.facePatchDebug(),
       ghostInfo: () => ({
         unlocked: isDay3Unlocked(),
+        flashLive: stage.hasGhostFlash(),
+        day: state.streamDay,
+      }),
+      yogaInfo: () => ({
+        unlocked: isDay4Unlocked(),
+        plates: stage.rig.hasDay4Plates(),
         flashLive: stage.hasGhostFlash(),
         day: state.streamDay,
       }),
@@ -851,6 +955,10 @@ export async function bootstrapApp(): Promise<void> {
       startDay3: () => {
         startDay3Flow();
         return state.streamDay === 3;
+      },
+      startDay4: () => {
+        startDay4Flow();
+        return state.streamDay === 4;
       },
       startDay2: () => {
         const prevDay = state.streamDay;

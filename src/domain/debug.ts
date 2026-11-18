@@ -3,11 +3,18 @@ import {
   debugSetSubscribers,
   isDay1FinaleReached,
   isDay2FinaleReached,
+  isDay3FinaleReached,
   selectDisplayedSubStage,
   startDay2,
   startDay3,
+  startDay4,
 } from './engine.ts';
-import { dayFinaleSubs, getSubGoalStagesForDay, isDay3Unlocked } from './subGoals.ts';
+import {
+  dayFinaleSubs,
+  getSubGoalStagesForDay,
+  isDay3Unlocked,
+  isDay4Unlocked,
+} from './subGoals.ts';
 import { TIER1_UPGRADES, getUpgradeCost } from './upgrades.ts';
 import type { GameState, SubGoalStageIndex } from './types.ts';
 
@@ -21,7 +28,7 @@ import type { GameState, SubGoalStageIndex } from './types.ts';
  * That is the whole point: a panel that invents unreachable states is how an art bug ships unseen.
  */
 
-export const ADMIN_MAX_DAY = 3;
+export const ADMIN_MAX_DAY = 4;
 
 /** Subscribers that close `day` — its last ladder step, which is also the gate into the next day. */
 export function finaleSubsForDay(day: number): number {
@@ -77,6 +84,20 @@ export function debugGotoDayStage(
       const res = startDay3(cur);
       if (!res.ok) {
         note = 'День 3 не открылся: финал дня 2 не достигнут';
+        break;
+      }
+      cur = res.state;
+      continue;
+    }
+    if (cur.streamDay === 3) {
+      if (!isDay3FinaleReached(cur)) cur = debugSetSubscribers(cur, finaleSubsForDay(3));
+      if (!isDay4Unlocked()) {
+        note = 'День 4 закрыт: йога-арты ещё не в сборке';
+        break;
+      }
+      const res = startDay4(cur);
+      if (!res.ok) {
+        note = 'День 4 не открылся: финал дня 3 не достигнут';
         break;
       }
       cur = res.state;

@@ -2,6 +2,8 @@ import { type DialogueBand, pickDialogueLine } from './dialogue.ts';
 import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
   DAY1_FINALE_SUBS,
+  DAY3_FINALE_SUBS,
+  isDay4Unlocked,
   isDay3Unlocked,
   getGiftSubPackCost,
   getGiftSubUnitCost,
@@ -382,6 +384,38 @@ export function startDay3(state: GameState): { ok: boolean; state: GameState } {
   };
 }
 
+/** Day 3 is over once the cosplay ladder (15000) is fully paid off. */
+export function isDay3FinaleReached(state: GameState): boolean {
+  return state.streamDay === 3 && state.subscribers >= DAY3_FINALE_SUBS;
+}
+
+/**
+ * Start Day 4 = YOGA DAY «Растяжка с Мией» (locked until the four yoga plates ship). Same carry-over
+ * rules as the other days: balance, upgrades, items and boldness stay, the wardrobe relocks to 0 and
+ * she changes into the knit kit. Nothing on this day is taken off - the ladder is the POSE, so the
+ * "carried stage" only decides how much of her own history she mentions, not what she wears.
+ */
+export function startDay4(state: GameState): { ok: boolean; state: GameState } {
+  if (!isDay3FinaleReached(state) || !isDay4Unlocked()) {
+    return { ok: false, state };
+  }
+  const carried = Math.max(
+    state.carriedOverWardrobeStage ?? 0,
+    state.unlockedSubStage,
+  ) as SubGoalStageIndex;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      streamDay: 4,
+      carriedOverWardrobeStage: carried,
+      unlockedSubStage: 0,
+      displayedSubStage: 0,
+      hype: 100,
+    },
+  };
+}
+
 export function triggerStreamChallenge(
   state: GameState,
   challengeId: ChallengeId,
@@ -473,8 +507,12 @@ export function triggerStreamChallenge(
       ? latestUnlock.unlockLine
       : subResolved.state.streamDay === 2
         ? (def.reactionLineDay2 ?? def.reactionLine)
-        : def.reactionLine,
-    chatBurst: def.chatBurst,
+        : subResolved.state.streamDay === 4
+          ? (def.reactionLineDay4 ?? def.reactionLine)
+          : def.reactionLine,
+    // Day 4 rewrites the viewers' demand too: the yoga chat asks for a deeper pose, never a strip.
+    chatBurst:
+      subResolved.state.streamDay === 4 ? (def.chatBurstDay4 ?? def.chatBurst) : def.chatBurst,
     zoneFocus: def.zoneFocus,
     newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
     newlyUnlockedMilestones: newlyUnlocked,
@@ -624,7 +662,7 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
     // just to look at one plate again. Note this deliberately does NOT consult isDay3Unlocked() —
     // that flag only turns on after the async art probe resolves, so gating the load on it would
     // throw Day 3 away on every hard reload, which is exactly the bug being fixed.
-    const streamDay = rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
+    const streamDay = rawDay === 4 ? 4 : rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
     const rawCarried = Number(parsed.carriedOverWardrobeStage);
     const carriedOverWardrobeStage: SubGoalStageIndex = (
       Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4

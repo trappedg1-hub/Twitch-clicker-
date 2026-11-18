@@ -1,5 +1,5 @@
 /** Which day's plate ladder the rig is currently showing. */
-export type WardrobeDay = 1 | 2 | 3;
+export type WardrobeDay = 1 | 2 | 3 | 4;
 
 import {
   Container,
@@ -35,6 +35,10 @@ export interface HeroineTextures {
   day3Stages?: Texture[];
   /** Sheet-off reveal plate used for the Day 3 «Бу!» flash frame. */
   ghostFlash?: Texture[];
+  /** Yoga ladder (Day 4): four poses, one knit kit. Optional until heroine_t4_s0..s3 ship. */
+  day4Stages?: Texture[];
+  /** «Готово?» reveal plate used for the Day 4 flash frame. */
+  yogaFlash?: Texture[];
 }
 
 interface EnvelopeState {
@@ -95,6 +99,12 @@ export class HeroineRig {
   private readonly day2Textures: Texture[];
   /** Cosplay plates (heroine_t3_s0..s4) - `null` until that art actually ships. */
   private readonly day3Textures: Texture[] | null;
+
+  /** Yoga plates (heroine_t4_s0..s3) - `null` until that art actually ships. */
+  private readonly day4Textures: Texture[] | null;
+
+  /** Day 4 «Готово!» flash frame: the finale reveal plate, same crossfade machinery as Day 3. */
+  private readonly yogaFlashTex: Texture | null = null;
 
   /** Day 3 «Бу!» flash frame: the sheet-off reveal plate, crossfaded in for a few hundred ms. */
   private readonly ghostFlashTex: Texture | null = null;
@@ -170,8 +180,15 @@ export class HeroineRig {
       textures.day3Stages && textures.day3Stages.length === textures.stages.length
         ? [...textures.day3Stages]
         : null;
+    // Day 4 has a SHORTER ladder (4 frames: opener + three poses), so the check is `>= 4`, not
+    // "same length as Day 1": indexing past the end of it is handled by the `?? stage 0` fallbacks.
+    this.day4Textures =
+      textures.day4Stages && textures.day4Stages.length >= 4 ? [...textures.day4Stages] : null;
     this.ghostFlashTex = textures.ghostFlash && textures.ghostFlash.length > 0
       ? textures.ghostFlash[0]!
+      : null;
+    this.yogaFlashTex = textures.yogaFlash && textures.yogaFlash.length > 0
+      ? textures.yogaFlash[0]!
       : null;
     this.uprightBlinkTex = textures.blink;
 
@@ -312,14 +329,19 @@ export class HeroineRig {
     this.stageTextures =
       day === 1
         ? [...this.day1Stages]
-        : day === 3 && this.day3Textures
-          ? [...this.day3Textures]
-          : [...this.day2Textures];
+        : day === 4 && this.day4Textures
+          ? [...this.day4Textures]
+          : day === 3 && this.day3Textures
+            ? [...this.day3Textures]
+            : [...this.day2Textures];
     const nextTex = this.stageTextures[this.currentStage] ?? this.stageTextures[0]!;
     if (this.mesh.texture !== nextTex) {
       this.mesh.texture = nextTex;
       this.applyPosePatchGeometry();
-      this.triggerEmotion(day === 1 ? 'shy' : day === 3 ? 'bold' : 'fluster', 2400);
+      this.triggerEmotion(
+        day === 1 ? 'shy' : day === 3 || day === 4 ? 'bold' : 'fluster',
+        2400,
+      );
     }
   }
 
@@ -334,18 +356,26 @@ export class HeroineRig {
    * caller can skip the flash-specific chat/callout noise on other days.
    */
   public triggerGhostBoo(durationMs = 520): boolean {
+    // Day 4 owns the same crossfade machinery for its «Готово?» beat: one flash plate, one timer.
+    if (this.wardrobeDay === 4) return this.flashTo(this.yogaFlashTex, durationMs);
     if (this.wardrobeDay !== 3 || !this.ghostFlashTex) return false;
+    return this.flashTo(this.ghostFlashTex, durationMs);
+  }
+
+  /** Swap to a reveal plate for a beat; the update loop snaps back to the current stage plate. */
+  private flashTo(tex: Texture | null, durationMs: number): boolean {
+    if (!tex) return false;
     this.ghostFlashUntilMs = this.elapsedSec * 1000 + Math.max(160, durationMs);
     this.ghostFloatSeed += 1;
-    if (this.mesh.texture !== this.ghostFlashTex) {
-      this.mesh.texture = this.ghostFlashTex;
+    if (this.mesh.texture !== tex) {
+      this.mesh.texture = tex;
       this.applyPosePatchGeometry();
     }
     return true;
   }
 
   public hasGhostFlash(): boolean {
-    return this.ghostFlashTex !== null;
+    return this.ghostFlashTex !== null || this.yogaFlashTex !== null;
   }
 
   public isGhostFlashing(): boolean {
@@ -357,8 +387,14 @@ export class HeroineRig {
     return this.day3Textures !== null;
   }
 
-  /** Which plate ladder is actually on screen (Day 3 = Day 2 art until t3 plates ship). */
-  public getPlateDay(): 1 | 2 | 3 {
+  /** True once the yoga plates exist; Day 4 falls back to the Day 2 ladder until then. */
+  public hasDay4Plates(): boolean {
+    return this.day4Textures !== null;
+  }
+
+  /** Which plate ladder is actually on screen (Day 3/4 = Day 2 art until their plates ship). */
+  public getPlateDay(): 1 | 2 | 3 | 4 {
+    if (this.wardrobeDay === 4 && !this.day4Textures) return 2;
     return this.wardrobeDay === 3 && !this.day3Textures ? 2 : this.wardrobeDay;
   }
 
@@ -574,8 +610,11 @@ export class HeroineRig {
     // The sheet is light: on the ghost day she floats a little slower and deeper, like real fabric.
     const ghostFloat =
       this.wardrobeDay === 3 ? Math.sin(this.elapsedSec * 1.15 + this.ghostFloatSeed) * 3.4 : 0;
+    // Yoga day: she holds a pose, so the body drifts with the breath instead of with the fabric.
+    const yogaBreath =
+      this.wardrobeDay === 4 ? Math.sin(this.elapsedSec * 0.72 + this.ghostFloatSeed) * 1.9 : 0;
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
-    this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat;
+    this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat + yogaBreath;
     this.bodyContainer.x = shiverWave * 0.65;
 
     const posAttr = this.mesh.geometry.getAttribute('aPosition');

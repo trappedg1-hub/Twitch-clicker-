@@ -660,6 +660,206 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 /** The «Бу!» flash frame: sheet off, bodysuit + fishnets — crossfaded in for a few hundred ms. */
 export const DAY3_FLASH_PLATE = '/art/heroine_t3_flash.webp';
 
+/**
+ * Day 4 = YOGA DAY, «Растяжка с Мией». One costume for the whole stream and it never comes off:
+ * an ivory ribbed knit tube top with NO straps (a band pulled over her head, rolled up under her
+ * bust), ivory micro shorts two sizes too small with a rolled waistband, thin red underwear straps
+ * taut across both bare hips, ivory ankle socks with red elastic bands. The mat stayed in the
+ * bag: the office chair from Day 3 is her prop, and she uses it harder every stage.
+ *
+ * The character read is the real escalation this time. Days 1-2 she was shy, Day 3 she played along;
+ * on Day 4 she PERFORMS — she knows the stretch poses are what carry the subs, so she demonstrates
+ * on purpose, smirks into the lens, winks, sticks her tongue out. Nothing "ой", nothing "случайно".
+ * Every stage is its own finished plate, so the copy is written off those four approved renders and
+ * `copyAudit` proves no line outlives its frame:
+ *   0     kneeling sideways on the chair seat, both arms locked overhead, a yawn-laugh at the lens
+ *   18000 hip opened: she sits on the cushion sideways, one knee on the seat, the other leg thrown
+ *         out and down to the floor, head tipped back laughing
+ *   22000 standing vertical split beside the chair, raised foot held at hair height, two fingers to
+ *         the camera
+ *   26000 finale: sunk into the chair facing the lens, both legs drawn up over the armrests, palms
+ *         flat on her bare belly, half-lidded wink
+ */
+export const DAY4_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  {
+    stage: 0,
+    subsRequired: 0,
+    shortGoalTitle: 'Старт растяжки',
+    outfitName: 'Вязаный топ-труба без бретелей + микро-шорты + носочки с красной резинкой',
+    removedItemLabel: 'День 4 начат',
+    storyDesc:
+      'Мия вышла на йога-стрим в одном и том же на весь эфир: вязаный топ-труба без единой бретели, натянутый через голову и подвернутый валиком под грудью, микро-шорты на два размера меньше, красные резинки белья впиваются в бока поверх края шорт, на ногах белые носочки с красной полоской. Коврик остался в сумке — она встаёт на колени прямо на сиденье кресла, тянет обе руки в потолок, сцепив пальцы, и смеётся в камеру: разминка, чат, дальше будет интереснее.',
+    incomeMultiplier: 1.0,
+    viewersBonus: 0,
+    boldnessBonus: 0,
+    unlockEmotion: 'tease',
+    unlockLine: '',
+    plateUrl: '/art/heroine_t4_s0.webp',
+    shyApproachLines: [
+      'Это разминка, чат. Я сначала руки поднимаю, потом уже всё остальное — не путайте порядок.',
+      'Топ без бретелей, потому что на йоге бретели мешают. Это правда. Почти.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ ДЕНЬ 4: «РАСТЯЖКА С МИЕЙ» НАЧАЛСЯ. Коврик не достала, сиденье в работе :Pog: :SubHype:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'yoga_bro_kim',
+        color: '#4ecdc4',
+        badge: 'SUB',
+        text: 'руки в замок над головой и спина прогнута — это не разминка, это заявление :LUL:',
+      },
+      {
+        author: 'kaktus_mod',
+        color: '#4ade80',
+        badge: 'MOD',
+        text: 'правило дня: мы не просим «снять». мы просто сабим на 18000 и смотрим, что будет :EZ: :ClipIt:',
+      },
+    ],
+  },
+  {
+    stage: 1,
+    subsRequired: 18000,
+    shortGoalTitle: 'Бёдра',
+    outfitName: 'Тот же топ-труба + микро-шорты, одно колено на сиденье, вторая нога откинута в пол',
+    removedItemLabel: '− Бедро открыто!',
+    storyDesc:
+      '18000 сабов: она разворачивается боком на сиденье, одно колено ставит на подушку, вторую ногу выбрасывает в сторону и вниз, ладонь на подлокотнике, корпус свободный. Трикотаж натянут без единой складки, валик под грудью впился, красные резинки на боках держат шорты, которые она сама же и выбирала «на вырост». Голова откинута, смех в камеру: бедро открыто, чат, дышите ровно.',
+    plateUrl: '/art/heroine_t4_s1.webp',
+    incomeMultiplier: 1.6,
+    viewersBonus: 380,
+    boldnessBonus: 6,
+    unlockEmotion: 'tease',
+    unlockLine:
+      'Нога в пол, бедро открыто, рука на подлокотнике. Это поза «голубь», я проверила в интернете. Да, я знаю, что вы сейчас напишете~',
+    shyApproachLines: [
+      'Я стою на колене, а не ползаю. Разница принципиальная, чат, и она в описании позы.',
+      'Никаких «покажи ещё» — я сама решу, когда дойти до следующего упражнения. Просто сабы считаются быстрее, чем я думаю.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 18000/18000! БЕДРО ОТКРЫТО, НОГА ВЫТЯНУТА В ПОЛ :Pog: :AWOOGA:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'neko_chan_uwu',
+        color: '#ff75c3',
+        badge: 'SUB',
+        text: 'она смеётся в камеру и держит баланс на одном колене, у меня клип сам себя собрал :ClipIt: :Kreygasm:',
+      },
+      {
+        author: 'feet_connoisseur',
+        color: '#f472b6',
+        badge: 'SUB',
+        text: 'носок на вытянутой ноге натянут как струна. 22000 — шпагат, легион, мы все знаем, что там будет :monkaS:',
+      },
+    ],
+  },
+  {
+    stage: 2,
+    subsRequired: 22000,
+    shortGoalTitle: 'Шпагат',
+    outfitName: 'Тот же комплект, вертикальный шпагат у кресла, стопа на уровне волос',
+    removedItemLabel: '− Вертикальный шпагат!',
+    storyDesc:
+      '22000 сабов: тот самый кадр. Она встаёт с кресла и делает вертикальный шпагат прямо рядом с ним — опорная нога выпрямлена, вторая затянута руками вверх к голове, колено врозь, носочек в белом носке на уровне волос. Спина прогнута, корпус развёрнут к вебке, одна рука держит голень, вторая показывает чату две пальца и подмигивает. Ничего не «случайно»: она специально встала так, чтобы вы увидели растяжку с обеих сторон.',
+    plateUrl: '/art/heroine_t4_s2.webp',
+    incomeMultiplier: 2.3,
+    viewersBonus: 760,
+    boldnessBonus: 9,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Двадцать две тысячи! Вертикальный шпагат, стопа в волосах, спина прогнута. Я три года сидела за партой, чтобы так выглядеть на вашем стриме, чат~ ★',
+    shyApproachLines: [
+      'Смотрите на технику, а не на то, что под шортами. Там, к слову, шорты. Всё в рамках~',
+      'Кресло рядом не для того, чтобы на него сесть, а для масштаба. Я выше, чем кажется.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 22000/22000! ВЕРТИКАЛЬНЫЙ ШПАГАТ В ПРЯМОМ ЭФИРЕ :BOOBA: :Pog: :SubHype:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'Pasha_Donater',
+        color: '#ff6b9d',
+        badge: 'VIP',
+        text: 'нога у головы, подмигивание в объектив, две пальца чату. это не стрим, это финал сезона :Kreygasm: :Nosebleed:',
+      },
+      {
+        author: 'yoga_bro_kim',
+        color: '#4ecdc4',
+        badge: 'SUB',
+        text: 'таз ровный, колено в сторону, спина держит. так не выглядят «первый раз», так выглядят годами :LUL: :Pog:',
+      },
+    ],
+  },
+  {
+    stage: 3,
+    subsRequired: 26000,
+    shortGoalTitle: 'Кресло, финал',
+    outfitName: 'Тот же комплект, глубокая поза в кресле, ноги на подлокотниках, ладони на голом животе',
+    removedItemLabel: '− Финал: она в кресле и не собирается вставать!',
+    storyDesc:
+      '26000 сабов: финал дня. Мия уходит в кресло целиком — садится спиной к подушке, обе ноги поджимает так, что голени лежат на подлокотниках, носочки свисают снаружи, а ладони кладёт себе на голый живот, растопырив пальцы. Спина прогнута, грудь подана к вебке, ткань натянута до предела, на щеках пятно румянца, волосатая чёлка прилипла, один глаз закрыт подмигиванием, язык виден. «Готово?», — спрашивает она чат и вовсе не собирается вставать.',
+    plateUrl: '/art/heroine_t4_s3.webp',
+    incomeMultiplier: 3.2,
+    viewersBonus: 1250,
+    boldnessBonus: 12,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Финал: я в кресле, ноги на подлокотниках, руки на своём животе, и я никуда не встаю. Вы сами это хотели — двадцать шесть тысяч раз~ ★ ♥',
+    shyApproachLines: [
+      'Я уже сжала пальцы на животе, дальше только ваша совесть и сабы. Выбора у меня, как видите, нет~',
+      'Последняя поза. Я в ней и усну, если вы начнёте тянуть время вместо подписок.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 26000/26000! ОНА ОСТАЛАСЬ В КРЕСЛЕ, ЛАДОНИ НА ЖИВОТЕ, ФИНАЛ ДНЯ 4 :AWOOGA: :Pog: :SubHype:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'simp_police_ru',
+        color: '#4ade80',
+        badge: 'MOD',
+        text: 'ноги на подлокотниках, язык, подмигивание. дня 4 не переживёт ни один рекорд канала :Kreygasm: :Kreygasm:',
+      },
+      {
+        author: 'rich_uncle_msk',
+        color: '#ffd54f',
+        badge: 'DONATE',
+        text: 'ЙОГА-ДЕНЬ ЗАКРЫТ. завтра — она сама говорит что. легион, готовим клипы и сердечки :sub2: :miyaLove:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'cosplay_anon',
+        color: '#00e5ff',
+        badge: 'VIP',
+        text: 'из «ой, не смотрите» до «смотрите и платите» за четыре дня. это не клики, это рост персонажа :ClipIt: :LUL:',
+      },
+    ],
+  },
+] as const;
+
+/** The «Готово?» flash frame: the finale pose, crossfaded in for a few hundred ms. */
+export const DAY4_FLASH_PLATE = '/art/heroine_t4_flash.webp';
+
+export const DAY4_STEP_LABELS = ['18000 Бёдра', '22000 Шпагат', '26000 Кресло'];
+export const DAY4_SHORT_STEP_LABELS = ['18000', '22000', '26000'];
+export const DAY4_FINALE_SUBS = 26000;
+
 export const DAY3_STEP_LABELS = ['7000 Ткань', '10000 Ножки на столе', '13000 Бу!', '15000 Корточки'];
 export const DAY3_SHORT_STEP_LABELS = ['7000', '10000', '13000', '15000'];
 export const DAY3_FINALE_SUBS = 15000;
@@ -706,21 +906,60 @@ export async function probeDay3Art(): Promise<boolean> {
   return day3ArtProbe;
 }
 
+/**
+ * Day 4 (yoga) runs on its own four-frame ladder `heroine_t4_s0..s3` + the «Готово?» flash plate.
+ * Same discipline as Day 3: until every file really exists in `public/art`, the day stays locked, so
+ * nobody can click into a ladder whose art is still an AI draft. `window.__day4Unlocked` overrides.
+ */
+let day4ArtProbe = false;
+
+export function isDay4Unlocked(): boolean {
+  try {
+    const forced = (window as unknown as { __day4Unlocked?: boolean }).__day4Unlocked;
+    if (forced === true || forced === false) return forced;
+  } catch {
+    /* no window during tests */
+  }
+  return day4ArtProbe;
+}
+
+/** Probe the yoga plate ladder once; flips the Day 4 button as soon as the art is in place. */
+export async function probeDay4Art(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const files = [...DAY4_SUB_GOAL_STAGES.map((def) => def.plateUrl), DAY4_FLASH_PLATE];
+    const checks = await Promise.all(
+      files.map((url) =>
+        fetch(url, { method: 'HEAD' })
+          .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+          .catch(() => false),
+      ),
+    );
+    day4ArtProbe = checks.every(Boolean);
+  } catch {
+    day4ArtProbe = false;
+  }
+  return day4ArtProbe;
+}
+
 /** Day 2 runs on its own ladder: Day 1 goals are already paid off, so the bar is 10x higher. */
 /** Step labels follow the live day, so the OBS ladder never shows Day 1 wording on Day 3. */
 export function getStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 4) return DAY4_STEP_LABELS;
   if (streamDay === 3) return DAY3_STEP_LABELS;
   if (streamDay === 2) return DAY2_STEP_LABELS;
   return DAY1_STEP_LABELS;
 }
 
 export function getShortStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 4) return DAY4_SHORT_STEP_LABELS;
   if (streamDay === 3) return DAY3_SHORT_STEP_LABELS;
   if (streamDay === 2) return DAY2_SHORT_STEP_LABELS;
   return DAY1_SHORT_STEP_LABELS;
 }
 
 export function getSubGoalStagesForDay(streamDay: number): readonly SubGoalStageDef[] {
+  if (streamDay === 4) return DAY4_SUB_GOAL_STAGES;
   if (streamDay === 3) return DAY3_SUB_GOAL_STAGES;
   if (streamDay === 2) return DAY2_SUB_GOAL_STAGES;
   return SUB_GOAL_STAGES;
@@ -775,7 +1014,12 @@ export function getGiftSubUnitCost(currentSubs: number): number {
   if (currentSubs < 10000) return 320;
   if (currentSubs < 13000) return 400;
   if (currentSubs < 15000) return 470;
-  return 560;
+  if (currentSubs < 18000) return 560;
+  // Day 4 (yoga) runs 18000 / 22000 / 26000, and a sub bought at the top of one day still has to
+  // cost more than the last one bought at the bottom of the day before it.
+  if (currentSubs < 22000) return 660;
+  if (currentSubs < 26000) return 780;
+  return 910;
 }
 
 export function getGiftSubPackCost(currentSubs: number, count: number): number {

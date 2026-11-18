@@ -214,6 +214,13 @@ body,
   color: #69f0ae;
 }
 
+/* A day with a shorter ladder (Day 4 unlocks three goals, not four) drops the surplus chip and the
+   surplus outfit card instead of rendering an empty goal or yesterday's costume. */
+.goal-step.hidden,
+.outfit-card.hidden {
+  display: none;
+}
+
 /* Authentic Top-Right Twitch Video Player Status Badges */
 .tw-player-top-right {
   position: relative;

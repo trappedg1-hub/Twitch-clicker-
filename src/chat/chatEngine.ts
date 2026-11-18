@@ -117,12 +117,69 @@ const ZONE_CHAT_REACTIONS: Record<TapZoneId, readonly string[]> = {
   ],
 };
 
+
+/**
+ * Day 4 tap reactions. On the yoga day a tap never peels a garment off - it makes the chair take her
+ * weight - so the chat reacts to BREATHING, HOLDING and DEPTH instead of to undressing, and it keeps
+ * the socks on her feet (bare soles belong to Day 1 and the Day 2 finale, not here).
+ */
+export const ZONE_CHAT_REACTIONS_DAY4: Record<TapZoneId, readonly string[]> = {
+  head: [
+    'она ухмыляется, держась за край кресла, и показывает язык. четыре дня назад краснела из-за носочков :miyaLove: :LUL:',
+    'это лицо на выдохе — сразу в клип, чат, разбираем :ClipIt: :AWOOGA:',
+    'подмигивание в конце позы. она теперь делает это СОЗНАТЕЛЬНО :Kreygasm: :Pog:',
+    'тянется к потолку и смотрит в камеру. кадр для обложки, без шуток :Nosebleed: :EZ:',
+    'выдох через зубы, прядь прилипла ко лбу, и она не убрала. игра в один кадр :Overheat: :peepoShy:',
+  ],
+  chest: [
+    'вязка на вдохе натягивается как барабан, а топ держится на честной физике :BOOBA: :Kreygasm:',
+    'глубина вдоха в наклоне +10 к гибкости, и узор разъехался :Pog: :ClipIt:',
+    'ни одной бретели, ни одной застёжки — и ни одного движения в сторону лифта :EZ: :monkaS:',
+    'она специально ничего не поправляет. чат, ВООБЩЕ ничего :Overheat: :LUL:',
+    'амплитуда вдоха такая, что чат забыл, зачем заходил :SubHype: :BOOBA:',
+  ],
+  belly: [
+    'ладони плашмя на животе, пальцы врозь — это дыхание удджайи, чат, не шумим :EZ: :Pog:',
+    'живот втянулся на выдохе, и вязка села складками. лучший урок анатомии на твиче :Kreygasm: :ClipIt:',
+    'она держит корпус и дышит в микрофон. это ASMR по подписке :monkaS: :Overheat:',
+    'пресс дрогнул в удержании — и она тут же спрятала это за улыбкой :SubHype: :miyaLove:',
+    'ни одного лишнего движения, и все пять пальцев на голом животе :AWOOGA: :Nosebleed:',
+  ],
+  legs: [
+    'голени легли на подлокотники, и кресло сказало «я не для этого создано» :LUL: :ClipIt:',
+    'бедро раскрыто, спина ровная, шорты держатся на честном слове и красной резинке :Pog: :monkaS:',
+    'растяжка сгибателей бедра. мы не подглядываем, мы УЧИМСЯ :EZ: :Kreygasm:',
+    'закинула ногу на подлокотник и даже не напряглась. годы тренировок, чат :SubHype: :AWOOGA:',
+    'кресло плюс её гибкость = новый инвентарь для фитнес-клубов :ClipIt: :Overheat:',
+  ],
+  feet: [
+    'носочки с красной резинкой свисают с подлокотника, пальцы сжимаются в удержании :Pog: :miyaLove:',
+    'СТУПНИ В НОСКАХ НА ПОДЛОКОТНИКАХ. чат, это кадр недели :AWOOGA: :Kreygasm:',
+    'она тянет носок на себя и врозь — так асаны делают, а не так, как ты подумал :LUL: :EZ:',
+    'пятки в мягких носках, пальцы работают. техника, только техника :ClipIt: :SubHype:',
+    'носки на месте, чат. единственные пальцы, которые вы сегодня видите, — ввязанные в резинку :monkaS: :peepoShy:',
+  ],
+};
+
 const DONATION_TTS_LINES: readonly string[] = [
   '«Не прикрывайся руками, ты невероятно сексуальная! Кидаю в копилку на Sub Goal! :AWOOGA: :SubHype:»',
   '«Пошевели ещё раз пальчиками на камеру — и с меня пачка подарочных сабов! :Kreygasm: :miyaLove:»',
   '«Твой смущённый вздох в микрофон растопил мне мозг, держи на косплей! :Nosebleed: :Overheat:»',
   '«Наклонись за чашечкой ещё разок на бис плз, чат просит!! :BOOBA: :ClipIt:»',
   '«Лучшая стримерша Твича, ни в чём себе не отказывай и снимай лишнее смелее! :EZ: :SubHype:»',
+];
+
+
+/**
+ * Day 4 donations: the viewers explicitly ask for DEEPER POSES, not for fewer clothes. That is the
+ * whole premise of the yoga day, so the TTS copy states it out loud once per pool.
+ */
+export const DONATION_TTS_LINES_DAY4: readonly string[] = [
+  '«Раздеваться не надо! Покажи тот наклон, где спина круглая, а чат целый! :SubHype: :Pog:»',
+  '«Держи позу на десять сабов дольше — и с меня ещё донат. На счёт три, чат считает! :Kreygasm: :ClipIt:»',
+  '«Кресло выдержит, я проверял. Вертикальный шпагат на бис! :AWOOGA: :Overheat:»',
+  '«Лучший стрим недели: ноль снятых вещей и максимум растяжки. Спасибо, Мия! :miyaLove: :SubHype:»',
+  '«Достань ладонями до пола, не сгибая колени — и я задонатю дважды! :monkaS: :sub2:»',
 ];
 
 const VIRAL_CLIP_TITLES: Record<TapZoneId, readonly string[]> = {
@@ -145,6 +202,31 @@ const VIRAL_CLIP_TITLES: Record<TapZoneId, readonly string[]> = {
   feet: [
     'БОСЫЕ ПЯТОЧКИ ПРЯМО НА СТОЛЕ ПЕРЕД ЛИНЗОЙ 4K',
     'СЖАЛА ПАЛЬЧИКИ ОТ ЩЕКОТКИ НА КАМЕРУ',
+  ],
+};
+
+
+/** Viral clip titles for the yoga day: the chair, the depth, the socks - never a wardrobe change. */
+export const VIRAL_CLIP_TITLES_DAY4: Record<TapZoneId, readonly string[]> = {
+  head: [
+    '«ОЙ» БОЛЬШЕ НЕТ: МИЯ УХМЫЛЯЕТСЯ В КАМЕРУ ВО ВРЕМЯ НАКЛОНА',
+    'ПОДМИГАНИЕ В ВЕРТИКАЛЬНОМ ШПАГАТЕ, ЧАТ ВСТАЛ',
+  ],
+  chest: [
+    'ВЯЗАНЫЙ ТОП НА ВДОХЕ: УЗОР РАЗЪЕХАЛСЯ, ЧАТ СЧИТАЕТ ГРАДУСЫ',
+    'ДЫХАНИЕ БЕЗ БРЕТЕЛЕЙ: РАЗБОР ПОЛЁТОВ ОТ ПОРТНИХИ',
+  ],
+  belly: [
+    'ЛАДОНИ НА ЖИВОТЕ, ВЫДОХ В МИКРОФОН: УДДЖАИ В 4K',
+    'УДЕРЖАНИЕ НА 30 СЧЁТОВ И НИ ОДНОЙ СМЯТОЙ ВЕЩИ',
+  ],
+  legs: [
+    'НОГИ НА ПОДЛОКОТНИКАХ: КРЕСЛО ПОДАЛОСЬ, ЧАТ ТОЖЕ',
+    'БЁДРО ОТКРЫТО У КРЕСЛА — 22000 САБОВ ЗА ОДИН ВДОХ',
+  ],
+  feet: [
+    'НОСКИ В КРАСНУЮ РЕЗИНКУ НА ПОДЛОКОТНИКЕ, КРУПНЫЙ ПЛАН',
+    'ТЯНЕТ НОСОК НА СЕБЯ — ЧАТ ТЯНЕТ САБЫ',
   ],
 };
 
@@ -239,6 +321,59 @@ const AMBIENT_DAY3: readonly string[] = [
   'ноги в сетке до самых ступней, дырки кривые. косплей года, без шуток :miyaLove: :SubHype:',
 ];
 
+/**
+ * Day 4 «Растяжка с Мией»: yoga day. The costume never changes, so the chat talks about the POSES,
+ * the chair that took all her weight, and the fact that she is having visibly more fun than them.
+ * Exported for scripts/linescan_days.ts: the viewers' per-stage chatter about the yoga kit.
+ */
+/** Exported for the copy audit and scripts/linescan_days.ts: the day-4 chat outside the stage pools. */
+export const AMBIENT_DAY4: readonly string[] = [
+  'топ без бретелей и держится. я пересматриваю в замедлении, чтобы найти застёжку. не нашёл :Pog: :LUL:',
+  'кресло как снаряд для йоги — это новый жанр, чат. инструкторы плачут :AWOOGA: :ClipIt:',
+  'она НЕ краснеет. она ухмыляется. четыре дня назад она рыдала из-за носочков :Kreygasm: :miyaLove:',
+  'вязка натянута так, что узор разъехался. это физика, легион, открывайте учебник по материалам :Overheat:',
+  'красные резинки на боках держат шорты лучше, чем мой пояс для подъёма штанги :monkaS: :Pog:',
+  'саб-цель 18000: разогнуть бедро. мы не извращенцы, мы за технику :SubHype: :sub2:',
+];
+
+export const AMBIENT_DAY4_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+  0: [
+    'разминка: руки в замок, спина прогнута, кресло под ней скрипит. лучший асана-стрим на твиче :EZ: :LUL:',
+    'она стоит на коленях на сиденье и тянет руки в потолок. я повторяю на коврике, спина отвечает :peepoShy: :ClipIt:',
+    'носочки с красной резинкой, шорты на два размера меньше, и полное спокойствие в лице. это финальный босс :AWOOGA:',
+    '18000 сабов до «Бёдер». у нас есть три часа и ни одного сомнения :SubHype: :sub2:',
+    'она сказала «это разминка». чат, мы взрослые люди, мы всё поняли :LUL: :monkaS:',
+  ],
+  1: [
+    'БЕДРО ОТКРЫТО, НОГА В ПОЛ, ОНА СМЕЁТСЯ. техника идеальная, я проверил у двух тренеров :Pog: :Nosebleed:',
+    'одно колено на подушке, вторая нога откинута, спина держит. это не поза, это заявление :Kreygasm:',
+    'шорты натянуты до предела и ни на миллиметр не съехали. вот это я называю инженерией костюма :ClipIt: :EZ:',
+    'сабнул и смотрю как она дышит. 22000 на шпагат, легион, не тормозим :SubHype: :Overheat:',
+    'у неё прядь прилипла ко лбу, и она специально не убрала. мы все всё поняли :miyaLove: :LUL:',
+  ],
+  2: [
+    'ВЕРТИКАЛЬНЫЙ ШПАГАТ, НОСОК У ГОЛОВЫ. я пересматриваю и считаю градусы. их больше 180 :BOOBA: :Pog:',
+    'она держит ногу руками, спина в прогибе и показывает чату две пальца. вот это и есть контроль кадра :Kreygasm:',
+    'кресло стоит рядом как свидетель. оно видело, как она это разминала, и молчит :ClipIt: :monkaS:',
+    '22000 сабов: ни одна вещь не снята, а ощущение, что мы видим всё. это и есть рост персонажа :miyaLove:',
+    'финал на 26000, у неё уже план. я читаю его по её лицу, чат, я не сплю :AWOOGA: :sub2:',
+  ],
+  3: [
+    'ОНА СЕЛА В КРЕСЛО И ПОЛОЖИЛА НОГИ НА ПОДЛОКОТНИКИ. 26000 сабов, миссия выполнена, я плачу :Pog: :SubHype:',
+    'ладони на животе, пальцы врозь, взгляд «ну и что». я бы подписался на это навсегда :Kreygasm: :Nosebleed:',
+    'финальная поза дня: она в кресле, мы в шоке. вязка доработала, чат разорился :Overheat: :ClipIt:',
+    'носки свисают с подлокотников, и она ухмыляется в камеру. йога, чат, сплошная осознанность :LUL: :miyaLove:',
+    'день закрыт без единой снятой вещи. четыре дня назад она рыдала из-за носочков, помним :peepoShy: :sub2:',
+  ],
+  4: [
+    '26000 САБОВ. ЙОГА-ДЕНЬ ПРОЙДЕН. она в кресле, мы в клипах, кресло в ремонте :AWOOGA: :Pog:',
+    'финал: руки на своём животе, дыхание ровное, чат истерит. профессионал, без шуток :Kreygasm:',
+    'ни одна вещь не улетела, и при этом это был самый горячий стрим недели. магия, чат, магия :miyaLove: :LUL:',
+    'завтра новый формат, а я уже устал ждать. сохраняйте клипы с креслом :ClipIt: :SubHype:',
+    'спокойной ночи, йога-диванная лига. она легла в кресло, мы легли от усталости :peepoShy: :EZ:',
+  ],
+};
+
 /** Exported for scripts/linescan_days.ts: the viewers' per-stage chatter about the costume. */
 export const AMBIENT_DAY3_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
   0: [
@@ -285,17 +420,22 @@ export function createAmbientChatMessage(
 ): ChatMessage {
   const viewer = VIEWER_NICKS[seed % VIEWER_NICKS.length]!;
   const pool =
-    streamDay === 3
+    streamDay === 4
       ? [
-          ...(AMBIENT_DAY3_BY_STAGE[displayedStage] ?? []),
-          ...AMBIENT_DAY3,
+          ...(AMBIENT_DAY4_BY_STAGE[displayedStage] ?? []),
+          ...AMBIENT_DAY4,
         ]
-      : streamDay === 2
+      : streamDay === 3
         ? [
-            ...(AMBIENT_DAY2_BY_STAGE[displayedStage] ?? []),
-            ...AMBIENT_DAY2,
+            ...(AMBIENT_DAY3_BY_STAGE[displayedStage] ?? []),
+            ...AMBIENT_DAY3,
           ]
-        : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
+        : streamDay === 2
+          ? [
+              ...(AMBIENT_DAY2_BY_STAGE[displayedStage] ?? []),
+              ...AMBIENT_DAY2,
+            ]
+          : (AMBIENT_BY_STAGE[displayedStage] ?? AMBIENT_BY_STAGE[0]);
   // Same wardrobe truth the heroine's own lines use: chat may beg, but it should not narrate an
   // outfit the plate contradicts ("she looks dangerous in the hoodie" at 5000 subs).
   const wardrobe = getWardrobe(streamDay, displayedStage);
@@ -318,6 +458,23 @@ export function createZoneBurstMessage(
   streamDay = 1,
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 3 + 2) % VIEWER_NICKS.length]!;
+  if (streamDay === 4) {
+    // Yoga day: the tap does not reveal anything, it makes the chair take her weight. Every reaction
+    // is about the pose she is holding - the generic pools below talk about legs and feet in the
+    // bare-skin vocabulary of Day 1/Day 2 and would describe a plate that does not exist.
+    const day4Pool = ZONE_CHAT_REACTIONS_DAY4[zone];
+    const day4Text =
+      (zone === 'feet' || zone === 'legs') && seed % 3 === 0
+        ? 'кресло скрипнуло, когда она закинула ноги на подлокотники. звук года, чат :Pog: :ClipIt:'
+        : day4Pool[Math.abs(seed) % day4Pool.length]!;
+    return {
+      id: nextMsgId(),
+      author: viewer.name,
+      color: viewer.color,
+      badge: viewer.badge,
+      text: day4Text,
+    };
+  }
   if (streamDay === 3) {
     // Ghost day: every tap is a «Бу!» - the sheet flies for a frame and the chat clips it forever.
     const day3Text =
@@ -389,9 +546,11 @@ export function createViralClipChatMessage(
   zone: TapZoneId,
   onlineViewers: number,
   seed = seqCounter,
+  streamDay = 1,
 ): ChatMessage {
   const clipper = VIEWER_NICKS[(seed * 5 + 3) % VIEWER_NICKS.length]!;
-  const titles = VIRAL_CLIP_TITLES[zone];
+  // The clip title is the day's poster: on the yoga day it names the pose, not a strip.
+  const titles = streamDay === 4 ? VIRAL_CLIP_TITLES_DAY4[zone] : VIRAL_CLIP_TITLES[zone];
   const title = titles[Math.abs(seed) % titles.length]!;
   const views = Math.max(48, onlineViewers * (6 + (seed % 7)));
   return {
@@ -404,9 +563,15 @@ export function createViralClipChatMessage(
   };
 }
 
-export function createDonationChatMessage(amount: number, seed = seqCounter): ChatMessage {
+/** Donations follow the day: the yoga chat asks for a held pose, never for a removed garment. */
+export function createDonationChatMessage(
+  amount: number,
+  seed = seqCounter,
+  streamDay = 1,
+): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 5 + 1) % VIEWER_NICKS.length]!;
-  const tts = DONATION_TTS_LINES[Math.abs(seed) % DONATION_TTS_LINES.length]!;
+  const pool = streamDay === 4 ? DONATION_TTS_LINES_DAY4 : DONATION_TTS_LINES;
+  const tts = pool[Math.abs(seed) % pool.length]!;
   return {
     id: nextMsgId(),
     author: viewer.name,
@@ -624,10 +789,53 @@ export function createDay2ProvocationChatMessage(index: number): ChatMessage {
   };
 }
 
+
+/** Day 4 (yoga) close-out chatter: the day ended in the chair, and tomorrow is already rumoured. */
+const FAREWELL_CHAT_DAY4: readonly {
+  author: string;
+  color: string;
+  badge?: ChatMessage['badge'];
+  text: string;
+  highlight?: boolean;
+}[] = [
+  {
+    author: 'StreamBot',
+    color: '#c084fc',
+    badge: 'MOD',
+    text: '★ ЙОГА-ДЕНЬ ЗАКРЫТ: 26000 САБОВ! Четыре позы, ноль снятых вещей, кресло пострадало :SubHype: :Pog:',
+    highlight: true,
+  },
+  {
+    author: 'yoga_bro_kim',
+    color: '#4ecdc4',
+    badge: 'SUB',
+    text: 'вертикальный шпагат без разминки. я как тренер официально снимаю перед ней шляпу :Kreygasm: :ClipIt:',
+  },
+  {
+    author: 'Pasha_Donater',
+    color: '#ff6b9d',
+    badge: 'VIP',
+    text: 'она легла в кресло, а я лёг от усталости. двадцать шесть тысяч сабов, было честь служить :miyaLove: :peepoShy:',
+  },
+  {
+    author: 'kaktus_mod',
+    color: '#4ade80',
+    badge: 'MOD',
+    text: 'чат, мы культурные: мы не просим «встань». мы просто ждём пятый день :EZ: :sub2: :LUL:',
+  },
+];
+
 /** One viewer goodbye line per farewell beat of the Day 1 finale. */
 /** The goodbye chat follows the day that just ended - no stale "500 subs" copy on Day 3. */
 export function createFarewellChatMessage(index: number, streamDay = 1): ChatMessage {
-  const pool = streamDay === 3 ? FAREWELL_CHAT_DAY3 : streamDay === 2 ? FAREWELL_CHAT_DAY2 : FAREWELL_CHAT_DAY1;
+  const pool =
+    streamDay === 4
+      ? FAREWELL_CHAT_DAY4
+      : streamDay === 3
+        ? FAREWELL_CHAT_DAY3
+        : streamDay === 2
+          ? FAREWELL_CHAT_DAY2
+          : FAREWELL_CHAT_DAY1;
   const def = pool[index % pool.length]!;
   return {
     id: nextMsgId(),

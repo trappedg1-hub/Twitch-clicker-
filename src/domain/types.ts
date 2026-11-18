@@ -79,7 +79,14 @@ export interface StreamChallengeDef {
   reactionLine: string;
   /** Spicy challenges keep working on Day 2 — but she is dressed, so the line must match. */
   reactionLineDay2?: string;
+  /**
+   * Day 4 is the yoga day: nothing comes off, so both her line and the chat's demand must be about the
+   * POSE (depth, holding it, breathing) instead of about revealing more. Without these the shop buttons
+   * would put Day-1 strip talk into the middle of a stream where she never undresses.
+   */
+  reactionLineDay4?: string;
   chatBurst: string;
+  chatBurstDay4?: string;
 }
 
 export interface StoryChapterDef {

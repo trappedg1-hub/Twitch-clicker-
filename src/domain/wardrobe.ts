@@ -10,7 +10,7 @@ import type { SubGoalStageIndex, TapZoneId } from './types.ts';
  */
 
 export type HoodieState = 'on' | 'tied' | 'hanging' | 'off';
-export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra' | 'bodysuit';
+export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra' | 'bodysuit' | 'tube';
 export type SockState = 'up' | 'gathered' | 'gone';
 /**
  * Day 3 (ghost cosplay): the sheet IS the reveal mechanic, so its state is tracked like a garment.
@@ -22,7 +22,7 @@ export type SockState = 'up' | 'gathered' | 'gone';
  */
 export type SheetState = 'veil' | 'hemLift' | 'hood' | 'off' | 'cape';
 
-export type DayIndex = 1 | 2 | 3;
+export type DayIndex = 1 | 2 | 3 | 4;
 
 export interface Wardrobe {
   day: DayIndex;
@@ -37,6 +37,12 @@ export interface Wardrobe {
   sheet?: SheetState;
   /** Day 3 only: fishnet stockings stay on all day - they are the punchline, not a goal. */
   fishnets?: boolean;
+  /**
+   * Day 4 only: the yoga kit is strapless, sleeveless and permanent — no hoodie, no straps, no
+   * bare feet, no removed shorts, for every stage of the day. Copy that claims otherwise
+   * contradicts the plate even though the words themselves look harmless.
+   */
+  yogaKit?: boolean;
 }
 
 const W = (
@@ -101,10 +107,23 @@ export const WARDROBES: Record<DayIndex, Record<SubGoalStageIndex, Wardrobe>> = 
     // both netted feet on the cushion and knees spread.
     4: W(3, 4, 'off', 'bodysuit', false, 'up', { sheet: 'cape', fishnets: true, midriff: true }),
   },
+  // Day 4 «Растяжка с Мией»: ONE knit kit for the whole stream, and nothing is taken off — the ladder
+  // escalates the POSE (chair → open hip → vertical split → sunk into the chair), never the wardrobe.
+  // The top has no straps at all, so strap talk is illegal the same way it is on Day 3; the socks are
+  // ankle socks (they stay on, so bare-foot talk stays illegal too); the micro shorts never leave.
+  4: {
+    0: W(4, 0, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
+    1: W(4, 1, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
+    2: W(4, 2, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
+    3: W(4, 3, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
+    // The day ends at stage 3 (26000). Stage 4 is an alias so any code that still indexes 0..4 on a
+    // short ladder reads the finale plate instead of crashing into `undefined`.
+    4: W(4, 4, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
+  },
 };
 
 export function getWardrobe(streamDay: number, stage: number): Wardrobe {
-  const day: DayIndex = streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
+  const day: DayIndex = streamDay === 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
   const clamped = Math.max(0, Math.min(4, Math.floor(stage))) as SubGoalStageIndex;
   return WARDROBES[day][clamped] ?? WARDROBES[day][0]!;
 }
@@ -194,9 +213,10 @@ export function contradictsWardrobe(
     }
   }
 
-  // Day 1 crew socks: they are gone from stage 1 on, and Day 2 never has them at all.
+  // Day 1 crew socks: they are gone from stage 1 on. Day 2 never has them at all (only knee-highs).
+  // Day 4 comes back to ANKLE socks — ivory with a red band — and they stay on for the whole stream.
   if (/носок|носочк|носк[иеов]/i.test(line)) {
-    if (w.day !== 1) return `day ${w.day} outfit has knee-highs, not ankle socks`;
+    if (w.day === 2 || w.day === 3) return `day ${w.day} outfit has knee-highs, not ankle socks`;
     if (w.socks === 'gone' && !removal) return 'mentions socks she already removed';
     if (w.socks === 'up' && /носк[а-я]*[^.!?]{0,26}(сполз|съехал|спустил|спущен|собран|гармошк)/i.test(line)) {
       return 'claims her socks slipped while they are on';
@@ -240,8 +260,8 @@ export function contradictsWardrobe(
   }
   // The Day 3 bodysuit has no straps at all - that is the whole joke of «сползает само». Only a
   // line that says so out loud ("бретелек тут нет") is allowed through.
-  if (w.day === 3 && /бретел|лямк/i.test(line) && !NEGATED_STRAP_TALK.test(line)) {
-    return 'mentions a strap on a strapless bodysuit';
+  if ((w.day === 3 || w.day === 4) && /бретел|лямк/i.test(line) && !NEGATED_STRAP_TALK.test(line)) {
+    return 'mentions a strap on a strapless top';
   }
   if (/лямк[^.!?]{0,18}(?<!не )(подня|на месте|верну)/i.test(line) && w.strapsDown) {
     return 'claims the straps are up while they are already down';
@@ -268,6 +288,46 @@ export function contradictsWardrobe(
     // Full stockings: the net runs over the instep to the toes. "Голая стопа" contradicts the plate.
     if (/(ступн|пяток|пальц\w* (ног|ступен)|подошв)[^.!?]{0,18}(голы|без сетк|нат\b)/i.test(line)) {
       return 'claims a bare foot while the fishnet covers it down to the toes';
+    }
+  }
+
+  // Day 4 yoga kit: one knit costume for the whole stream. Nothing is removed and nothing from the
+  // earlier days exists here, so the guard is short — it only kills garments that are not in frame.
+  if (w.yogaKit) {
+    if (/простын|сетк|чулк|боди|гольф/i.test(line)) {
+      return 'names a Day-2/Day-3 garment the yoga kit does not have';
+    }
+    /**
+     * The whole design rule of the yoga day, in code: heat comes from the POSE, so no line may report a
+     * garment leaving her body - not the shorts, not the knit top, not "just for a second". Only two
+     * escapes are legal: a promise about a later day, and the negation the chat keeps repeating ("ни одной
+     * снятой вещи"). This check is deliberately stricter than the shared REMOVAL_TALK hedge above, which
+     * exists for the earlier days where undressing IS the ladder.
+     */
+    const yogaFutureTalk =
+      /дальше|следующ|будет|будем|будут|станет|станут|потом|скоро|обеща|до финал|ждём|ждите|не надо|не нужно|не просим|не ждём|если добьёт|когда добьёте|завтра/i.test(
+        line,
+      );
+    const yogaNegation =
+      /(ни одной|ни единой|ни одна|ни одного|ноль снят|без единой|ничего не|не снят|не улетел|не улетает|не съехал|не сполз|не сполза|никак не|не раздев|не просим|так и стоит|так и сидит|остаёт|остается|держится)/i.test(
+        line,
+      );
+    const yogaRemovalClaim =
+      /(снял[аи]?\b|снята|снято|сняты|сняла|стянул[аи]?\b|стянут|раздел[аи]?\b|раздева|обнажил[аи]?|оголи[аи]?|сорвал[аи]?|сбросил[аи]?|улетел[аи]?|улетает|унесла|полетел[аи]?|остал[аи]?сь? в (одних|одном|одну|белье|трусиках|чулках|носком|носки)|останусь в (одних|одном|белье|трусиках)|в (одних|белье)|без трусиков|без (верх|низа|шорт|топа))/i.test(
+        line,
+      );
+    if (!yogaFutureTalk && !yogaNegation && yogaRemovalClaim) {
+      return 'claims a garment left her body — the yoga day changes poses, not clothes';
+    }
+    if (
+      !yogaFutureTalk &&
+      /шорт\w*[^.!?]{0,16}(снят|снял|сняла|нет|ушл|улетел|долой)|без шорт/i.test(line)
+    ) {
+      return 'claims the micro shorts came off — they stay on for the whole yoga day';
+    }
+    // Bare toes belong to Day 1 and the Day 2 finale; on the mat she stays in her socks.
+    if (!yogaNegation && /босиком|босые|голые ступн|голые пальц/i.test(line)) {
+      return 'claims bare feet while she is in socks on the yoga mat';
     }
   }
 
@@ -353,6 +413,30 @@ export const WARDROBE_SAFE_LINES: Record<DayIndex, Record<SubGoalStageIndex, rea
     4: [
       'Финал: простыня уехала за спину как плащ, боди и сетка — на камеру. Я красивая, и мне не страшно~ ★ ♥',
       'Корточки на кресле, колени врозь, ступни в сетке целиком. Дразнюсь официально, по договору с эфиром~ ♥',
+    ],
+  },
+  // Day 4 yoga: one knit kit, one chair, four poses. The safe pool never promises a removal, because
+  // on this day nothing is taken off — only the pose gets deeper.
+  4: {
+    0: [
+      'Вязаный топ без бретелей, шорты на два размера меньше, руки в замок над головой. Это разминка, чат, а не приглашение~',
+      'Кресло под собой я не отпускаю: на нём и будем стоять. Подбородок вверх, спина длинная, дальше — ваши сабы.',
+    ],
+    1: [
+      'Колено на сиденье, вторая нога вытянута в пол. Это поза на открывание бедра, любой учебник подтвердит. Я просто разминаюсь~',
+      'Шорты на месте, носочки тоже, я откинулась назад и смеюсь — потому что вижу, что вы написали в чате.',
+    ],
+    2: [
+      'Вертикальный шпагат, носочек у волос, две пальца в камеру. Я встала именно так, чтобы вам было видно всё, чат~',
+      'Ногу держу руками, спина прогнута, топ натянут до предела. Ни одна резинка никуда не денется до 26000.',
+    ],
+    3: [
+      'Финал: я в кресле, голени лежат на подлокотниках, ладони у меня на животе. Никуда не встаю — свою часть договора вы выполнили~ ♥',
+      'Ноги на подлокотниках, носочки на месте, топ держится на честном натяжении. Смотрите сколько хотите, это ваш стрим~ ★ ♥',
+    ],
+    4: [
+      'Финал: я в кресле, голени лежат на подлокотниках, ладони у меня на животе. Никуда не встаю — свою часть договора вы выполнили~ ♥',
+      'Ноги на подлокотниках, носочки на месте, топ держится на честном натяжении. Смотрите сколько хотите, это ваш стрим~ ★ ♥',
     ],
   },
 };

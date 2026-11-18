@@ -33,6 +33,15 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t3_s3.webp": { x: 212, y: 154, w: 368, h: 300 },
   "heroine_t3_s4.webp": { x: 382, y: 193, w: 248, h: 300 },
   "heroine_t3_flash.webp": { x: 212, y: 154, w: 368, h: 300 },
+  // Day 4 is four separately drawn yoga frames, each painting its own face (a wink at the split, an
+  // open-mouth laugh at the opener, a half-lidded look from the chair), so the canonical Day-1 patch
+  // never lands on them. Boxes below are measured off the finished plates: head top row + the widest
+  // skin run under it. Debug overlay only - every Day-4 plate is in FACE_PATCH_COVERED_PLATES.
+  "heroine_t4_s0.webp": { x: 318, y: 95, w: 348, h: 300 },
+  "heroine_t4_s1.webp": { x: 325, y: 160, w: 348, h: 300 },
+  "heroine_t4_s2.webp": { x: 396, y: 91, w: 334, h: 300 },
+  "heroine_t4_s3.webp": { x: 384, y: 214, w: 215, h: 300 },
+  "heroine_t4_flash.webp": { x: 384, y: 214, w: 215, h: 300 },
   "heroine_t2_s0.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s1.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s2.webp": { x: 336, y: 60, w: 347, h: 395 },
@@ -58,4 +67,10 @@ export const FACE_PATCH_COVERED_PLATES: ReadonlySet<string> = new Set([
   "heroine_t3_s3.webp",
   "heroine_t3_s4.webp",
   "heroine_t3_flash.webp",
+  // Day 4 draws the expression into every frame, so an overlaid blush/blink patch would double it.
+  "heroine_t4_s0.webp",
+  "heroine_t4_s1.webp",
+  "heroine_t4_s2.webp",
+  "heroine_t4_s3.webp",
+  "heroine_t4_flash.webp",
 ]);

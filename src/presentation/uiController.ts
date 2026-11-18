@@ -1,7 +1,16 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
-import { DAY1_FAREWELL_LINES, DAY2_FAREWELL_LINES, DAY3_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
+import { DAY1_FAREWELL_LINES, DAY2_FAREWELL_LINES, DAY3_FAREWELL_LINES, DAY4_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
-import { dayFinaleSubs, getShortStepLabelsForDay, getStepLabelsForDay, isDay3Unlocked, SUB_GOAL_STAGES, getGiftSubPackCost, getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import {
+  dayFinaleSubs,
+  getShortStepLabelsForDay,
+  getStepLabelsForDay,
+  isDay3Unlocked,
+  isDay4Unlocked,
+  SUB_GOAL_STAGES,
+  getGiftSubPackCost,
+  getSubGoalStagesForDay,
+} from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
@@ -104,7 +113,7 @@ export class UiController {
   // Day 1 finale farewell state machine: Miya says good-bye before Day 2 unlocks.
   private farewellPhase: 'idle' | 'playing' | 'done' = 'idle';
   /** Which day's farewell is playing (1 = Day 1 -> Day 2, 2 = Day 2 -> Day 3). */
-  private farewellDay: 1 | 2 | 3 = 1;
+  private farewellDay: 1 | 2 | 3 | 4 = 1;
   private farewellTimers: number[] = [];
 
   private activeTab: BottomTabId = 'stream';
@@ -253,6 +262,7 @@ export class UiController {
 
   /** The farewell belongs to whichever day just ended. */
   private farewellLines(): readonly string[] {
+    if (this.farewellDay === 4) return DAY4_FAREWELL_LINES;
     if (this.farewellDay === 3) return DAY3_FAREWELL_LINES;
     return this.farewellDay === 2 ? DAY2_FAREWELL_LINES : DAY1_FAREWELL_LINES;
   }
@@ -309,7 +319,14 @@ export class UiController {
     this.farewellPhase = 'done';
     this.skipFarewellBtnEl.classList.add('hidden');
     this.finaleCardEl.classList.add('finale-ready');
-    this.startDay2BtnEl.disabled = this.farewellDay === 2 ? !isDay3Unlocked() : false;
+    // The button leads to the NEXT day, so it lights up on that day's art gate. Day 4 has no Day 5
+    // ladder yet, so its card never becomes clickable — the copy says so instead.
+    this.startDay2BtnEl.disabled =
+      this.farewellDay === 2
+        ? !isDay3Unlocked()
+        : this.farewellDay === 3
+          ? !isDay4Unlocked()
+          : this.farewellDay === 4;
   }
 
   private resetFarewell(): void {
@@ -328,32 +345,46 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.dayBadgeEl.textContent =
-      state.streamDay === 3 ? 'День 3 ★ ПРИЗРАК' : state.streamDay === 2 ? 'День 2 ★' : 'День 1';
-    const finaleDay: 1 | 2 | 3 =
-      state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
+      state.streamDay === 4
+        ? 'День 4 ★ ЙОГА'
+        : state.streamDay === 3
+          ? 'День 3 ★ ПРИЗРАК'
+          : state.streamDay === 2
+            ? 'День 2 ★'
+            : 'День 1';
+    const finaleDay: 1 | 2 | 3 | 4 =
+      state.streamDay === 4 ? 4 : state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
     const finaleTarget = dayFinaleSubs(finaleDay);
-    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 3;
+    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 4;
     if (isFinale && this.farewellDay !== finaleDay) {
       this.farewellDay = finaleDay;
       this.farewellPhase = 'idle';
     }
     if (isFinale) {
       this.finaleKickerEl.textContent =
-        finaleDay === 3
+        finaleDay === 4
+          ? '★ ФИНАЛ ЙОГА-ДНЯ: РАСТЯЖКА ★'
+          : finaleDay === 3
           ? '★ ФИНАЛ КОСПЛЕЙ-ДНЯ: ПРИЗРАК ★'
           : finaleDay === 2
             ? '★ ФИНАЛ ВТОРОГО ДНЯ ★'
             : '★ ФИНАЛ ПЕРВОГО ДНЯ ★';
       this.finaleTitleEl.textContent = `${finaleTarget} сабов пробито!`;
       this.finaleDescEl.innerHTML =
-        finaleDay === 3
+        finaleDay === 4
+          ? `Йога-эфир закрыт: <strong>${finaleTarget} сабов</strong>, четыре позы и ни одна снятая вещь. Мия осталась сидеть в кресле и думает, какой формат выбрать дальше.`
+          : finaleDay === 3
           ? `Призрачный эфир закрыт: <strong>${finaleTarget} сабов</strong>, простыня стала плащом. Мия уже думает, какой формат выбрать на следующий стрим.`
           : finaleDay === 2
           ? 'Второй эфир окончен: Мия прощается с чатом и уносит костюм. <strong>Завтра — День 3: косплей-стрим</strong>, и она обещала сюрприз.'
           : 'Первый эфир окончен: Мия прощается с чатом и выключает камеру. <strong>Завтра — День 2</strong>: новый образ и новые Sub Goal.';
       this.startDay2BtnEl.textContent =
-        finaleDay === 3
-          ? 'День 4 в разработке — продолжение завтра'
+        finaleDay === 4
+          ? 'Йога-день закрыт — следующий формат выберет чат'
+          : finaleDay === 3
+          ? isDay4Unlocked()
+            ? 'Начать День 4 (растяжка с Мией) →'
+            : 'Коврик ещё не свёрнут — открытие завтра'
           : finaleDay === 2
           ? isDay3Unlocked()
             ? 'Начать День 3 (призрачный косплей) →'
@@ -361,7 +392,9 @@ export class UiController {
           : 'Начать День 2 →';
       this.finaleOpenBtnEl.classList.remove('hidden');
       this.finaleOpenBtnEl.textContent =
-        finaleDay === 3
+        finaleDay === 4
+          ? '★ Йога-день закрыт — открыть финал'
+          : finaleDay === 3
           ? '★ Косплей-день закрыт — открыть финал'
           : finaleDay === 2
             ? '★ День 2 закрыт — открыть финал'
@@ -375,7 +408,14 @@ export class UiController {
     if (isFinale && this.finaleCardOpen) {
       // The Day-3 button re-checks the art probe on every render, so it lights up without a reload.
       if (this.farewellPhase === 'done') {
-        this.startDay2BtnEl.disabled = finaleDay === 2 ? !isDay3Unlocked() : false;
+        this.startDay2BtnEl.disabled =
+          finaleDay === 4
+            ? true
+            : finaleDay === 3
+              ? !isDay4Unlocked()
+              : finaleDay === 2
+                ? !isDay3Unlocked()
+                : false;
       }
     }
     if (!isFinale && (this.farewellPhase !== 'idle' || this.finaleCardOpen)) {
@@ -406,7 +446,9 @@ export class UiController {
     } else {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
-        state.streamDay === 3
+        state.streamDay === 4
+          ? `День 4: кресло выдержало всё — ${finaleTarget} сабов! ★`
+          : state.streamDay === 3
           ? `День 3: призрак ушёл сквозь стену — ${finaleTarget} сабов! ★`
           : state.streamDay === 2
             ? 'День 2: финал пробит — 5000 сабов! ★'
@@ -421,11 +463,19 @@ export class UiController {
     const isNarrow = window.innerWidth <= 680;
     this.subgoalStepEls.forEach((el, idx) => {
       const stepStage = idx + 1;
+      const lbl = (isNarrow ? shortStepLabels : stepLabels)[idx];
+      // Day 4 unlocks three goals, not four, so the row's last chip has nothing to show. Hiding it is
+      // what keeps the strip honest; leaving it blank reads as a goal the player can never reach.
+      if (lbl === undefined) {
+        el.classList.add('hidden');
+        el.textContent = '';
+        return;
+      }
+      el.classList.remove('hidden');
       const done = state.unlockedSubStage >= stepStage;
       const active = state.unlockedSubStage + 1 === stepStage;
       el.classList.toggle('done', done);
       el.classList.toggle('active', active);
-      const lbl = isNarrow ? shortStepLabels[idx]! : stepLabels[idx]!;
       el.textContent = done ? `✓${isNarrow ? '' : ' '}${lbl}` : lbl;
     });
 
@@ -489,6 +539,12 @@ export class UiController {
     this.diaryThoughtEl.textContent = stats.storyChapter.diaryThought;
 
     // Sub Goal Outfit Stage Cards — the CURRENT DAY's ladder (10/50/200/500 or 1500/2000/2500/5000)
+    const liveStages = new Set(dayLadder.map((st) => st.stage));
+    for (const [stage, card] of this.outfitCards) {
+      // The grid is built once from Day 1's five stages. A shorter ladder (Day 4: four) must hide the
+      // surplus card instead of showing the costume the PREVIOUS day left written on it.
+      card.classList.toggle('hidden', !liveStages.has(stage));
+    }
     for (const st of dayLadder) {
       const card = this.outfitCards.get(st.stage);
       if (!card) continue;

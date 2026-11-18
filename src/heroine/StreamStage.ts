@@ -13,7 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { DAY3_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -157,26 +157,39 @@ export class StreamStage {
 
     // Day 3 cosplay plates are cut last: probe the ladder and load it only when every file exists,
     // otherwise the rig keeps reusing the Day 2 art (a 404 texture would break the whole boot).
-    const day3Defs = getSubGoalStagesForDay(3);
     // A missing file still answers 200 with the SPA index.html in dev, so the content type decides.
-    const day3Heads = await Promise.all(
-      day3Defs.map((def) =>
-        fetch(def.plateUrl, { method: 'HEAD' })
-          .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
-          .catch(() => false),
-      ),
-    );
-    let day3StagesTex: Texture[] | undefined;
-    let ghostFlashTex: Texture | undefined;
-    if (day3Heads.every(Boolean)) {
+    // One loader for both late days: Day 3 (cosplay) and Day 4 (yoga) are cut after the boot ladder and
+    // may legitimately not exist yet - in that case the rig keeps the Day 2 art instead of 404-ing.
+    const loadLadder = async (
+      day: 3 | 4,
+      flashPlate: string,
+    ): Promise<{ stages?: Texture[]; flash?: Texture }> => {
+      const defs = getSubGoalStagesForDay(day);
+      const heads = await Promise.all(
+        defs.map((def) =>
+          fetch(def.plateUrl, { method: 'HEAD' })
+            .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+            .catch(() => false),
+        ),
+      );
+      if (!heads.every(Boolean)) return {};
       try {
-        const loaded = await Promise.all(day3Defs.map((def) => Assets.load<Texture>(def.plateUrl)));
-        day3StagesTex = loaded.every((tex) => Boolean(tex)) ? loaded : undefined;
-        ghostFlashTex = await Assets.load<Texture>(DAY3_FLASH_PLATE).catch(() => undefined);
+        const loaded = await Promise.all(defs.map((def) => Assets.load<Texture>(def.plateUrl)));
+        if (!loaded.every((tex) => Boolean(tex))) return {};
+        const flash = await Assets.load<Texture>(flashPlate).catch(() => undefined);
+        return { stages: loaded, flash: flash ?? undefined };
       } catch {
-        day3StagesTex = undefined; // decode failed - the Day 2 ladder keeps the rig alive
+        return {}; // decode failed - the Day 2 ladder keeps the rig alive
       }
-    }
+    };
+    const [ghostLadder, yogaLadder] = await Promise.all([
+      loadLadder(3, DAY3_FLASH_PLATE),
+      loadLadder(4, DAY4_FLASH_PLATE),
+    ]);
+    const day3StagesTex = ghostLadder.stages;
+    const ghostFlashTex = ghostLadder.flash;
+    const day4StagesTex = yogaLadder.stages;
+    const yogaFlashTex = yogaLadder.flash;
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
@@ -235,6 +248,8 @@ export class StreamStage {
       day2Stages: day2StagesTex,
       day3Stages: day3StagesTex,
       ghostFlash: ghostFlashTex ? [ghostFlashTex] : undefined,
+      day4Stages: day4StagesTex,
+      yogaFlash: yogaFlashTex ? [yogaFlashTex] : undefined,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -402,12 +417,15 @@ export class StreamStage {
     return this.rig?.isGhostFlashing() ?? false;
   }
 
-  /** Day 3 «Бу!» flash frame; returns true when something actually flashed on screen. */
+  /**
+   * Day 3 «Бу!» / Day 4 «Готово?» flash frame; returns true when something actually flashed on screen.
+   * The rig picks the flash plate for the live day, so a day with no flash art simply returns false.
+   */
   public triggerGhostBoo(durationMs = 520): boolean {
     return this.rig?.triggerGhostBoo(durationMs) ?? false;
   }
 
-  public setWardrobeDay(day: 1 | 2 | 3): void {
+  public setWardrobeDay(day: 1 | 2 | 3 | 4): void {
     this.rig?.setWardrobeDay(day);
     this.rig?.setFaceAnchorFor(this.getActivePlateName());
   }
