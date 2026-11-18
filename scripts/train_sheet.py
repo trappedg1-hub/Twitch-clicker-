@@ -77,7 +77,8 @@ def sheet(paths: list[Path], scores: dict[str, tuple[float, float]], out: Path) 
             line2 = f"hot {hot}/10   style {sty}/10   → {(hot + sty) / 2:.1f}"
         draw.text((x + 8, y + tile_h - cap[3] - 4), stem, fill=(255, 214, 236))
         if stem in notes:
-            draw.text((x + 8, y + tile_h + 14), notes[stem], fill=(190, 200, 230))
+            for li, part in enumerate(notes[stem].split("\n")):
+                draw.text((x + 8, y + tile_h + 14 + li * 16), part[:110], fill=(190, 200, 230))
         if line2:
             draw.text((x + 8, y + tile_h + 34), line2, fill=(180, 255, 210))
     out.parent.mkdir(parents=True, exist_ok=True)
