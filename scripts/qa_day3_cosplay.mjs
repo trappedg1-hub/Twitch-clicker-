@@ -58,10 +58,54 @@ async function reachDay2Finale() {
   });
 }
 
+/**
+ * The finale card is player-invoked: reaching the day goal must NOT pop a modal over the stream (the
+ * «Бу!» frame used to be covered before it could be seen or clicked). So every finale step in this
+ * script first proves the card is closed and the canvas is still hit-testable, then opens the card
+ * the way a player does.
+ */
+async function openFinaleCard() {
+  const before = await page.evaluate(() => {
+    const canvas = document.querySelector('#stream-stage-host canvas');
+    const r = canvas.getBoundingClientRect();
+    const top = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2));
+    return {
+      overlayHidden: document.getElementById('day-finale-overlay').classList.contains('hidden'),
+      ctaVisible: !document.getElementById('btn-finale-open').classList.contains('hidden'),
+      ctaLabel: document.getElementById('btn-finale-open').textContent.trim(),
+      hitsCanvas: top === canvas,
+    };
+  });
+  console.log('  finale gate', JSON.stringify(before));
+  if (!before.overlayHidden) errors.push('the finale card opened by itself and covered the stream');
+  if (!before.ctaVisible) errors.push('the finale CTA stayed hidden although the day goal is closed');
+  if (!/открыть финал/i.test(before.ctaLabel)) errors.push(`unexpected CTA copy: ${before.ctaLabel}`);
+  if (!before.hitsCanvas) errors.push('something other than the canvas is over the heroine at the closed day');
+  await page.click('#btn-finale-open');
+  await page.waitForTimeout(400);
+  return before;
+}
+
+/** «пока нет» has to give the stream back, CTA and all. */
+async function closeFinaleCardAgain() {
+  await page.click('#btn-finale-close');
+  await page.waitForTimeout(300);
+  const after = await page.evaluate(() => ({
+    overlayHidden: document.getElementById('day-finale-overlay').classList.contains('hidden'),
+    ctaVisible: !document.getElementById('btn-finale-open').classList.contains('hidden'),
+  }));
+  console.log('  finale closed', JSON.stringify(after));
+  if (!after.overlayHidden) errors.push('«вернуться к эфиру» did not close the finale card');
+  if (!after.ctaVisible) errors.push('closing the card lost the CTA, so the day can no longer be finished');
+  await page.click('#btn-finale-open');
+  await page.waitForTimeout(300);
+}
+
 // ---------- 1) LOCKED: no cosplay art yet -> the card must stay disabled with honest copy ----------
 await load(1366, 820, false);
 console.log('1 reach', JSON.stringify(await reachDay2Finale()));
 await page.waitForTimeout(1200);
+await openFinaleCard();
 await page.click('#btn-skip-farewell').catch(() => {});
 await page.waitForTimeout(400);
 let locked = await page.evaluate(() => {
@@ -76,6 +120,7 @@ await shot('day3_1_locked');
 await load(1366, 820, true);
 console.log('2 reach', JSON.stringify(await reachDay2Finale()));
 await page.waitForTimeout(1200);
+await openFinaleCard();
 await page.click('#btn-skip-farewell').catch(() => {});
 let ready = await page.evaluate(() => ({
   disabled: document.getElementById('btn-start-day2').disabled,
@@ -86,6 +131,7 @@ let ready = await page.evaluate(() => ({
 console.log('2 card', JSON.stringify(ready));
 if (ready.disabled) errors.push('Day 3 button should be enabled once unlocked');
 if (!/КОСПЛЕ|косплей/.test(ready.label)) errors.push(`finale button label missing cosplay copy: ${ready.label}`);
+await closeFinaleCardAgain();
 
 await page.click('#btn-start-day2');
 await page.waitForTimeout(600);
@@ -189,6 +235,7 @@ if (guard) {
 await load(390, 844, true);
 console.log('5 reach', JSON.stringify(await reachDay2Finale()));
 await page.waitForTimeout(900);
+await openFinaleCard();
 await page.click('#btn-skip-farewell').catch(() => {});
 await page.click('#btn-start-day2').catch(() => {});
 await page.waitForTimeout(500);

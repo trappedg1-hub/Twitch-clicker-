@@ -44,6 +44,12 @@
               <span class="goal-step" data-step="3">200 Худи</span>
               <span class="goal-step" data-step="4">500 Тишка ★</span>
             </div>
+
+            <!-- Finale = an offer, never an interruption. The card only opens when the player asks,
+                 so the goal closing cannot steal the stream out from under their clicks. -->
+            <button id="btn-finale-open" class="finale-open-cta hidden" type="button">
+              ★ Финал дня пробит — открыть карточку
+            </button>
           </div>
 
           <!-- Authentic Top-Right Twitch Player Status Badges (Hype Multiplier + 1080p60 + LIVE — no duplicate boldness!) -->
@@ -100,6 +106,9 @@
             </p>
             <button id="btn-start-day2" class="day-finale-btn" type="button" disabled>
               Начать День 2 →
+            </button>
+            <button id="btn-finale-close" class="day-finale-close" type="button">
+              ← пока нет, вернуться к эфиру
             </button>
           </div>
         </div>

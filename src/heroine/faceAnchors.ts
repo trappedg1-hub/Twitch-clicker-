@@ -27,11 +27,11 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   // s0/s1 were re-measured after their raws were re-framed for the desk (t3_dsk_a1/a2): the face
   // band here is the skin visible through the torn eye holes, rows 120-520 only.
   "heroine_t3_s0.webp": { x: 413, y: 208, w: 224, h: 300 },
-  "heroine_t3_s1.webp": { x: 396, y: 200, w: 240, h: 300 },
+  "heroine_t3_s1.webp": { x: 355, y: 198, w: 240, h: 300 },
   "heroine_t3_s2.webp": { x: 560, y: 208, w: 300, h: 260 },
-  "heroine_t3_s3.webp": { x: 408, y: 176, w: 368, h: 300 },
+  "heroine_t3_s3.webp": { x: 212, y: 154, w: 368, h: 300 },
   "heroine_t3_s4.webp": { x: 396, y: 176, w: 396, h: 288 },
-  "heroine_t3_flash.webp": { x: 408, y: 176, w: 368, h: 300 },
+  "heroine_t3_flash.webp": { x: 212, y: 154, w: 368, h: 300 },
   "heroine_t2_s0.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s1.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s2.webp": { x: 336, y: 60, w: 347, h: 395 },

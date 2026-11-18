@@ -223,6 +223,35 @@ const mobile = await page.evaluate(() => {
 console.log('5 mobile', JSON.stringify(mobile));
 if (!mobile.fits || mobile.overflowX) errors.push(`the panel breaks the phone layout: ${JSON.stringify(mobile)}`);
 await page.screenshot({ path: '.qa-out/admin_4_mobile.png' });
+
+// ---------- 6) the closed day must not interrupt: finale card opens only on the player's click ----
+await page.setViewportSize({ width: 1366, height: 820 });
+await page.waitForTimeout(400);
+const gate = await page.evaluate(() => {
+  document.querySelector('#admin-panel [data-act="subs-fin"]').click();
+  const canvas = document.querySelector('#stream-stage-host canvas');
+  const r = canvas.getBoundingClientRect();
+  const top = document.elementFromPoint(Math.round(r.x + r.width / 2), Math.round(r.y + r.height / 2));
+  return {
+    overlayHidden: document.getElementById('day-finale-overlay').classList.contains('hidden'),
+    cta: !document.getElementById('btn-finale-open').classList.contains('hidden'),
+    hitsCanvas: top === canvas,
+  };
+});
+console.log('6 gate', JSON.stringify(gate));
+if (!gate.overlayHidden) errors.push('paying the finale through the admin panel popped the card over the stream');
+if (!gate.cta) errors.push('the finale CTA did not appear when the day goal was reached');
+if (!gate.hitsCanvas) errors.push('the heroine is not clickable on a closed day');
+await page.click('#btn-finale-open');
+await page.waitForTimeout(400);
+const opened = await page.evaluate(() => ({
+  hidden: document.getElementById('day-finale-overlay').classList.contains('hidden'),
+  label: document.getElementById('btn-start-day2').textContent.trim(),
+  disabled: document.getElementById('btn-start-day2').disabled,
+}));
+console.log('6 opened', JSON.stringify(opened));
+if (opened.hidden) errors.push('the CTA did not open the finale card');
+await page.screenshot({ path: '.qa-out/admin_5_finale_card.png' });
 const bottom = await box('#admin-toggle');
 const clearOfFooter = await page.evaluate(() => {
   const t2 = document.getElementById('admin-toggle').getBoundingClientRect();

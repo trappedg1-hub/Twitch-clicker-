@@ -42,6 +42,7 @@ import {
   triggerStreamChallenge,
 } from '../domain/engine.ts';
 import {
+  dayFinaleSubs,
   getSubGoalStagesForDay,
   isDay3Unlocked,
   pickShySubGoalApproachLine,
@@ -115,6 +116,8 @@ export async function bootstrapApp(): Promise<void> {
    */
   let adminSaveSuppressed = false;
   let adminPanel: AdminPanel | null = null;
+  /** Day whose "the goal is closed" hint the chat already got — see the note in syncAll. */
+  let finaleAnnouncedDay = 0;
   let idleTeaseCounter = 0;
   /** She keeps commenting on the stream: idle stares AND live numbers, never over a celebration. */
   let lastCelebrationMs = 0;
@@ -142,6 +145,25 @@ export async function bootstrapApp(): Promise<void> {
     stage.setWardrobeDay(state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
+    // A closed day is an announcement, not a takeover: the finale card waits for the player's own
+    // click (see UiController.openFinaleCard), so this only tells them the button exists. Without it
+    // the HUD change is easy to miss while they are mid-click on her, and the day looks stuck.
+    if (state.subscribers >= dayFinaleSubs(state.streamDay) && finaleAnnouncedDay !== state.streamDay) {
+      finaleAnnouncedDay = state.streamDay;
+      ui.pushChatMessage({
+        id: `finale_open_${state.streamDay}_${Date.now()}`,
+        author: 'StreamBot',
+        color: '#ffd54f',
+        badge: 'MOD',
+        text: `★ День ${state.streamDay} закрыт на ${dayFinaleSubs(state.streamDay)} сабах. Эфир продолжается — карточку с переходом откроешь сам, когда накликаешься.`,
+        isSystemHighlight: true,
+      });
+      ui.showSpeech(
+        state.streamDay === 3
+          ? 'Цель закрыта, чат, а я ещё в кадре. Кликай на здоровье — переход только когда скажешь.'
+          : 'Днём я своё заработала. Не выгоняю: кликай сколько надо, а карточку я держу в углу.',
+      );
+    }
     if (!isQa && !adminSaveSuppressed) {
       localStorage.setItem(SAVE_STORAGE_KEY, serializeState(state));
     }
@@ -668,7 +690,7 @@ export async function bootstrapApp(): Promise<void> {
     dayFinale: () => {
       state = debugSetSubscribers(state, finaleSubsForDay(state.streamDay));
       syncAll();
-      ui.showSpeech('★ Финал дня пробит — вожми «Начать следующий день» в карточке финала.');
+      ui.showSpeech('★ Финал дня пробит — карточка ждёт кнопкой ★ в плашке Sub Goal слева вверху.');
     },
     addFunds: (amount) => {
       state = { ...state, balance: state.balance + amount, totalEarned: state.totalEarned + Math.max(0, amount) };

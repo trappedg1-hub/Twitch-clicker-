@@ -7,7 +7,7 @@ import {
   startDay2,
   startDay3,
 } from './engine.ts';
-import { getSubGoalStagesForDay, isDay3Unlocked } from './subGoals.ts';
+import { dayFinaleSubs, getSubGoalStagesForDay, isDay3Unlocked } from './subGoals.ts';
 import { TIER1_UPGRADES, getUpgradeCost } from './upgrades.ts';
 import type { GameState, SubGoalStageIndex } from './types.ts';
 
@@ -25,8 +25,7 @@ export const ADMIN_MAX_DAY = 3;
 
 /** Subscribers that close `day` — its last ladder step, which is also the gate into the next day. */
 export function finaleSubsForDay(day: number): number {
-  const ladder = getSubGoalStagesForDay(day);
-  return ladder[ladder.length - 1]!.subsRequired;
+  return dayFinaleSubs(day);
 }
 
 /** Subscribers a given stage needs on a given day (0 = the day's opening plate). */

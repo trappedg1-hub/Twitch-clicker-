@@ -2378,3 +2378,79 @@ body.drawer-open .obs-chat-overlay {
     max-height: 62dvh;
   }
 }
+
+/* ── FINALE CTA — the day closes, the stream does not ─────────────────────────────────────
+   The finale card used to appear on its own the moment the goal was hit, which covered the
+   heroine (and on Day 3 exactly the «Бу!» frame) with a modal before the player could react.
+   Now the only thing that happens is this button: it lives in the sub-goal card, so nothing
+   moves, and the card opens on the player's own click — and closes again with «пока нет». */
+.finale-open-cta {
+  display: block;
+  width: 100%;
+  /* .stage-top-hud is pointer-events:none so taps reach her; a real control inside it has to opt
+     back in, or it renders as a picture you cannot press. */
+  pointer-events: auto;
+  margin-top: 2px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 213, 79, 0.62);
+  background: linear-gradient(160deg, rgba(255, 213, 79, 0.16), rgba(145, 71, 255, 0.24));
+  color: #ffe9a8;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  animation: finaleCtaPulse 1.9s ease-in-out infinite;
+}
+
+.finale-open-cta:hover {
+  animation-play-state: paused;
+  background: linear-gradient(160deg, rgba(255, 213, 79, 0.3), rgba(145, 71, 255, 0.4));
+  color: #fff;
+}
+
+.finale-open-cta.hidden {
+  display: none;
+}
+
+@keyframes finaleCtaPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(255, 213, 79, 0);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(255, 213, 79, 0.42);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .finale-open-cta {
+    animation: none;
+  }
+}
+
+.day-finale-close {
+  display: block;
+  margin: 9px auto 0;
+  background: transparent;
+  border: none;
+  color: #b9a6d6;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 7px;
+}
+
+.day-finale-close:hover {
+  color: #ffd54f;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 680px) {
+  .finale-open-cta {
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+}

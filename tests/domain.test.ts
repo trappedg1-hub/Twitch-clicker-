@@ -37,6 +37,8 @@ import {
   STREAM_CHALLENGES,
 } from '../src/domain/progression.ts';
 import {
+  DAY1_FINALE_SUBS,
+  dayFinaleSubs,
   DAY2_SUB_GOAL_STAGES,
   DAY3_FLASH_PLATE,
   getGiftSubUnitCost,
@@ -227,6 +229,19 @@ test('all 5 tap zones have Russian lines, shy Sub Goal lines, and emotion progre
   }
   assert.ok(pickReactionCalloutTag('feet', true, 2).length > 4);
   assert.equal(STREAM_CHALLENGES.length, 6);
+});
+
+test('the day-final number has exactly one source: the ladder\u02bcs last step', () => {
+  // DAY1_FINALE_SUBS is the engine gate, dayFinaleSubs is what the finale card and the CTA read.
+  // They must never disagree, or the card offers a transition the engine refuses (or hides one that
+  // is already legal). Day 2/3 have no separate constant, so the last step is the rule there too.
+  assert.equal(dayFinaleSubs(1), DAY1_FINALE_SUBS);
+  assert.equal(dayFinaleSubs(2), 5_000);
+  assert.equal(dayFinaleSubs(3), 15_000);
+  for (const day of [1, 2, 3]) {
+    const ladder = getSubGoalStagesForDay(day);
+    assert.equal(dayFinaleSubs(day), ladder[ladder.length - 1]!.subsRequired);
+  }
 });
 
 test('serialization round-trips subscribers & sub-goal stages cleanly', () => {

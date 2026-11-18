@@ -1,7 +1,7 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
 import { DAY1_FAREWELL_LINES, DAY2_FAREWELL_LINES, DAY3_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
-import { DAY1_FINALE_SUBS, getShortStepLabelsForDay, getStepLabelsForDay, isDay3Unlocked, SUB_GOAL_STAGES, getGiftSubPackCost, getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import { dayFinaleSubs, getShortStepLabelsForDay, getStepLabelsForDay, isDay3Unlocked, SUB_GOAL_STAGES, getGiftSubPackCost, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import type {
   BottomTabId,
   ChallengeId,
@@ -86,6 +86,13 @@ export class UiController {
 
   private readonly dayBadgeEl = document.getElementById('stream-day-badge')!;
   private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
+  private readonly finaleOpenBtnEl = document.getElementById('btn-finale-open')!;
+  private readonly finaleCloseBtnEl = document.getElementById('btn-finale-close')!;
+  /**
+   * The finale card is player-invoked. `false` means "the day is closed, but the stream is still
+   * hers": taps, gifts and her commentary keep running, and nothing is covered by the modal.
+   */
+  private finaleCardOpen = false;
   private readonly finaleCardEl = document.querySelector('.day-finale-card') as HTMLElement;
   private readonly finaleKickerEl = document.getElementById('finale-kicker')!;
   private readonly finaleTitleEl = document.getElementById('finale-title')!;
@@ -124,6 +131,8 @@ export class UiController {
     this.buildOutfitCards();
     this.buildChallengeCards();
     this.startDay2BtnEl.addEventListener('click', () => this.onStartDay2?.());
+    this.finaleOpenBtnEl.addEventListener('click', () => this.openFinaleCard());
+    this.finaleCloseBtnEl.addEventListener('click', () => this.closeFinaleCard());
     this.skipFarewellBtnEl.addEventListener('click', () => this.finishFarewell());
 
     // Auto-fade initial subtitle after 4.2s so video stays 100% pure when idle
@@ -248,6 +257,18 @@ export class UiController {
     return this.farewellDay === 2 ? DAY2_FAREWELL_LINES : DAY1_FAREWELL_LINES;
   }
 
+  /** The player asked for the finale card: show it and let the farewell start now, not before. */
+  public openFinaleCard(): void {
+    this.finaleCardOpen = true;
+    if (this.farewellPhase === 'idle') this.startFarewell();
+  }
+
+  /** Back to the stream: the card closes, the day stays finished, everything stays clickable. */
+  public closeFinaleCard(): void {
+    this.finaleCardOpen = false;
+    this.finaleOverlayEl.classList.add('hidden');
+  }
+
   /** Play Miya's goodbye to the chat, beat by beat, then unlock the next-day button. */
   private startFarewell(): void {
     this.clearFarewellTimers();
@@ -310,9 +331,7 @@ export class UiController {
       state.streamDay === 3 ? 'День 3 ★ ПРИЗРАК' : state.streamDay === 2 ? 'День 2 ★' : 'День 1';
     const finaleDay: 1 | 2 | 3 =
       state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
-    const stagesForDay = getSubGoalStagesForDay(finaleDay);
-    const finaleTarget =
-      finaleDay === 1 ? DAY1_FINALE_SUBS : (stagesForDay[stagesForDay.length - 1]?.subsRequired ?? 5000);
+    const finaleTarget = dayFinaleSubs(finaleDay);
     const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 3;
     if (isFinale && this.farewellDay !== finaleDay) {
       this.farewellDay = finaleDay;
@@ -340,15 +359,27 @@ export class UiController {
             ? 'Начать День 3 (призрачный косплей) →'
             : 'Простыня ещё не подшита — открытие завтра'
           : 'Начать День 2 →';
+      this.finaleOpenBtnEl.classList.remove('hidden');
+      this.finaleOpenBtnEl.textContent =
+        finaleDay === 3
+          ? '★ Косплей-день закрыт — открыть финал'
+          : finaleDay === 2
+            ? '★ День 2 закрыт — открыть финал'
+            : '★ День 1 закрыт — открыть финал';
+    } else {
+      this.finaleOpenBtnEl.classList.add('hidden');
     }
-    this.finaleOverlayEl.classList.toggle('hidden', !isFinale);
-    if (isFinale) {
+    // Never opened by itself: `finaleCardOpen` is only true after the player pressed the CTA. So the
+    // «Бу!» frame stays on screen and clickable, and the day transition stays their decision.
+    this.finaleOverlayEl.classList.toggle('hidden', !isFinale || !this.finaleCardOpen);
+    if (isFinale && this.finaleCardOpen) {
       // The Day-3 button re-checks the art probe on every render, so it lights up without a reload.
       if (this.farewellPhase === 'done') {
         this.startDay2BtnEl.disabled = finaleDay === 2 ? !isDay3Unlocked() : false;
       }
-      if (this.farewellPhase === 'idle') this.startFarewell();
-    } else if (this.farewellPhase !== 'idle') {
+    }
+    if (!isFinale && (this.farewellPhase !== 'idle' || this.finaleCardOpen)) {
+      this.finaleCardOpen = false;
       this.resetFarewell();
     }
     this.titleEl.textContent = getStreamTitle(

@@ -718,6 +718,16 @@ export function getSubGoalStagesForDay(streamDay: number): readonly SubGoalStage
   return SUB_GOAL_STAGES;
 }
 
+/**
+ * Subscribers that CLOSE a day: its last ladder step (500 / 5000 / 15000). Day 1 spells it out as
+ * DAY1_FINALE_SUBS and the two agree, so the ladder stays the only thing a designer has to edit.
+ * The finale card, its CTA and the debug jumps all read this one number.
+ */
+export function dayFinaleSubs(streamDay: number): number {
+  const ladder = getSubGoalStagesForDay(streamDay);
+  return ladder[ladder.length - 1]?.subsRequired ?? DAY1_FINALE_SUBS;
+}
+
 export function getSubGoalStageForSubs(subs: number, streamDay: number = 1): SubGoalStageIndex {
   let stage: SubGoalStageIndex = 0;
   for (const def of getSubGoalStagesForDay(streamDay)) {
