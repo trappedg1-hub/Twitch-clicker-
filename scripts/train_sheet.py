@@ -52,7 +52,7 @@ def measure(paths: list[Path]) -> dict[str, str]:
     return out
 
 
-def sheet(paths: list[Path], scores: dict[str, tuple[int, int]], out: Path) -> Path:
+def sheet(paths: list[Path], scores: dict[str, tuple[float, float]], out: Path) -> Path:
     notes = measure(paths)
     cols = 2
     tile_w, tile_h, cap_h = 620, 800, 78
@@ -89,15 +89,17 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="*", type=Path)
     ap.add_argument("--score", action="append", default=[], help="id=hot,style (repeatable)")
+    ap.add_argument("--note", action="append", default=[], help="id=free text, what the scorer said")
     ap.add_argument("--keep", action="append", default=[], help="id to copy into art-studio/keep/")
     ap.add_argument("--out", type=Path, default=QA / "train_sheet.png")
     args = ap.parse_args()
 
-    scores: dict[str, tuple[int, int]] = {}
+    scores: dict[str, tuple[float, float]] = {}
     for raw in args.score:
         key, _, val = raw.partition("=")
         hot, _, sty = val.partition(",")
-        scores[key] = (int(hot), int(sty))
+        scores[key] = (float(hot), float(sty))  # half points are a real answer, do not round them away
+    notes = dict(r.split("=", 1) for r in args.note if "=" in r)
 
     args.out = Path(args.out).resolve()
     paths = [p for p in args.images if p.exists()]
@@ -110,6 +112,8 @@ def main() -> int:
         for stem, (hot, sty) in scores.items():
             rec = ratings.setdefault(stem, {})
             rec.update({"hot": hot, "style": sty, "file": f"art-studio/raw/{stem}.png"})
+            if stem in notes:
+                rec["note"] = notes[stem]
             rec["mean"] = round((hot + sty) / 2, 2)
         ratings_order = dict(sorted(ratings.items(), key=lambda kv: -kv[1].get("mean", 0)))
         led["ratings"] = ratings_order
@@ -118,11 +122,37 @@ def main() -> int:
         print(f"ledger -> {LEDGER.relative_to(ROOT)}")
         for stem, rec in list(ratings_order.items())[:8]:
             print(f"  {stem:34s} hot {rec.get('hot')}  style {rec.get('style')}  = {rec.get('mean')}")
+        # the correlation the loop is actually hunting for: does the objective drift predict the grade?
+        try:
+            sys.path.insert(0, str(ROOT / "scripts"))
+            from train_style_measure import load_flat, metrics  # noqa: PLC0415
+
+            pts = []
+            for stem, rec in ratings.items():
+                f = ROOT / "art-studio/raw" / f"{stem}.png"
+                if not f.exists() or rec.get("style") is None:
+                    continue
+                m = metrics(load_flat(f))
+                if m.get("gb_drift") is not None:
+                    pts.append((m["gb_drift"], rec["style"]))
+            if len(pts) >= 3:
+                import statistics
+
+                xs = [p[0] for p in pts]
+                ys = [p[1] for p in pts]
+                mx, my = statistics.fmean(xs), statistics.fmean(ys)
+                cov = sum((x - mx) * (y - my) for x, y in pts)
+                den = (sum((x - mx) ** 2 for x in xs) * sum((y - my) ** 2 for y in ys)) ** 0.5
+                r = cov / den if den else 0.0
+                print(f"  corr(style score, skin drift) r={r:+.2f} over {len(pts)} frames  "
+                      f"{'-> the metric tracks the eye' if abs(r) > 0.6 else '-> the eye sees more than skin'}")
+        except Exception as e:  # a diagnostic must never break the ledger write
+            print(f"  (correlation unavailable: {e})")
 
     if args.keep:
         KEEP.mkdir(parents=True, exist_ok=True)
         for stem in args.keep:
-            src = next((p for p in (ROOT / "art-studio/raw").glob(f"*{stem}*.png")), None)
+            src = next((p for p in (ROOT / "art-studio/raw").glob(f"*{stem}*.png")), None)  # noqa: SIM108
             if src:
                 shutil.copy2(src, KEEP / src.name)
                 print(f"kept {src.name} -> art-studio/keep/")

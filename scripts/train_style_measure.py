@@ -48,10 +48,12 @@ def load_flat(path: Path) -> np.ndarray:
 
 
 def metrics(rgb: np.ndarray) -> dict:
+    """All the numbers for one frame. `rgb` may be an array or a path."""
+    if isinstance(rgb, (str, Path)):
+        rgb = load_flat(Path(rgb))
     f = rgb.astype(np.float32)
     r, g, b = f[:, :, 0], f[:, :, 1], f[:, :, 2]
     skin = (r > 200) & ((r - g) >= 14) & ((r - g) <= 60) & ((g - b) >= 0) & ((g - b) <= 20)
-    ink = f.mean(axis=2) < 140
     h, w = f.shape[:2]
     # subject = anything that differs from the flat plum field
     subj = (np.abs(f - PLUM[None, None, :]).sum(axis=2) > 45).astype(np.uint8)
@@ -62,6 +64,10 @@ def metrics(rgb: np.ndarray) -> dict:
         return {"error": "no subject found"}
     body = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
     x, y, bw, bh = stats[body, :4]
+    mask = (lab == body)
+    # ink is ONLY ever inside her silhouette: the plum field is dark enough (mean ~118) to trip a naive
+    # brightness gate, which inflated `ink_pct` to 93% on a frame with a slightly lighter background
+    ink = (f.mean(axis=2) < 140) & ((subj > 0) | ~mask) & (subj > 0)
     # the field is the outermost ring: in our recipe every raw keeps a generous empty margin, so a light
     # pool, a floor line or a gradient shows there, while the chair (content, mid-frame) does not
     band = np.concatenate(
@@ -69,6 +75,22 @@ def metrics(rgb: np.ndarray) -> dict:
     )
     field = band - np.median(band, axis=0)
     field = field.reshape(-1, 3)
+    # the Day-1 envelope is a SOFT render: mean Sobel over her silhouette and the share of very hard
+    # edges there. Day-1 raws sit at contrast 28-46 and hard 0.15-0.26; a crisp anime frame sits at 70+.
+    gray = cv2.cvtColor(np.clip(f, 0, 255).astype(np.uint8), cv2.COLOR_BGR2GRAY).astype(np.float32)
+    grad = np.sqrt(
+        cv2.Sobel(gray, cv2.CV_32F, 1, 0, ksize=3) ** 2 + cv2.Sobel(gray, cv2.CV_32F, 0, 1, ksize=3) ** 2
+    )
+    # measured on the INTERIOR only, eroded by a radius that scales with the canvas: her contour is a
+    # hard line by definition, so on a small figure it would swamp the ratio and read as "over-inked"
+    k = max(2, round(w / 300))
+    yy, xx = np.mgrid[-k : k + 1, -k : k + 1]
+    disc = ((xx * xx + yy * yy) <= k * k).astype(np.uint8)
+    interior = cv2.erode(mask.astype(np.uint8), disc).astype(bool)
+    if interior.sum() < 2000:  # a figure this small has no interior left to read
+        interior = mask.astype(bool)
+    hard_share = float((grad[interior] > 40).mean()) if interior.any() else 0.0
+    subj_only = interior
     # line weight: the median width of an ink run along x, sampled every other row
     runs = []
     for row in range(int(y), min(int(y + bh), h), 2):
@@ -84,6 +106,10 @@ def metrics(rgb: np.ndarray) -> dict:
         "skin_gb": round(float(np.median((g - b)[skin])), 1) if skin.sum() > 500 else None,
         "gb_drift": (round(float(np.median((g - b)[skin]) - canon_gb()), 1)) if skin.sum() > 500 else None,
         "ink_pct": round(float(ink.sum()) / (h * w) * 100, 2),
+        "subj_pct": round(float((mask > 0).mean()) * 100, 1),
+        "contrast": round(float(grad[subj_only].mean()), 1) if subj_only.any() else None,
+        "erode_px": int(k),
+        "hard": round(float(hard_share), 3),
         "line_px": round(float(np.median(runs)), 2) if runs else None,
         "bg_std": round(float(field.std()) if field.size else 0.0, 2),
         "bg_95": round(float(np.percentile(band, 95)) if band.size else 0.0, 1),
@@ -94,6 +120,38 @@ def metrics(rgb: np.ndarray) -> dict:
         "share_h": round(float(bh) / h, 3),
         "share_w": round(float(bw) / w, 3),
     }
+
+
+# The Day-1 raw renders are the honest yardstick for SOFTNESS: they are what the generator returned
+# BEFORE `fit_head_band` upsampled them, which is the step that melts the ink and the shadow edges.
+# Measured against the finished plate instead, every candidate looks "too hard".
+DAY1_RAWS = (
+    "canon_heroine_v2.png", "canon_heroine_v3.png", "canon_heroine_v4.png", "canon_heroine_v5.png",
+    "canon_prep_tall.png", "starter_heroine_t1_hot.png",
+)
+_DAY1: tuple[float, float, float] | None = None
+
+
+def day1_envelope() -> tuple[float, float, float] | None:
+    """Median (hard, contrast, subject%) over whichever Day-1 raws are still in the workspace."""
+    global _DAY1
+    if _DAY1 is None:
+        rows = []
+        for name in DAY1_RAWS:
+            f = ROOT / "art-studio/raw" / name
+            if not f.exists():
+                continue
+            m = _metrics_raw(load_flat(f))
+            if m and m.get("hard"):
+                rows.append((m["hard"], m["contrast"], m["subj_pct"]))
+        _DAY1 = tuple(round(float(np.median([r[i] for r in rows])), 3) for i in range(3)) if rows else None
+        if _DAY1:
+            print(f"(Day-1 raw envelope: hard {_DAY1[0]}, contrast {_DAY1[1]}, subject {_DAY1[2]}%)")
+    return _DAY1
+
+
+def _metrics_raw(arr: np.ndarray) -> dict:
+    return metrics(arr)
 
 
 def canon_gb() -> float:
@@ -125,8 +183,20 @@ def flags(m: dict) -> list[str]:
         out.append(f"skin drifted warm (G-B +{gb:.0f})")
     if m["bg_std"] > 6.5:
         out.append(f"field not flat (std {m['bg_std']}, p95 {m['bg_95']}) — light pool / gradient / cast shadow")
+    # RETIRED, and the ledger is why. Day-1 raws are soft because the pipeline upsampled a small figure
+    # in a big canvas — not because softness is the target. Against 13 human scores, crispness correlates
+    # POSITIVELY with the style grade (hard r=+0.45, contrast r=+0.49) and with hotness the figure size
+    # does (share r=+0.48). So these two numbers are printed as context, never as a defect.
+    # What stays a defect is the thing that actually tracks the eye: skin drift (r=-0.66), and the
+    # border/field measurements that caught figure4_A's floor and left-edge crop (its style score: 5).
+    env = day1_envelope()
+    if env and m.get("subj_pct", 0) > env[2] * 1.9:
+        out.append(
+            f"frame crowded ({m['subj_pct']}% subject vs Day-1 raws {env[2]}%) — "
+            "she is close to the edge, check the crop line below before trusting this frame"
+        )
     ln = m.get("line_px")
-    if ln is not None and ln < 1.6:
+    if ln is not None and ln < 1.2:
         out.append(f"line too thin ({ln}px vs canon {CANON_LINE}px) — detail level of a thumbnail reference")
     if m["share_h"] < 0.72:
         out.append(f"figure only {m['share_h']:.0%} of the canvas height — the stage cut wants ~0.93")
@@ -141,18 +211,19 @@ def main() -> None:
     rows = {}
     canon = CANON if CANON.exists() else CANON.with_suffix(".webp")
     if canon.exists():
-        c = metrics(load_flat(canon))
+        c = metrics(canon)
         print(f"{'CANON t1_base (the zero)':28s} skin G-B +{c['skin_gb']:.1f} line {c['line_px']}px ink {c['ink_pct']}% bg {c['bg_std']}")
     for p in args.images:
         if not p.exists():
             print(f"{p.name:28s} MISSING")
             continue
-        m = metrics(load_flat(p))
+        m = metrics(p)
         fl = flags(m)
         gb = "n/a" if m["skin_gb"] is None else f"{m['skin_gb']:.1f}"
         print(
             f"{p.name:28s} skin G-B +{gb} line {m['line_px']}px ink {m['ink_pct']}%"
-            f" bg {m['bg_std']} margins {m['margin']} h{m['share_h']:.2f}"
+            f" bg {m['bg_std']} contrast {m['contrast']} hard {m['hard']} subj {m['subj_pct']}%"
+            f" margins {m['margin']} h{m['share_h']:.2f}"
         )
         for f in fl:
             print(f"{'':4s}! {f}")
