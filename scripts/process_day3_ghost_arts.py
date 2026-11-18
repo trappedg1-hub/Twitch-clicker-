@@ -49,15 +49,17 @@ FRAMES: dict[str, str] = {
     # stage 0 — the day opens in the full costume, both feet out toward the camera
     "heroine_t3_s0": "t3_dsk_a1.png",
     # stage 1 — she lifts the hem: the lower half of the bodysuit is open to the chat
-    "heroine_t3_s1": "t3_dsk_a2.png",
+    "heroine_t3_s1": "t3_v2_a2_hem.png",
     # stage 2 — on the chair on all fours, the sheet stays only on her head
     "heroine_t3_s2": "t3_sc_a3.png",
-    # stage 3 — the "Boo!" jump: the sheet comes off, nothing is left to hide behind
-    "heroine_t3_s3": "t3_sc_a0.png",
+    # stage 3 — the "Boo!" jump: the sheet comes off, nothing is left to hide behind. The v2 render
+    # replaced the old one because the old sheet was cut by the raw's own left/right edges, so once
+    # keyed the cloth ended in a straight vertical slice in mid-air.
+    "heroine_t3_s3": "t3_v2_a0_boo.png",
     # stage 4 — finale: the sheet is caught at the shoulders as a cape, one leg to camera
     "heroine_t3_s4": "t3_sc_a4.png",
     # the «Бу!» flash gimmick reuses the sheet-off frame — it is the same gag, one pose
-    "heroine_t3_flash": "t3_sc_a0.png",
+    "heroine_t3_flash": "t3_v2_a0_boo.png",
 }
 
 # The generator keeps finishing her feet a finger's width short of the canvas bottom, which — once
@@ -69,11 +71,11 @@ FRAMES: dict[str, str] = {
 # own measured sole row; both stay small enough that the fishnet mesh never goes rubbery.
 LEG_STRETCH: dict[str, tuple[int, float]] = {
     "heroine_t3_s0": (780, 0.051),
-    "heroine_t3_s1": (780, 0.058),
+    "heroine_t3_s1": (780, 0.03),
     # the "Бу!" jump and the crossfade flash share one raw — treat them identically or the cut
     # between them steps her legs by a few pixels.
-    "heroine_t3_s3": (760, 0.086),
-    "heroine_t3_flash": (760, 0.086),
+    "heroine_t3_s3": (780, 0.05),
+    "heroine_t3_flash": (780, 0.05),
     "heroine_t3_s4": (760, 0.090),
 }
 # Whatever the stretch cannot reach without distorting comes from a plain slide; only the chair base
@@ -118,6 +120,55 @@ def elongate_below(arr: np.ndarray, hinge: int, extra: float) -> np.ndarray:
     out = np.empty_like(arr)
     out[:, :, 3] = alpha.astype(arr.dtype)
     out[:, :, :3] = np.clip(prem / nz[..., None], 0, 255).astype(arr.dtype)
+    return out
+
+# Every accepted Day-1/Day-2 plate tops her head in this row window, so a Day-3 frame whose generator
+# framed tighter has to come back to the same scale or the stage cut reads as a zoom.
+HEAD_BAND = (87, 122)
+HEAD_TARGET = 88
+
+
+def fit_head_band(arr: np.ndarray, stage: str) -> np.ndarray:
+    """Shrink the whole plate about its bottom edge until her head sits in HEAD_BAND.
+
+    A uniform scale of a couple of percent is the gentle way to absorb the generator\u0027s framing
+    drift: nothing is sheared (a row stretch would do that to the legs) and the soles barely move,
+    because they sit right where the scale is anchored — so the desk contact the last task fought for
+    survives. A head BELOW the band cannot be fixed by shrinking, so that case stops the build: the
+    raw has to be re-framed rather than scaled up into a clipped pair of feet.
+    """
+    h, w = arr.shape[:2]
+    rows = np.nonzero((arr[:, :, 3] > 8).sum(axis=1) > 2)[0]
+    if rows.size == 0:
+        return arr
+    head = int(rows.min())
+    lo, hi = HEAD_BAND
+    if head >= lo:
+        if head > hi:
+            raise SystemExit(
+                f"{stage}: her head starts at row {head}, below the {lo}-{hi} band the accepted plates "
+                "share — re-frame the raw (scaling up would clip her feet off the plate)."
+            )
+        return arr
+    scale = (h - 1 - HEAD_TARGET) / (h - 1 - head)
+    gx = np.arange(w, dtype=np.float32)
+    gy = np.arange(h, dtype=np.float32)
+    map_x, map_y = np.meshgrid((gx - w / 2) / scale + w / 2, (gy - (h - 1)) / scale + (h - 1))
+    a = arr[:, :, 3:4].astype(np.float32) / 255.0
+    prem = cv2.remap(
+        arr[:, :, :3].astype(np.float32) * a, map_x, map_y, cv2.INTER_LANCZOS4,
+        borderMode=cv2.BORDER_CONSTANT, borderValue=0,
+    )
+    alpha = cv2.remap(
+        a[:, :, 0], map_x, map_y, cv2.INTER_LANCZOS4, borderMode=cv2.BORDER_CONSTANT, borderValue=0
+    )
+    alpha = np.clip((alpha * 255.0 - 70.0) * (255.0 / 150.0), 0.0, 255.0)
+    a2 = alpha / 255.0
+    nz = np.where(a2 > 1e-3, a2, 1.0)
+    out = np.empty_like(arr)
+    out[:, :, 3] = alpha.astype(arr.dtype)
+    out[:, :, :3] = np.clip(prem / nz[..., None], 0, 255).astype(arr.dtype)
+    print(f"  {stage}: re-framed from head row {head} to {HEAD_TARGET} (scale {scale:.4f})")
     return out
 
 # Days 1 and 2 sit at mean luminance 90-118; ungraded Day 3 frames come out washed at ~117.
@@ -339,6 +390,8 @@ def main() -> None:
             arr = np.concatenate([np.zeros((shift, PLATE_W, 4), dtype=arr.dtype), arr[:-shift]], axis=0)
         if extra or shift:
             plate = Image.fromarray(arr, "RGBA")
+        arr = fit_head_band(np.array(plate), stage)
+        plate = Image.fromarray(arr, "RGBA")
         fg = float((arr[:, :, 3] > 8).mean())
         # Contact check, calibrated against the accepted Day-1/Day-2 plates rather than a guess:
         # a lit body part must reach within DESK_CONTACT_SLACK rows of the plank line (they measure
