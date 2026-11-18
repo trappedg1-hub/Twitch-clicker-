@@ -19,8 +19,9 @@ What this script cannot tell you is whether the bodysuit is the SAME garment fro
 skin-row heuristic reads cloth folds as belly and goes to zero when a hand crosses the stomach, so the
 garment check stays what it always was: scripts/day3_garment_sheet.py, looked at.
 
-Exempt entries exist where a pose legitimately breaks a rule (on all fours her soles kick up behind
-her, so the desk cannot be touched) — they are listed, not silently skipped.
+Exempt entries exist where a pose legitimately breaks a rule: three of the five frames are SEAT poses
+(ghost cocoon, sheet off the torso, the finale squat), so their feet belong on the chair cushion and
+can never reach the plank — they are listed as `seat`, not silently skipped.
 """
 from __future__ import annotations
 
@@ -36,18 +37,19 @@ ART = ROOT / "public/art"
 PLANK, MARGIN = 1489, 12
 HEAD_BAND = (87, 122)
 DAY3 = ["heroine_t3_s0", "heroine_t3_s1", "heroine_t3_s2", "heroine_t3_s3", "heroine_t3_s4", "heroine_t3_flash"]
-# Frames whose pose cannot put weight on the plank (see the note above).
-DESK_EXEMPT = {"heroine_t3_s2"}
+# Seat poses: her feet belong on the chair cushion, never on the plank (mirrors DESK_CONTACT_EXEMPT in
+# scripts/process_day3_ghost_arts.py — keep the two in sync when a pose changes).
+DESK_EXEMPT = {"heroine_t3_s0", "heroine_t3_s1", "heroine_t3_s4"}
 # Rim softness and tone are compared to absolute bars, measured off the frames the user signed off on
 # (max rim 5.23 on the all-fours plate, luminance 93-131 across days 1-2). A same-name baseline would
 # be cleaner, but the source art gets re-rendered during a day's life and then the old numbers describe
 # a different picture, which is how a correct plate used to fail and a wrong one pass.
 SOFT_BAR = 6.0
 LUM_BAR = (88, 135)
-# Open defects, listed instead of hidden: the cape plate still has the old full-bleed sheet because a
-# re-render of that pose is what has to fix it (the raw itself is cut). Anything NOT in this list that
-# touches an edge fails the run, so the defect cannot silently spread to the other frames.
-KNOWN_CUT = {"heroine_t3_s4"}
+# Open defects, listed instead of hidden. The approved four-frame ladder was drawn wide on purpose, so
+# nothing is empty right now: anything that touches a plate edge fails the run and has to be re-rendered
+# with more air, not patched here.
+KNOWN_CUT: set[str] = set()
 
 
 def measure(img: np.ndarray) -> dict | None:
@@ -98,7 +100,7 @@ def main() -> int:
         desk = (
             "n/a"
             if not day3
-            else "exempt"
+            else "seat"
             if name in DESK_EXEMPT
             else ("ok" if m["body_low"] >= PLANK + MARGIN else "FLOAT")
         )

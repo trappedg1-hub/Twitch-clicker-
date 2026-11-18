@@ -428,13 +428,21 @@ export const DAY2_SHORT_STEP_LABELS = ['1500', '2000', '2500', '5000'];
 
 export const DAY1_FINALE_SUBS = 500;
 /**
- * Day 3 = COSPLAY DAY. She promised the chat a surprise, and the costume is a bunny cosplay:
- * a beige pullover hoodie with sewn-on ears + a convention name badge, a white lace-trim cropped
- * top, the same black shorts, and white golf socks with two red stripes and little ribbons.
+ * Day 3 = COSPLAY DAY, «призрачная стримерша». The costume is one piece of fabric and one garment:
+ * a white sheet with three scissor-cut holes (two eyes, one mouth) over a glossy black single-piece
+ * bodysuit — square neckline, two wide straps, ONE round cut-out on the belly, high-cut legs, and a
+ * white translucent panel clinging over the bust that is part of the bodysuit, not a separate top —
+ * plus full fishnets with a small even diamond running over the leg AND the foot, down to the toes.
  *
- * Same costume discipline as Day 2: ONE garment set for the whole day, escalation only REMOVES or
- * RE-TIES what already exists. No skirt, no dress, no zipper, no invented accessories on later
- * stages - the copy is written from the plate, and tests/wardrobe.ts proves it.
+ * Same costume discipline as Day 2: escalation only MOVES the sheet or RE-FRAMES the pose, nothing new
+ * is invented and nothing is taken off (the fishnets are the punchline, not a goal). Every stage is
+ * its own finished plate, so this copy is written off those four approved renders and `copyAudit`
+ * proves no line outlives its frame:
+ *   0     the sheet clings over her head and torso, only her netted legs come out below it
+ *   7000  she pulls the front of the sheet off her torso and holds it up in one hand
+ *   10000 legs up on the desk plank, crossed at the ankles, index finger to the lips — «шш»
+ *   13000 the «Бу!» gimmick frame: the sheet is torn into the air (see DAY3_FLASH_PLATE)
+ *   15000 finale: deep squat on the chair seat, knees spread, feet on the seat, sheet as a hood
  */
 export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
   {
@@ -444,7 +452,7 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
     outfitName: 'Простыня на голове и плечах + чёрное боди с открытым животом + полные чулки в сетку',
     removedItemLabel: 'День 3 начат',
     storyDesc:
-      'Мия вышла «призрачной стримершей»: белая простыня перекинута через голову и плечи, дырки для глаз вырезаны криво, лицо видно только через них. Ткань она собирает у ключиц руками, поэтому сверху это мем, а снизу — чёрное боди с открытым животом и сетка от верха бедра до самых ступней. Ступни тоже в сетке: оба подошвенных среза смотрят в камеру и лежат на столе, потому что ноги она закинула на столешницу и не собирается убирать. День только начался, а чат уже считает кадры.',
+      'Мия вышла «призрачной стримершей»: белая простыня перекинута через голову и легла коконом по всему корпусу, дырки для глаз вырезаны криво, рот — отдельной щелью, лицо видно только через них. Ткань она собирает на груди руками, поэтому сверху это мем, а снизу из-под кокона торчат только ноги: чёрное боди с круглой дырой на животе и сетка с мелким ромбом от верха бедра до самых кончиков пальцев. Ступни тоже в сетке: одна нога собрана на сиденье, вторая свисает вниз, и обе смотрят в камеру. День только начался, а чат уже считает кадры.',
     incomeMultiplier: 1.0,
     viewersBonus: 0,
     boldnessBonus: 0,
@@ -467,7 +475,7 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'Pasha_Donater',
         color: '#ff6b9d',
         badge: 'VIP',
-        text: 'простыня на голове, ступни в сетке лежат на столе, и это весь косплей :AWOOGA:',
+        text: 'простыня на голове, ноги в сетке до самых пальцев, и это весь косплей :AWOOGA:',
       },
       {
         author: 'kaktus_mod',
@@ -480,20 +488,20 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
   {
     stage: 1,
     subsRequired: 7000,
-    shortGoalTitle: 'Подол простыни задран',
-    outfitName: 'Простыня, собранная в руках до груди + нижняя часть боди и обе ноги в сетке',
-    removedItemLabel: '− Простыня поднята до груди!',
+    shortGoalTitle: 'Простыня убрана с торса',
+    outfitName: 'Простыня-капюшон с полами + белая полупрозрачная панель на груди и боди с дырой на животе + обе ноги в сетке',
+    removedItemLabel: '− Ткань уехала с торса!',
     storyDesc:
-      '7000 сабов: она взяла подол простыни в обе руки и подняла его себе под мышки. Ткань теперь закрывает только голову, плечи и грудь — зато всё ниже открыто целиком: живот, боди с высоким вырезом и обе ноги в мелкой сетке. Ступни в сетке по-прежнему лежат на столе, и именно они собрали больше клипов, чем сам трюк с подолом.',
+      '7000 сабов: она взяла передний край простыни и убрала его с торса, ткань осталась капюшоном на голове и длинными полами за спиной. Зато всё, что было под ней, теперь в кадре: белая полупрозрачная панель на груди, чёрное боди с высоким вырезом и круглой дырой на животе, и сетка с мелким ромбом на бёдрах, голенях и ступнях. Сидит боком, корпус развёрнут, ноги собраны на сиденье: одна ступня свисает вниз, вторая смотрит в камеру пятью пальцами в сетке. Именно они собрали больше клипов, чем сам трюк с тканью.',
     incomeMultiplier: 1.5,
     viewersBonus: 260,
     boldnessBonus: 5,
     unlockEmotion: 'tease',
     unlockLine:
-      'Подол задран, потому что ткань шуршит и лезет в глаза. Совпадение, что видно всё ниже? Абсолютное~',
+      'Убрала ткань с торса, потому что она шуршит и лезет в глаза. Совпадение, что видно всё ниже? Абсолютное~',
     plateUrl: '/art/heroine_t3_s1.webp',
     shyApproachLines: [
-      'Я держу ткань руками. Руками, чат, а не силой обстоятельств — сразу договоримся на берегу.',
+      'Я держу ткань одной рукой. Одной, чат, а не силой обстоятельств — сразу договоримся на берегу.',
       'Ниже ткани у меня боди и сетка. Вы это видели и до подъема, я просто убрала лишний слой мишуры.',
     ],
     chatCascade: [
@@ -501,7 +509,7 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: '★ SUB GOAL 7000/7000! ОНА ПОДНЯЛА ПОДОЛ — НИЖНЯЯ ЧАСТЬ БОДИ И СЕТКА В КАДРЕ :Pog: :AWOOGA:',
+        text: '★ SUB GOAL 7000/7000! ОНА УБРАЛА ТКАНЬ С ТОРСА — БОДИ, ЖИВОТ И СЕТКА В КАДРЕ :Pog: :AWOOGA:',
         isSystemHighlight: true,
       },
       {
@@ -514,27 +522,27 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'feet_connoisseur',
         color: '#f472b6',
         badge: 'SUB',
-        text: 'ступни тоже в сетке и лежат на столе. дальше 10000: простыня уедет на голову :monkaS: :Overheat:',
+        text: 'ступни в сетке: одна свисает с сиденья, вторая смотрит в камеру. дальше 10000: ножки на стол :monkaS: :Overheat:',
       },
     ],
   },
   {
     stage: 2,
     subsRequired: 10000,
-    shortGoalTitle: 'Простыня только на голове',
-    outfitName: 'Простыня-капюшон на голове + костюм виден целиком + полные чулки в сетку',
+    shortGoalTitle: 'Ножки на столе, «шш»',
+    outfitName: 'Простыня-капюшон на голове + костюм виден целиком + ноги в сетке, скрещённые на столешнице',
     removedItemLabel: '− Ткань ушла с тела!',
     storyDesc:
-      '10000 сабов: простыня осталась только на голове — маленький белый капюшон с двумя дырками, из-под которого высыпались волосы. Всё остальное видно как есть: боди, живот, сетка на ногах, и поза тоже новая — она встала на четвереньки на сиденье, выгнула спину и развернулась так, что обе ступни в сетке задраны вверх, к камере. Мем-призрак закончился, начался косплей-стенд.',
+      '10000 сабов: простыня осталась только на голове — маленький белый капюшон с двумя дырками, полы ушли за спину, из-под капюшона высыпались волосы. Всё остальное видно как есть: боди, живот, сетка от бедра до кончиков пальцев. Поза тоже новая — она закинула ноги на столешницу и склестила щиколотки, поэтому ступни в сетке теперь самые крупные в кадре, а одна развёрнута к объективу три четвертями. Палец у губ, один глаз закрыт подмигиванием: «шш», чат, это не финал, это репетиция. Мем-призрак закончился, начался косплей-стенд.',
     incomeMultiplier: 2.0,
     viewersBonus: 520,
     boldnessBonus: 7,
     unlockEmotion: 'fluster',
     unlockLine:
-      'Я не «показала всё», я просто поменяла позу. Сидеть на четвереньках удобнее, чат, это эргономика~',
+      'Я не «показала всё», я просто положила ноги на стол. Так мне видно ваши лица лучше, чем вам меня, чат~',
     plateUrl: '/art/heroine_t3_s2.webp',
     shyApproachLines: [
-      'Ткань на голове, спина выгнута, ноги в сетке подняты. Ни одного слова «случайно», я взрослая.',
+      'Ткань на голове, ноги на столе, пальцы в сетке. Ни одного слова «случайно», я взрослая.',
       'Я смотрю через дырки именно на вас, а не вы на меня. Это принципиально разные векторы, чат.',
     ],
     chatCascade: [
@@ -542,14 +550,14 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: '★ SUB GOAL 10000/10000! ПРОСТЫНЯ ОСТАЛАСЬ ТОЛЬКО НА ГОЛОВЕ, ПОЗА — НА ЧЕТВЕРЕНЬКАХ :AWOOGA: :Pog:',
+        text: '★ SUB GOAL 10000/10000! ПРОСТЫНЯ ОСТАЛАСЬ ТОЛЬКО НА ГОЛОВЕ, НОЖКИ СКРЕЩЕНЫ НА СТОЛЕ :AWOOGA: :Pog:',
         isSystemHighlight: true,
       },
       {
         author: 'Pasha_Donater',
         color: '#ff6b9d',
         badge: 'VIP',
-        text: 'капюшон из простыни, ступни в сетке — это же обложка, легион, мы делаем обложку :Kreygasm: :Nosebleed:',
+        text: 'капюшон из простыни, ступни в сетке на столе — это же обложка, легион, мы делаем обложку :Kreygasm: :Nosebleed:',
       },
       {
         author: 'kaktus_mod',
@@ -596,42 +604,42 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'cosplay_anon',
         color: '#00e5ff',
         badge: 'VIP',
-        text: '15000 и простыня станет плащом на плечах. это финал костюма, легион, добиваем :SubHype: :monkaS:',
+        text: '15000 и простыня уедет за спину, а поза станет финальной. это конец костюма, легион, добиваем :SubHype: :monkaS:',
       },
     ],
   },
   {
     stage: 4,
     subsRequired: 15000,
-    shortGoalTitle: 'Простыня как плащ, одна нога в камеру',
-    outfitName: 'Простыня-плащ на плечах + боди с открытым животом + одна нога в сетке на камеру',
-    removedItemLabel: '− Финал: плащ из простыни!',
+    shortGoalTitle: 'Корточки на кресле, колени врозь',
+    outfitName: 'Простыня-капюшон с полами за спиной + боди с открытым животом + обе ноги в сетке на сиденье',
+    removedItemLabel: '− Финал: ткань уехала за спину!',
     storyDesc:
-      '15000 сабов: финальная фаза костюма. Простыня больше не прикрытие — она закреплена на плечах и висит за спиной как плащ, раздуваясь в стороны, поэтому лицо, плечи и живот свободны целиком. В камеру смотрит одна нога: вытянутая, в мелкой сетке от бедра до ступни, лежащая на столе. Второй палец у губ, один глаз закрыт подмигиванием — она не раздевается, она дразнит, и это, чат, разрешённый жанр.',
+      '15000 сабов: финальная фаза костюма и максимальный градус дня. Простыня больше не прикрытие — она сидит капюшоном на голове и висит за спиной, как плащ, поэтому лицо, плечи, живот и руки свободны. Поза — глубокие корточки прямо на сиденье: колени разведены врозь, обе ступни в сетке стоят на цыпочках на самом сиденье, одно колено выдвинуто в камеру. Корпус в три четверти, рука тянется к зрителю, один глаз закрыт подмигиванием, улыбка до ушей — она не раздевается, она дразнит, и это, чат, разрешённый жанр.',
     incomeMultiplier: 3.2,
     viewersBonus: 1300,
     boldnessBonus: 10,
     unlockEmotion: 'bold',
     unlockLine:
-      'Финал: плащ на плечах, нога в сетке на столе, палец на губах. Бу! — и это последнее «бу» сегодня~ ★ ♥',
+      'Финал: капюшон и полы за спиной, корточки на кресле, колени врозь. Бу! — и это последнее «бу» сегодня~ ★ ♥',
     plateUrl: '/art/heroine_t3_s4.webp',
     shyApproachLines: [
-      'Плащ из простыни — финальная форма призрака. Я её ношу с гордостью и с открытым животом.',
-      'Одна нога в камеру, вторая спрятана. Это не «всё показали», это «показали ровно сколько я решила»~',
+      'Простыня уехала за спину, на мне только костюм. Финальная форма призрака, и я ношу её с гордостью.',
+      'Корточки на кресле, колени врозь, сетка до кончиков пальцев. Это не «всё показали», это «показали сколько я решила»~',
     ],
     chatCascade: [
       {
         author: 'StreamBot',
         color: '#c084fc',
         badge: 'MOD',
-        text: '★ SUB GOAL 15000/15000! ПРОСТЫНЯ СТАЛА ПЛАЩОМ, ОДНА НОГА В КАМЕРУ :AWOOGA: :Pog: :SubHype:',
+        text: '★ SUB GOAL 15000/15000! ТКАНЬ УЕХАЛА ЗА СПИНУ, ФИНАЛЬНАЯ ПОЗА НА КОРТОЧКАХ :AWOOGA: :Pog: :SubHype:',
         isSystemHighlight: true,
       },
       {
         author: 'Pasha_Donater',
         color: '#ff6b9d',
         badge: 'VIP',
-        text: 'плащ, сетка, палец к губам. я умер, и это был лучший косплей-стрим :Kreygasm: :Nosebleed:',
+        text: 'капюшон, колени врозь, ступни в сетке на сиденье. я умер, и это был лучший косплей-стрим :Kreygasm: :Nosebleed:',
       },
       {
         author: 'kaktus_mod',
@@ -643,7 +651,7 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
         author: 'cosplay_anon',
         color: '#00e5ff',
         badge: 'VIP',
-        text: 'день 3 закрыт на 15000. призрак ушёл сквозь стену, мы остались с плащом в истории :LUL: :sub2:',
+        text: 'день 3 закрыт на 15000. призрак ушёл сквозь стену, мы остались с капюшоном в истории :LUL: :sub2:',
       },
     ],
   },
@@ -652,7 +660,7 @@ export const DAY3_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 /** The «Бу!» flash frame: sheet off, bodysuit + fishnets — crossfaded in for a few hundred ms. */
 export const DAY3_FLASH_PLATE = '/art/heroine_t3_flash.webp';
 
-export const DAY3_STEP_LABELS = ['7000 Подол', '10000 Четвереньки', '13000 Бу!', '15000 Плащ'];
+export const DAY3_STEP_LABELS = ['7000 Ткань', '10000 Ножки на столе', '13000 Бу!', '15000 Корточки'];
 export const DAY3_SHORT_STEP_LABELS = ['7000', '10000', '13000', '15000'];
 export const DAY3_FINALE_SUBS = 15000;
 

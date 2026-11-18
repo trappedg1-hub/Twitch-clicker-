@@ -15,9 +15,10 @@ export type SockState = 'up' | 'gathered' | 'gone';
 /**
  * Day 3 (ghost cosplay): the sheet IS the reveal mechanic, so its state is tracked like a garment.
  * Each stage of the day is a separate finished frame now, so these five states are literally the
- * five drawings: sheet as a veil she holds (`veil`), hem gathered under her arms (`hemLift`), sheet
- * left only on her head (`hood`), sheet torn into the air (`off`), sheet caught at the shoulders
- * as a cape (`cape`).
+ * five drawings: sheet clinging over her whole body with only the legs out (`veil`), front of the
+ * sheet pulled off the torso and held up in one hand (`hemLift`), sheet left only as a hood while
+ * her legs rest crossed on the desk plank (`hood`), sheet torn into the air (`off`), sheet slipped
+ * back off her shoulders and hanging behind her like a cape over the finale squat (`cape`).
  */
 export type SheetState = 'veil' | 'hemLift' | 'hood' | 'off' | 'cape';
 
@@ -85,17 +86,19 @@ export const WARDROBES: Record<DayIndex, Record<SubGoalStageIndex, Wardrobe>> = 
   // only records how much sheet is still on her. The fishnets never come off — the mesh runs over
   // the legs AND the feet — so a bare-sole claim stays illegal for the whole day.
   3: {
-    // The sheet hangs over her head and shoulders and she holds its edge at her chest; her belly is
-    // already open in frame zero, which is why midriff is true from stage 0.
+    // The sheet clings over her head and torso and she holds its edge at her chest, so the only thing
+    // out below it is her netted legs; her belly is already open in frame zero (midriff from stage 0).
     0: W(3, 0, 'off', 'bodysuit', false, 'up', { sheet: 'veil', fishnets: true, midriff: true }),
-    // 7000: she pinches the hem in both hands and lifts it under her arms — lower half of the
-    // bodysuit and both legs are out, and that is the whole joke of the stage.
+    // 7000: she pinches the front edge in one hand and pulls it off her torso — the bodysuit, the
+    // white bust panel and both legs are out, and that is the whole joke of the stage.
     1: W(3, 1, 'off', 'bodysuit', false, 'up', { sheet: 'hemLift', fishnets: true, midriff: true }),
-    // 10000: the sheet is only a hood now, so on the chair on all fours the costume is fully read.
+    // 10000: the sheet is only a hood now, and her crossed ankles are up on the desk plank, so the
+    // costume reads fully from the seat up to the soles.
     2: W(3, 2, 'off', 'bodysuit', false, 'up', { sheet: 'hood', fishnets: true, midriff: true }),
     // 13000: the «Бу!» frame — the sheet is in the air, in her hands, and wears nothing.
     3: W(3, 3, 'off', 'bodysuit', false, 'up', { sheet: 'off', fishnets: true, midriff: true }),
-    // 15000: finale, the sheet caught at the shoulders as a cape, one leg out toward the camera.
+    // 15000: finale, the sheet slipped behind her shoulders like a cape, deep squat on the seat with
+    // both netted feet on the cushion and knees spread.
     4: W(3, 4, 'off', 'bodysuit', false, 'up', { sheet: 'cape', fishnets: true, midriff: true }),
   },
 };
@@ -341,15 +344,15 @@ export const WARDROBE_SAFE_LINES: Record<DayIndex, Record<SubGoalStageIndex, rea
     ],
     2: [
       'Ткань осталась только на голове, поэтому видно всё. Я взрослая и не скажу «случайно», я скажу «костюм».',
-      'На четвереньках, в капюшоне из простыни, в сетке до самых ступней. Призрак выехал на позу, чат~',
+      'Ножки на столе, капюшон из простыни, ступни в сетке целиком. Призрак выехал на позу, чат~',
     ],
     3: [
       'Бу! — и простыня в воздухе. Да, я её сама сорвала. Нет, я её не потеряла, она была у меня в руках.',
       'Ткань улетела вверх, костюм остался на мне. Лучший кадр стрима, и вы его уже нарезали на клипы~',
     ],
     4: [
-      'Финал: простыня на плечах как плащ, боди и сетка — на камеру. Я красивая, и мне не страшно~ ★ ♥',
-      'Одна нога в камеру, палец на губах. Дразнюсь официально, по договору с этим эфиром~ ♥',
+      'Финал: простыня уехала за спину как плащ, боди и сетка — на камеру. Я красивая, и мне не страшно~ ★ ♥',
+      'Корточки на кресле, колени врозь, ступни в сетке целиком. Дразнюсь официально, по договору с эфиром~ ♥',
     ],
   },
 };

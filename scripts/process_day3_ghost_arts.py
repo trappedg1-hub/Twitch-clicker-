@@ -44,23 +44,22 @@ DESK_TOP_ROW = 1489
 # calibration note in main()); Day 1 and Day 2 live at 38 and -2 rows respectively.
 DESK_CONTACT_SLACK = 40
 
-# game stage -> raw render. s0 opens the day, s1..s3 are the three sub-goals.
+# game stage -> raw render, one approved frame per rung of the ladder (the artist signed each pair).
 FRAMES: dict[str, str] = {
-    # stage 0 — the day opens in the full costume, both feet out toward the camera
-    "heroine_t3_s0": "t3_dsk_a1.png",
-    # stage 1 — she lifts the hem: the lower half of the bodysuit is open to the chat
-    "heroine_t3_s1": "t3_v2_a2_hem.png",
-    # stage 2 — on the chair on all fours, the sheet stays only on her head
-    "heroine_t3_s2": "t3_sc_a3.png",
-    # stage 3 — the "Boo!" jump: the sheet comes off, nothing is left to hide behind. The v2 render
-    # replaced the old one because the old sheet was cut by the raw's own left/right edges, so once
-    # keyed the cloth ended in a straight vertical slice in mid-air.
+    # stage 0 (0 сабов) — the ghost: the sheet clings over her whole body, only the legs are out
+    "heroine_t3_s0": "t3_s1_ghost.png",
+    # stage 1 (7000) — she pulled the front of the sheet off her torso, the bodysuit reads in full
+    "heroine_t3_s1": "t3_s2_hem_C.png",
+    # stage 2 (10000) — both legs up on the desk, crossed at the ankles, finger at the lips
+    "heroine_t3_s2": "t3_s3_shh_G.png",
+    # stage 3 (13000) — the «Бу!» jump: the sheet is torn into the air, nothing left to hide behind
     "heroine_t3_s3": "t3_v2_a0_boo.png",
-    # stage 4 — finale: the sheet is caught at the shoulders as a cape, one leg to camera
-    "heroine_t3_s4": "t3_sc_a4.png",
+    # stage 4 (15000) — finale: deep squat on the seat, knees wide, the sheet hanging off her head
+    "heroine_t3_s4": "t3_s4_spread_O.png",
     # the «Бу!» flash gimmick reuses the sheet-off frame — it is the same gag, one pose
     "heroine_t3_flash": "t3_v2_a0_boo.png",
 }
+
 
 # The generator keeps finishing her feet a finger's width short of the canvas bottom, which — once
 # the plank overlaps the plate — reads as floating ("а где ступни на столе?"). Sliding the whole
@@ -70,20 +69,24 @@ FRAMES: dict[str, str] = {
 # is the one the brief asked for anyway — longer legs. (hinge row, factor), tuned per frame from its
 # own measured sole row; both stay small enough that the fishnet mesh never goes rubbery.
 LEG_STRETCH: dict[str, tuple[int, float]] = {
-    "heroine_t3_s0": (780, 0.051),
-    "heroine_t3_s1": (780, 0.03),
+    # s0/s1/s4 are seat poses — their feet never touch the desk, so stretching them would just
+    # lengthen legs for no reason. Only the plank frames need the reach.
+    "heroine_t3_s2": (700, 0.055),
     # the "Бу!" jump and the crossfade flash share one raw — treat them identically or the cut
     # between them steps her legs by a few pixels.
     "heroine_t3_s3": (780, 0.05),
     "heroine_t3_flash": (780, 0.05),
-    "heroine_t3_s4": (760, 0.090),
 }
 # Whatever the stretch cannot reach without distorting comes from a plain slide; only the chair base
-# falls off the bottom, and the plank hides it.
-LEG_SHIFT: dict[str, int] = {"heroine_t3_s4": 21}
-# Frames whose feet are NOT meant to touch the desk: on all fours her soles kick up behind her, so
-# the plate legitimately ends above the plank line and the chair carries the pose.
-DESK_CONTACT_EXEMPT = {"heroine_t3_s2"}
+# falls off the bottom, and the plank hides it. (No slides in the approved set: the two plank frames
+# reach on their own, and forcing one would move the seat poses' feet off the seat.)
+LEG_SHIFT: dict[str, int] = {}
+# Frames whose feet are NOT meant to touch the desk. The ladder now alternates: s0 has one foot on the
+# seat and one stretched down, s1 kneels sideways on the seat, s4 squats on it — in all three the
+# CHAIR carries the pose, so the plate legitimately ends above the plank line and stretching them
+# would only lengthen legs for no reason. Only s2 (legs up on the desk) and the «Бу!» frame are held
+# to the contact rule.
+DESK_CONTACT_EXEMPT = {"heroine_t3_s0", "heroine_t3_s1", "heroine_t3_s4"}
 
 
 def elongate_below(arr: np.ndarray, hinge: int, extra: float) -> np.ndarray:

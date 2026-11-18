@@ -154,7 +154,7 @@ let day3 = await page.evaluate(() => {
 console.log('2 day3 start', JSON.stringify(day3));
 if (day3.day !== 3) errors.push(`streamDay should be 3, got ${day3.day}`);
 if (day3.mic !== 10) errors.push('desk mic must carry over to Day 3');
-if (day3.chips.join(' ') !== '7000 Подол 10000 Четвереньки 13000 Бу! 15000 Плащ') {
+if (day3.chips.join(' ') !== '7000 Ткань 10000 Ножки на столе 13000 Бу! 15000 Корточки') {
   errors.push(`Day 3 chips wrong: ${day3.chips.join(' | ')}`);
 }
 if (day3.pill > 0) errors.push('the «Этап» pill came back');
