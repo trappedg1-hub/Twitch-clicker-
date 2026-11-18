@@ -6,7 +6,11 @@ pointed at, so it is measured instead of remembered:
 
   cloth-cut   bright cloth pixels sitting ON the plate border. A sheet that runs off the raw ends as a
               straight vertical slice in mid-air once keyed — the "простыня обрезана" complaint.
-  desk        her lowest body row vs the plank line (1489) + the 12 px margin that reads as contact.
+  desk        how she meets the plank line (1489). A plank frame is legal in exactly two ways: her
+              body SINKS past the edge (the desk hides the contact), or her sole RESTS on it (the last
+              skin row lands within a few pixels of the edge). Anything in between is a slice: the
+              plank's dead-straight top edge saws whatever crosses it — a foot cut across the toes is
+              exactly what the user rejected once already.
               "ступни на столе" is a pixel rule, not a feeling.
   framing     the top row of her head: Days 1 and 2 sit at 87-89, and a plate that lands lower reads
               as a different camera, which is how a stage cut looks broken.
@@ -37,6 +41,8 @@ ART = ROOT / "public/art"
 PLANK, MARGIN = 1489, 12
 HEAD_BAND = (87, 122)
 DAY3 = ["heroine_t3_s0", "heroine_t3_s1", "heroine_t3_s2", "heroine_t3_s3", "heroine_t3_s4", "heroine_t3_flash"]
+# Frames whose feet are drawn ON the plank: sole-on-edge is the correct read (mirrors SOLE_ON_PLANK).
+REST_ON_PLANK = {"heroine_t3_s2"}
 # Seat poses: her feet belong on the chair cushion, never on the plank (mirrors DESK_CONTACT_EXEMPT in
 # scripts/process_day3_ghost_arts.py — keep the two in sync when a pose changes).
 DESK_EXEMPT = {"heroine_t3_s0", "heroine_t3_s1", "heroine_t3_s4"}
@@ -66,11 +72,16 @@ def measure(img: np.ndarray) -> dict | None:
     bright = (a > 200) & (lum > 150) & (sat < 46)
     body = (a > 200) & (lum > 70)
     brows = np.where(body.sum(1) > 12)[0]
+    # the sole: the lowest row that is wide, lit skin. In a plank frame that is the pixel row the desk
+    # edge must meet, and it is the row the plate builder fits against (same measure, same tolerance).
+    skin = (a > 128) & (r > 195) & (g > 135) & (b > 125) & ((r - b) > 22)
+    srows = np.where(skin.sum(1) > 12)[0]
     cnts, _ = cv2.findContours((a > 128).astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     contour = sum(cv2.arcLength(c, True) for c in cnts)
     return dict(
         cut=int(bright[:, :3].sum() + bright[:, -3:].sum()),
         body_low=int(brows.max()) if brows.size else -1,
+        sole_low=int(srows.max()) if srows.size else -1,
         head=int(ys.min()),
         soft=round(float(((a > 10) & (a < 245)).sum()) / max(1.0, contour), 3),
         lum=round(float(lum[op].mean()), 1),
@@ -97,15 +108,32 @@ def main() -> int:
             fails.append(f"{name}: no readable plate")
             continue
         day3 = name in DAY3
+        sole = m.get("sole_low", -1)
+        # 16 rows, not 10: this measures the LOSSY webp the game loads, and the thin lit rows of the
+        # toe tips (15 px wide) lose a few rows to the encode. The builder fits the lossless PNG.
+        rests = name in REST_ON_PLANK and PLANK - 16 <= sole <= PLANK + 10
         desk = (
             "n/a"
             if not day3
             else "seat"
             if name in DESK_EXEMPT
+            else "rest"
+            if rests
+            else "SLICE"
+            if name in REST_ON_PLANK
             else ("ok" if m["body_low"] >= PLANK + MARGIN else "FLOAT")
         )
-        if day3 and desk == "FLOAT":
-            fails.append(f"{name}: her body stops at row {m['body_low']}, {PLANK - m['body_low']} rows above the plank")
+        if day3 and desk == "FLOAT" and name not in REST_ON_PLANK:
+            fails.append(
+                f"{name}: her body stops at row {m['body_low']}, {PLANK - m['body_low']} rows above the "
+                "plank — sink it past the edge or rest the sole on it (see REST_ON_PLANK)"
+            )
+        if day3 and name in REST_ON_PLANK and not rests:
+            fails.append(
+                f"{name}: the sole ends at row {sole}, {abs(sole - PLANK)} rows off the plank edge "
+                f"({PLANK}) — a foot that floats reads as missing, one that reaches further into the "
+                "hidden band gets sawn in half by the desk edge. Fix it in SOLE_ON_PLANK."
+            )
         if day3 and m["cut"] > 0 and name not in KNOWN_CUT:
             fails.append(f"{name}: {m['cut']} px of cloth touch the plate edge — the cut will show as a straight slice")
         if day3 and not HEAD_BAND[0] <= m["head"] <= HEAD_BAND[1]:

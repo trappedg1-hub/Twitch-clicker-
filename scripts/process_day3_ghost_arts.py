@@ -61,19 +61,29 @@ FRAMES: dict[str, str] = {
 }
 
 
-# The generator keeps finishing her feet a finger's width short of the canvas bottom, which — once
-# the plank overlaps the plate — reads as floating ("а где ступни на столе?"). Sliding the whole
-# plate down would fix the feet but drop her head 40-80 rows below the row-87 anchor Days 1 and 2
-# share, so every stage would frame her differently. Instead: elongate only BELOW the waist hinge.
-# The head and the chair backrest stay anchored, the soles sink behind the plank, and the side effect
-# is the one the brief asked for anyway — longer legs. (hinge row, factor), tuned per frame from its
-# own measured sole row; both stay small enough that the fishnet mesh never goes rubbery.
+# The plank is a FOREGROUND layer: its top edge is a dead-straight horizontal line, so whatever the
+# plate leaves inside that band gets cut along it. Two failure modes were shipped by hand-tuned
+# numbers, and the second is the one the user just caught:
+#   - sole ends 10s of rows ABOVE the edge  -> "а где ступни на столе?", she floats;
+#   - sole ends 10s of rows BELOW the edge  -> the plank saws the foot across the toes: "криво
+#     обрезана, не прячется под стол".
+# So the frames where the feet belong ON the desk are fitted, not guessed: SOLE_ON_PLANK says which
+# row the lowest skin pixel (the sole resting on the desk) must land on, and the stretch factor below
+# is solved from the frame's own measurement. (hinge, factor) is only the START of that search; the
+# factor is recomputed per run, so re-rendering the art cannot silently re-introduce either failure.
+SOLE_ON_PLANK: dict[str, int] = {
+    # s2, crossed ankles over the plank. Four rows INTO the band the plank hides: her sole presses onto the wood instead of stopping
+    # a hair above it, and nothing above the edge is cut. Aimed at the plank line itself fails by a
+    # few rows in practice because the webp encode attenuates the 15-pixel-wide toe rows, which is
+    # what `day3_plate_qc.py` measures.
+    "heroine_t3_s2": DESK_TOP_ROW + 4,
+}
 LEG_STRETCH: dict[str, tuple[int, float]] = {
-    # s0/s1/s4 are seat poses — their feet never touch the desk, so stretching them would just
-    # lengthen legs for no reason. Only the plank frames need the reach.
-    "heroine_t3_s2": (700, 0.055),
+    # s2 is NOT here: its legs are solved against the plank by SOLE_ON_PLANK, and a hand-set factor is
+    # what cut her toes in half in the first place.
     # the "Бу!" jump and the crossfade flash share one raw — treat them identically or the cut
-    # between them steps her legs by a few pixels.
+    # between them steps her legs by a few pixels. Her feet are tucked up behind the desk here,
+    # which is the pose, so no sole fit: anything under the plank edge just reads as hidden.
     "heroine_t3_s3": (780, 0.05),
     "heroine_t3_flash": (780, 0.05),
 }
@@ -101,6 +111,8 @@ def elongate_below(arr: np.ndarray, hinge: int, extra: float) -> np.ndarray:
     h, w = arr.shape[:2]
     src = np.arange(h, dtype=np.float64)
     dst = np.where(src < hinge, src, hinge + (src - hinge) * (1.0 + extra))
+    # Only ever an elongation: a negative factor maps the last source row onto every row under it,
+    # which smears her foot down the desk. Pulling a sole back up is `scale_about_row`'s job.
     if dst[-1] <= h - 1:
         return arr
     # Inverse map: destination row y samples source row s where dst(s) == y. dst is monotone, so a
@@ -129,6 +141,74 @@ def elongate_below(arr: np.ndarray, hinge: int, extra: float) -> np.ndarray:
 # framed tighter has to come back to the same scale or the stage cut reads as a zoom.
 HEAD_BAND = (87, 122)
 HEAD_TARGET = 88
+
+
+def sole_bottom_row(arr: np.ndarray) -> int:
+    """Lowest lit-skin row on the plate — the sole she rests on the desk.
+
+    Deliberately a LOW pixel threshold (the same measure `day3_plate_qc.py` runs): the toe tips are a
+    dozen pixels wide, and a fit aimed at the wide part of the foot happily leaves the toes poking
+    under the plank, which is the slice this whole function exists to prevent.
+    """
+    al = arr[:, :, 3].astype(np.float32)
+    rr, gg, bb = (arr[:, :, i].astype(np.float32) for i in range(3))
+    skin = (al > 128) & (rr > 195) & (gg > 135) & (bb > 125) & ((rr - bb) > 22)
+    rows = np.nonzero(skin.sum(axis=1) > 12)[0]
+    return int(rows.max()) if rows.size else -1
+
+
+def scale_about_row(arr: np.ndarray, pivot: int, k: float) -> np.ndarray:
+    """Uniformly rescale the plate so row `pivot` stays put — a couple of percent, not a crop.
+
+    Uniform on purpose. `elongate_below` with a NEGATIVE factor (the obvious tool: her foot needs to
+    come back UP off the plank) maps the last source row onto every row under it, which smears her
+    toes into vertical streaks across the desk. A uniform scale about her head keeps the head at the
+    row the rest of the ladder shares, moves the sole where the plank wants it, and costs a pixel or
+    two of side margin on a plate that has some.
+    """
+    h, w = arr.shape[:2]
+    gx = np.arange(w, dtype=np.float32)
+    gy = np.arange(h, dtype=np.float32)
+    map_x, map_y = np.meshgrid((gx - w / 2) / k + w / 2, (gy - pivot) / k + pivot)
+    a = arr[:, :, 3:4].astype(np.float32) / 255.0
+    prem = cv2.remap(arr[:, :, :3].astype(np.float32) * a, map_x, map_y, cv2.INTER_LANCZOS4,
+                     borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    alpha = cv2.remap(a[:, :, 0], map_x, map_y, cv2.INTER_LANCZOS4,
+                      borderMode=cv2.BORDER_CONSTANT, borderValue=0)
+    alpha = np.clip((alpha * 255.0 - 70.0) * (255.0 / 150.0), 0.0, 255.0)
+    # LANCZOS rings past the last row of content, and hardening turns that ring into opaque colour — a
+    # bright fringe smeared BELOW her foot, which reads as toes bleeding into the desk and (measured)
+    # as 25 phantom skin rows under the plank. Anything sampled from past the source's own bottom edge
+    # is cut, so the silhouette ends where she actually ends.
+    src_bottom = float(np.nonzero((arr[:, :, 3] > 8).sum(axis=1) > 2)[0].max())
+    src_y = (gy - pivot) / k + pivot
+    alpha[src_y > src_bottom + 0.5, :] = 0.0
+    a2 = alpha / 255.0
+    nz = np.where(a2 > 1e-3, a2, 1.0)
+    out = np.empty_like(arr)
+    out[:, :, 3] = alpha.astype(arr.dtype)
+    out[:, :, :3] = np.clip(prem / nz[..., None], 0, 255).astype(arr.dtype)
+    return out
+
+
+def fit_sole_to_plank(arr: np.ndarray, stage: str) -> np.ndarray:
+    """Set the frame's height so her sole lands on `SOLE_ON_PLANK[stage]` and her head stays at 88.
+
+    The map is linear in `k`, so one measurement solves it; the second pass just absorbs the rounding
+    of the resample. `k` is clamped hard: past ~1 % the ladder starts reading as a zoom on that stage.
+    """
+    target = SOLE_ON_PLANK[stage]
+    for _ in range(2):
+        sole = sole_bottom_row(arr)
+        head = int(np.nonzero((arr[:, :, 3] > 8).sum(axis=1) > 2)[0].min())
+        if sole < 0:
+            sys.exit(f"{stage}: no sole found to fit against the plank")
+        if abs(sole - target) <= 1:
+            break
+        k = float(np.clip((target - head) / (sole - head), 0.99, 1.01))
+        arr = scale_about_row(arr, head, k)
+    print(f"  {stage}: sole row {sole_bottom_row(arr)} fitted onto the plank edge ({target})")
+    return arr
 
 
 def fit_head_band(arr: np.ndarray, stage: str) -> np.ndarray:
@@ -344,6 +424,24 @@ def trim_shadow_debris(alpha: np.ndarray, rgb: np.ndarray, bg: np.ndarray) -> tu
 
 
 
+def sharpen(arr: np.ndarray) -> np.ndarray:
+    """Unsharp mask on the plate, on colour only (the alpha edge is already hardened by the keyer).
+
+    Every 848x1264 raw arrives softer than the plate it has to fill, and LANCZOS trades a little more
+    detail for the absence of ringing. One restrained local contrast pass (55 % of a 1.1px blur, and
+    only on opaque pixels so nothing haloed gets baked into the transparent rim) is what makes the
+    lineart read as drawn rather than as resampled. Amount kept low on purpose: this is lineart and
+    a fishnet mesh, and over-crisping them shows up as white edges around every diamond.
+    """
+    rgb = arr[:, :, :3].astype(np.float32)
+    blur = cv2.GaussianBlur(rgb, (0, 0), 1.1)
+    keep = arr[:, :, 3] > 160
+    sharp = np.clip(rgb + 0.55 * (rgb - blur), 0, 255)
+    out = arr.copy()
+    out[:, :, :3] = np.where(keep[:, :, None], sharp, rgb).astype(arr.dtype)
+    return out
+
+
 def to_plate(rgba: Image.Image) -> Image.Image:
     if rgba.size != (PLATE_W, PLATE_H):
         rgba = rgba.resize((PLATE_W, PLATE_H), Image.Resampling.LANCZOS)
@@ -394,6 +492,17 @@ def main() -> None:
         if extra or shift:
             plate = Image.fromarray(arr, "RGBA")
         arr = fit_head_band(np.array(plate), stage)
+        # Sharpen BEFORE the sole fit, never after. The fit scales the plate up a couple of percent,
+        # and an unsharp pass run over the result drags the bright skin colour of the sole down into
+        # the dark shadow band under her foot — a halo exactly where the toes meet the plank edge,
+        # i.e. in the one row the player looks at. Crisp first, place second.
+        arr = sharpen(arr)
+        # ...and the sole fit LAST: every step above moves her relative to the plank, and the first
+        # version of this rule ran before them, so the re-frame lifted her foot back off the desk by
+        # the 6 rows it shrank. The plank edge is the one line in the frame that never moves, so it is
+        # the only sane thing to measure against last.
+        if stage in SOLE_ON_PLANK:
+            arr = fit_sole_to_plank(arr, stage)
         plate = Image.fromarray(arr, "RGBA")
         fg = float((arr[:, :, 3] > 8).mean())
         # Contact check, calibrated against the accepted Day-1/Day-2 plates rather than a guess:
@@ -407,20 +516,37 @@ def main() -> None:
         opaque = al > 200
         low = int(np.nonzero(opaque.sum(axis=1) > 2)[0].max())
         body_low = int(np.nonzero(body.sum(axis=1) > 12)[0].max())
-        skin = (al > 128) & (rr > 195) & (gg > 135) & (bb > 125) & ((rr - bb) > 22)
-        srows = np.nonzero(skin.sum(axis=1) > 12)[0]
-        skin_low = int(srows.max()) if srows.size else -1
+        # ONE measure, the function the fit optimises. The inline copy of it disagreed by 26 rows
+        # because it read the array through different dtypes, and two definitions of "where her foot
+        # ends" in one file is how a foot slips through a gate.
+        skin_low = sole_bottom_row(arr)
         print(
             f"  {stage}: body bottom {body_low}, skin bottom {skin_low}, silhouette bottom {low} "
             f"(plank covers >= {DESK_TOP_ROW})"
         )
-        if stage not in DESK_CONTACT_EXEMPT and body_low < DESK_TOP_ROW - DESK_CONTACT_SLACK:
+        # For a plank frame the contact test is about the SOLE, not about the silhouette bottom: the
+        # foot must sit on the desk edge, which means the last skin row lands within a few pixels of
+        # it. Reaching INTO the hidden band is what sliced her toes in half, so that is a failure too.
+        if stage in SOLE_ON_PLANK:
+            target = SOLE_ON_PLANK[stage]
+            if not (target - 12 <= skin_low <= target + 8):
+                raise SystemExit(
+                    f"{stage}: the sole bottoms out at row {skin_low}, {abs(skin_low - target)} rows off "
+                    f"the plank edge ({target}) — a foot that floats reads as missing, a foot that dips "
+                    "gets sawn in half by the desk edge. Re-run the fit or move SOLE_ON_PLANK."
+                )
+        elif stage not in DESK_CONTACT_EXEMPT and body_low < DESK_TOP_ROW - DESK_CONTACT_SLACK:
             raise SystemExit(
                 f"{stage}: her body bottoms out at row {body_low}, {DESK_TOP_ROW - body_low} rows above "
                 f"the plank line ({DESK_TOP_ROW}) — the feet read as floating over the chair. Lengthen "
                 "the legs in LEG_STRETCH or re-frame the raw with the soles at the bottom edge."
             )
-        if low < PLATE_H - 6:
+        # The flush-bottom rule exists because a transparent band UNDER her reads as hovering. A
+        # sole resting on the plank is the opposite case: the plank's own top edge (row 1489) covers
+        # everything below it, so ending the silhouette there is correct, and padding it further down
+        # only smears the last row into the desk area. Ask for either, never both.
+        rests_on_plank = stage in SOLE_ON_PLANK and low >= DESK_TOP_ROW - 4
+        if low < PLATE_H - 6 and not rests_on_plank:
             raise SystemExit(
                 f"{stage}: the silhouette stops at row {low}, leaving a transparent band at the bottom "
                 "of the plate — that gap is what makes her look like she is hovering."
@@ -428,7 +554,9 @@ def main() -> None:
         # Only now, with the plate proven, does it land in public/art — a rejected frame must never
         # be shippable by accident.
         plate.save(PLATES / f"{stage}.png")
-        plate.save(PLATES / f"{stage}.webp", "WEBP", quality=92)
+        # method=6 is the slowest (best) webp search; on flat cel colour it buys real edge quality for
+        # a few seconds of build time, which is the whole point of shipping the plate as webp.
+        plate.save(PLATES / f"{stage}.webp", "WEBP", quality=96, method=6)
         print(
             f"{stage}: {src.name} bg={tuple(int(v) for v in bg.round(0))} alpha kept {keep:.3f} "
             f"coverage {fg:.3f} stray-rule px {erased} debris px {debris}"
