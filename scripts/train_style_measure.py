@@ -205,7 +205,7 @@ def measure_gb(rgb: np.ndarray) -> np.ndarray:
     return (g - b)[skin] if skin.sum() > 500 else np.array([7.0])
 
 
-def flags(m: dict) -> list[str]:
+def flags(m: dict, bare_legs: bool = False) -> list[str]:
     out = []
     if m.get("touch"):
         out.append(f"CROPPED: subject touches the {','.join(m['touch'])} edge — never ship a cropped figure")
@@ -232,10 +232,15 @@ def flags(m: dict) -> list[str]:
         )
     fw = m.get("foot_warm")
     if fw is not None and fw >= 75:
-        out.append(
-            f"foot band reads skin-warm ({fw}%) — bare foot or a translucent sock; add the opaque "
-            "legwear clause (stocking drawn as one knit from the band over the heel to the toe tips)"
-        )
+        if bare_legs:
+            # The bikini family is bare-legged on purpose (open-toe clear heels over bare skin), so a
+            # skin-warm foot band is the intended reading, not the translucent-sock defect.
+            out.append(f"foot band skin-warm ({fw}%) — expected: bare legs, no legwear in this costume")
+        else:
+            out.append(
+                f"foot band reads skin-warm ({fw}%) — bare foot or a translucent sock; add the opaque "
+                "legwear clause (stocking drawn as one knit from the band over the heel to the toe tips)"
+            )
     ir = m.get("iris_pct")
     if ir is not None and ir < 24:
         out.append(
@@ -258,6 +263,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("images", nargs="+", type=Path)
     ap.add_argument("--json", type=Path, default=None, help="append the metrics into this scores ledger")
+    ap.add_argument("--bare-legs", action="store_true",
+                    help="the costume has no legwear (bikini frames): the skin-warm foot band is expected, "
+                         "not a defect")
     args = ap.parse_args()
     rows = {}
     canon = CANON if CANON.exists() else CANON.with_suffix(".webp")
@@ -269,7 +277,7 @@ def main() -> None:
             print(f"{p.name:28s} MISSING")
             continue
         m = metrics(p)
-        fl = flags(m)
+        fl = flags(m, bare_legs=args.bare_legs)
         gb = "n/a" if m["skin_gb"] is None else f"{m['skin_gb']:.1f}"
         foot = "n/a" if m.get("foot_warm") is None else f"{m['foot_warm']}% warm"
         print(
