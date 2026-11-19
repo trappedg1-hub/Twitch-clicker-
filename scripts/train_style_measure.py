@@ -99,6 +99,29 @@ def metrics(rgb: np.ndarray) -> dict:
     lit = fb[fb[:, 0] > 170] if len(fb) else fb
     foot_px = int(len(lit))
     foot_warm = round(float(((lit[:, 0] - lit[:, 2]) > 28).mean()) * 100, 1) if foot_px > 1500 else None
+    # THE FACE BOX: head region = top 30% of her silhouette. Inside it, warm+light pixels are skin, and
+    # the skin's bounding box is the face. Two numbers come out of that box, and they are the ONLY things
+    # in this script that see her IDENTITY rather than her finish: `iris_pct` (how much of the face is the
+    # big violet iris) and `face_ar` (how long the face is for its width). Both were calibrated the hard
+    # way: the two frames the user vetoed as "not our heroine" sit at iris 10.7% and 21.8% against a canon
+    # of 29.2%, while everything she scored 8.5+ is at 27% and up, and r(iris, style) = +0.29 over 49
+    # graded frames. field/ink/hard said the vetoed frames were the BEST of the run — that is the gap this
+    # closes, so treat a low iris share as a veto, not a preference.
+    hy1 = min(h, int(y + bh * 0.30))
+    reg = f[y:hy1]
+    rr, gg, bb = reg[:, :, 0], reg[:, :, 1], reg[:, :, 2]
+    fs = (rr > 190) & ((rr - gg) > 12) & ((rr - gg) < 70) & ((gg - bb) > -6) & ((gg - bb) < 28)
+    fc = fs.sum(axis=0)
+    fr = fs.sum(axis=1)
+    xs = np.nonzero(fc > max(3, 0.10 * fc.max()))[0]
+    ys = np.nonzero(fr > max(2, 0.10 * fr.max()))[0]
+    iris_pct = face_ar = None
+    if xs.size > 8 and ys.size > 8:
+        box = reg[int(ys.min()) : int(ys.max()) + 1, int(xs.min()) : int(xs.max()) + 1]
+        n = box.shape[0] * box.shape[1]
+        vio = ((box[:, :, 2] - box[:, :, 1]) > 6) & (box[:, :, 0] < 225)
+        iris_pct = round(float(vio.sum()) / n * 100, 1)
+        face_ar = round(float(box.shape[0]) / box.shape[1], 2)
     # line weight: the median width of an ink run along x, sampled every other row
     runs = []
     for row in range(int(y), min(int(y + bh), h), 2):
@@ -127,6 +150,8 @@ def metrics(rgb: np.ndarray) -> dict:
     "touch_bottom": int(h - (y + bh)) <= 1,
         "foot_warm": foot_warm,
         "foot_px": foot_px,
+        "iris_pct": iris_pct,
+        "face_ar": face_ar,
         "share_h": round(float(bh) / h, 3),
         "share_w": round(float(bw) / w, 3),
     }
@@ -211,6 +236,16 @@ def flags(m: dict) -> list[str]:
             f"foot band reads skin-warm ({fw}%) — bare foot or a translucent sock; add the opaque "
             "legwear clause (stocking drawn as one knit from the band over the heel to the toe tips)"
         )
+    ir = m.get("iris_pct")
+    if ir is not None and ir < 24:
+        out.append(
+            f"face is off-model: only {ir}% of the face box is the big violet iris (canon 29.2%) — "
+            "the eyes are being drawn small/flat, which is the defect the user vetoes as \"not our "
+            "heroine\"; restate the identity lock (round face, large open violet eyes) above Framing"
+        )
+    fa = m.get("face_ar")
+    if fa is not None and fa > 1.10:  # s10 (style 9.0) sits at 1.07, the vetoed s6 at 1.13
+        out.append(f"face too long for the canon (height/width {fa} vs canon 0.73) — narrow anime face")
     ln = m.get("line_px")
     if ln is not None and ln < 1.2:
         out.append(f"line too thin ({ln}px vs canon {CANON_LINE}px) — detail level of a thumbnail reference")
@@ -241,6 +276,7 @@ def main() -> None:
             f"{p.name:28s} skin G-B +{gb} line {m['line_px']}px ink {m['ink_pct']}%"
             f" bg {m['bg_std']} contrast {m['contrast']} hard {m['hard']} subj {m['subj_pct']}%"
             f" margins {m['margin']} h{m['share_h']:.2f} foot {foot}"
+            f" | face iris {m['iris_pct']}% ar {m['face_ar']} (canon 29.2% / 0.73)"
         )
         for f in fl:
             print(f"{'':4s}! {f}")
