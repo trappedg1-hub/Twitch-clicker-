@@ -91,6 +91,14 @@ def metrics(rgb: np.ndarray) -> dict:
         interior = mask.astype(bool)
     hard_share = float((grad[interior] > 40).mean()) if interior.any() else 0.0
     subj_only = interior
+    # the FOOT BAND: the bottom 14% of her silhouette. Bare feet and a translucent sock both read warm
+    # there, a properly drawn stocking reads cool ivory — this is how the user's two foot complaints are
+    # told apart without opening the frame (r7/q10_B ~98% warm vs s3 16%).
+    fy0 = int(y + bh * 0.86)
+    fb = f[fy0 : int(y + bh) + 1][mask[fy0 : int(y + bh) + 1]]
+    lit = fb[fb[:, 0] > 170] if len(fb) else fb
+    foot_px = int(len(lit))
+    foot_warm = round(float(((lit[:, 0] - lit[:, 2]) > 28).mean()) * 100, 1) if foot_px > 1500 else None
     # line weight: the median width of an ink run along x, sampled every other row
     runs = []
     for row in range(int(y), min(int(y + bh), h), 2):
@@ -117,6 +125,8 @@ def metrics(rgb: np.ndarray) -> dict:
         "margin": [int(x), int(y), int(w - (x + bw)), int(h - (y + bh))],
         "touch": [t for t, v in (("left", x), ("top", y), ("right", w - (x + bw))) if v <= 1],
     "touch_bottom": int(h - (y + bh)) <= 1,
+        "foot_warm": foot_warm,
+        "foot_px": foot_px,
         "share_h": round(float(bh) / h, 3),
         "share_w": round(float(bw) / w, 3),
     }
@@ -195,6 +205,12 @@ def flags(m: dict) -> list[str]:
             f"frame crowded ({m['subj_pct']}% subject vs Day-1 raws {env[2]}%) — "
             "she is close to the edge, check the crop line below before trusting this frame"
         )
+    fw = m.get("foot_warm")
+    if fw is not None and fw >= 75:
+        out.append(
+            f"foot band reads skin-warm ({fw}%) — bare foot or a translucent sock; add the opaque "
+            "legwear clause (stocking drawn as one knit from the band over the heel to the toe tips)"
+        )
     ln = m.get("line_px")
     if ln is not None and ln < 1.2:
         out.append(f"line too thin ({ln}px vs canon {CANON_LINE}px) — detail level of a thumbnail reference")
@@ -220,10 +236,11 @@ def main() -> None:
         m = metrics(p)
         fl = flags(m)
         gb = "n/a" if m["skin_gb"] is None else f"{m['skin_gb']:.1f}"
+        foot = "n/a" if m.get("foot_warm") is None else f"{m['foot_warm']}% warm"
         print(
             f"{p.name:28s} skin G-B +{gb} line {m['line_px']}px ink {m['ink_pct']}%"
             f" bg {m['bg_std']} contrast {m['contrast']} hard {m['hard']} subj {m['subj_pct']}%"
-            f" margins {m['margin']} h{m['share_h']:.2f}"
+            f" margins {m['margin']} h{m['share_h']:.2f} foot {foot}"
         )
         for f in fl:
             print(f"{'':4s}! {f}")
