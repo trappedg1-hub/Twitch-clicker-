@@ -24,7 +24,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 QA = ROOT / ".qa-out"
@@ -52,6 +52,22 @@ def measure(paths: list[Path]) -> dict[str, str]:
     return out
 
 
+def _num_font(size: int = 46):
+    """Bold tile ordinal. The scorer reads tiles left-to-right and answers by NUMBER (six answers for a
+    five-tile sheet in batches 13, 14 and 15 — the frame names under each tile were not enough), so the
+    number has to be painted on the art itself, where it cannot be missed."""
+    for cand in ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf"):
+        if Path(cand).exists():
+            try:
+                return ImageFont.truetype(cand, size)
+            except OSError:
+                pass
+    try:
+        return ImageFont.load_default(size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
 def sheet(paths: list[Path], scores: dict[str, tuple[float, float]], out: Path) -> Path:
     notes = measure(paths)
     cols = 2
@@ -71,6 +87,12 @@ def sheet(paths: list[Path], scores: dict[str, tuple[float, float]], out: Path) 
         canvas.paste(im, (x + (tile_w - im.width) // 2, y))
         stem = p.stem
         cap = draw.textbbox((0, 0), stem)
+        nf = _num_font()
+        tag = f"{idx + 1}"
+        nb = draw.textbbox((0, 0), tag, font=nf)
+        nw, nh = nb[2] - nb[0], nb[3] - nb[1]
+        draw.rectangle([x + 10, y + 10, x + 10 + nw + 26, y + 10 + nh + 20], fill=(26, 18, 28), outline=(255, 128, 176), width=3)
+        draw.text((x + 23 - nb[0], y + 20 - nb[1]), tag, fill=(255, 232, 242), font=nf)
         line2 = ""
         if stem in scores:
             hot, sty = scores[stem]
