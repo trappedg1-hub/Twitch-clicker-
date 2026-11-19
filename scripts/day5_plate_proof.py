@@ -45,10 +45,11 @@ VIRTUAL_W, VIRTUAL_H, CANVAS_H = 1376, 768, 753
 BOX_W, BOX_H, BOX_X, BOX_Y = 482, 722, 442, 11
 
 CANDIDATES = [
-    ("s1_start", "t5_t100_bikini_figfour_E"),
-    ("s2_fivepoint", "t5_t95_bikini_fivepoint_A"),
-    ("s3_cat", "t5_t117_bikini_cat_close_F"),
-    ("s4_feetcam", "t5_t116_bikini_feetcam_E"),
+    ("s1_start", "t5_t119_bikini_start_close_A"),
+    ("s3_cat_sq", "t5_t125_bikini_cat_square_F"),
+    ("s3_cat_sq2", "t5_t126_bikini_cat_square_G"),
+    ("s4_feet1", "t5_t118_bikini_feetcam_H"),
+    ("s4_feet2", "t5_t124_bikini_feetcam_J"),
 ]
 
 
