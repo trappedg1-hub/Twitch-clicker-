@@ -6,6 +6,7 @@ import {
   DAY2_SUB_GOAL_STAGES,
   DAY3_SUB_GOAL_STAGES,
   DAY4_SUB_GOAL_STAGES,
+  DAY5_SUB_GOAL_STAGES,
 } from '../src/domain/subGoals.ts';
 import {
   WARDROBES,
@@ -24,16 +25,27 @@ import {
   DAY4_FAREWELL_LINES,
   DAY4_IDLE_BY_STAGE,
   DAY4_STAGE_ZONE_LINES,
+  DAY5_FAREWELL_LINES,
+  DAY5_IDLE_BY_STAGE,
+  DAY5_STAGE_ZONE_LINES,
   GHOST_BOO_LINES,
 } from '../src/domain/dialogue.ts';
 import {
   AMBIENT_DAY3_BY_STAGE,
   AMBIENT_DAY4_BY_STAGE,
+  AMBIENT_DAY5_BY_STAGE,
   DONATION_TTS_LINES_DAY4,
+  DONATION_TTS_LINES_DAY5,
   VIRAL_CLIP_TITLES_DAY4,
+  VIRAL_CLIP_TITLES_DAY5,
   ZONE_CHAT_REACTIONS_DAY4,
+  ZONE_CHAT_REACTIONS_DAY5,
 } from '../src/chat/chatEngine.ts';
-import { DAY3_STORY_CHAPTERS, DAY4_STORY_CHAPTERS } from '../src/domain/progression.ts';
+import {
+  DAY3_STORY_CHAPTERS,
+  DAY4_STORY_CHAPTERS,
+  DAY5_STORY_CHAPTERS,
+} from '../src/domain/progression.ts';
 import type { SubGoalStageDef, SubGoalStageIndex, TapZoneId } from '../src/domain/types.ts';
 
 /**
@@ -47,6 +59,7 @@ const DAYS: [DayIndex, readonly SubGoalStageDef[]][] = [
   [2, DAY2_SUB_GOAL_STAGES],
   [3, DAY3_SUB_GOAL_STAGES],
   [4, DAY4_SUB_GOAL_STAGES],
+  [5, DAY5_SUB_GOAL_STAGES],
 ];
 
 const ZONES: TapZoneId[] = ['head', 'chest', 'belly', 'legs', 'feet'];
@@ -78,7 +91,9 @@ test('no copy line claims a garment state the current plate does not show', () =
             ? DAY3_STAGE_ZONE_LINES
             : day === 4
               ? DAY4_STAGE_ZONE_LINES
-              : null;
+              : day === 5
+                ? DAY5_STAGE_ZONE_LINES
+                : null;
       if (perDay) {
         const per = (
           perDay as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>
@@ -94,7 +109,9 @@ test('no copy line claims a garment state the current plate does not show', () =
             ? DAY3_IDLE_BY_STAGE[st.stage]
             : day === 4
               ? DAY4_IDLE_BY_STAGE[st.stage]
-              : undefined;
+              : day === 5
+                ? DAY5_IDLE_BY_STAGE[st.stage]
+                : undefined;
       (idle ?? []).forEach((l, i) => check(`${at} idle[${i}]`, l, day, st.stage));
       if (day === 3) {
         (AMBIENT_DAY3_BY_STAGE[st.stage] ?? []).forEach((l, i) => check(`${at} ambient[${i}]`, l, day, st.stage));
@@ -108,17 +125,29 @@ test('no copy line claims a garment state the current plate does not show', () =
         }
         DONATION_TTS_LINES_DAY4.forEach((l, i) => check(`${at} tts[${i}]`, l, day, st.stage));
       }
+      if (day === 5) {
+        // Day 5 copy is held to the same bar as Day 4's: the plate is a micro bikini in clear heels, so
+        // no line may claim legwear, bare feet or a garment that moved — including the viewers' chatter.
+        (AMBIENT_DAY5_BY_STAGE[st.stage] ?? []).forEach((l, i) => check(`${at} ambient[${i}]`, l, day, st.stage));
+        for (const zone of ZONES) {
+          (ZONE_CHAT_REACTIONS_DAY5[zone] ?? []).forEach((l, i) => check(`${at} burst_${zone}[${i}]`, l, day, st.stage));
+          (VIRAL_CLIP_TITLES_DAY5[zone] ?? []).forEach((l, i) => check(`${at} clip_${zone}[${i}]`, l, day, st.stage));
+        }
+        DONATION_TTS_LINES_DAY5.forEach((l, i) => check(`${at} tts[${i}]`, l, day, st.stage));
+      }
     }
   }
 
   // Farewells and the flash pools always play on the finale plate, so they are checked against the
   // finale plate of THEIR OWN day - a Day-4 goodbye about socks must not be graded on Day 1's art.
-  const finaleStage = (day: DayIndex): SubGoalStageIndex => (day === 4 ? 3 : 4);
+  // Days 4 and 5 are short ladders (four frames, finale at stage 3), so their farewell plays on s3.
+  const finaleStage = (day: DayIndex): SubGoalStageIndex => (day === 4 || day === 5 ? 3 : 4);
   for (const [day, pool] of [
     [1, DAY1_FAREWELL_LINES],
     [2, DAY2_FAREWELL_LINES],
     [3, [...DAY3_FAREWELL_LINES, ...GHOST_BOO_LINES]],
     [4, [...DAY4_FAREWELL_LINES, ...DAY4_DONE_LINES_POOL]],
+    [5, DAY5_FAREWELL_LINES],
   ] as [DayIndex, readonly string[]][]) {
     pool.forEach((l, i) => check(`d${day} farewell[${i}]`, l, day, finaleStage(day)));
   }
@@ -128,6 +157,7 @@ test('no copy line claims a garment state the current plate does not show', () =
   for (const [day, chapters] of [
     [3, DAY3_STORY_CHAPTERS],
     [4, DAY4_STORY_CHAPTERS],
+    [5, DAY5_STORY_CHAPTERS],
   ] as [DayIndex, readonly { headline: string; diaryThought: string; badgeTitle: string }[]][]) {
     for (const ch of chapters) {
       for (let stage = 0; stage <= 4; stage++) {
@@ -148,13 +178,25 @@ test('no copy line claims a garment state the current plate does not show', () =
 
 test('a stage never loses its whole line pool to the wardrobe guard', () => {
   const zoneMap = (day: DayIndex) =>
-    day === 3
-      ? (DAY3_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
-      : day === 2
-        ? (DAY2_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
-        : null;
+    day === 5
+      ? (DAY5_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
+      : day === 4
+        ? (DAY4_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
+        : day === 3
+          ? (DAY3_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
+          : day === 2
+            ? (DAY2_STAGE_ZONE_LINES as Record<SubGoalStageIndex, Partial<Record<TapZoneId, readonly string[]>>>)
+            : null;
   const idleMap = (day: DayIndex) =>
-    day === 3 ? DAY3_IDLE_BY_STAGE : day === 2 ? DAY2_IDLE_BY_STAGE : null;
+    day === 5
+      ? DAY5_IDLE_BY_STAGE
+      : day === 4
+        ? DAY4_IDLE_BY_STAGE
+        : day === 3
+          ? DAY3_IDLE_BY_STAGE
+          : day === 2
+            ? DAY2_IDLE_BY_STAGE
+            : null;
 
   for (const [day, stages] of DAYS) {
     for (const st of stages) {

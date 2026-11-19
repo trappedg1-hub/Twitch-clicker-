@@ -3,6 +3,8 @@ import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
   DAY1_FINALE_SUBS,
   DAY3_FINALE_SUBS,
+  DAY4_FINALE_SUBS,
+  isDay5Unlocked,
   isDay4Unlocked,
   isDay3Unlocked,
   getGiftSubPackCost,
@@ -416,6 +418,42 @@ export function startDay4(state: GameState): { ok: boolean; state: GameState } {
   };
 }
 
+/** Day 4 is over once the yoga ladder (26000) is fully paid off. */
+export function isDay4FinaleReached(state: GameState): boolean {
+  return state.streamDay === 4 && state.subscribers >= DAY4_FINALE_SUBS;
+}
+
+/**
+ * Start Day 5 = «5 бикини стрим». Same entry rules as the other days: money, upgrades, items and
+ * boldness carry over, the wardrobe relocks to 0.
+ *
+ * The costume gate is different on purpose. On Days 1-2 relocking the wardrobe meant "she put clothes
+ * back on"; on Day 5 there is nothing to put back — the micro bikini is the whole outfit and the four
+ * approved frames differ only in how close she lets the camera get. So `carriedOverWardrobeStage` here
+ * decides only how much of her own history she mentions (the same role it plays on Day 4), and the
+ * ladder escalates the POSE. See `WARDROBES[5]`: one row, `bikiniKit`, four identical garment states.
+ */
+export function startDay5(state: GameState): { ok: boolean; state: GameState } {
+  if (!isDay4FinaleReached(state) || !isDay5Unlocked()) {
+    return { ok: false, state };
+  }
+  const carried = Math.max(
+    state.carriedOverWardrobeStage ?? 0,
+    state.unlockedSubStage,
+  ) as SubGoalStageIndex;
+  return {
+    ok: true,
+    state: {
+      ...state,
+      streamDay: 5,
+      carriedOverWardrobeStage: carried,
+      unlockedSubStage: 0,
+      displayedSubStage: 0,
+      hype: 100,
+    },
+  };
+}
+
 export function triggerStreamChallenge(
   state: GameState,
   challengeId: ChallengeId,
@@ -508,11 +546,19 @@ export function triggerStreamChallenge(
       : subResolved.state.streamDay === 2
         ? (def.reactionLineDay2 ?? def.reactionLine)
         : subResolved.state.streamDay === 4
-          ? (def.reactionLineDay4 ?? def.reactionLine)
+        ? (def.reactionLineDay4 ?? def.reactionLine)
+        : subResolved.state.streamDay === 5
+          ? (def.reactionLineDay5 ?? def.reactionLine)
           : def.reactionLine,
     // Day 4 rewrites the viewers' demand too: the yoga chat asks for a deeper pose, never a strip.
+    // Day 4 and Day 5 both rewrite the viewers' demand: neither day has a garment to remove, so the
+    // chat asks for a closer pose instead of a strip.
     chatBurst:
-      subResolved.state.streamDay === 4 ? (def.chatBurstDay4 ?? def.chatBurst) : def.chatBurst,
+      subResolved.state.streamDay === 4
+        ? (def.chatBurstDay4 ?? def.chatBurst)
+        : subResolved.state.streamDay === 5
+          ? (def.chatBurstDay5 ?? def.chatBurst)
+          : def.chatBurst,
     zoneFocus: def.zoneFocus,
     newlyUnlockedSubStages: subResolved.newlyUnlockedSubStages,
     newlyUnlockedMilestones: newlyUnlocked,
@@ -662,7 +708,7 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
     // just to look at one plate again. Note this deliberately does NOT consult isDay3Unlocked() —
     // that flag only turns on after the async art probe resolves, so gating the load on it would
     // throw Day 3 away on every hard reload, which is exactly the bug being fixed.
-    const streamDay = rawDay === 4 ? 4 : rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
+    const streamDay = rawDay === 5 ? 5 : rawDay === 4 ? 4 : rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
     const rawCarried = Number(parsed.carriedOverWardrobeStage);
     const carriedOverWardrobeStage: SubGoalStageIndex = (
       Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4

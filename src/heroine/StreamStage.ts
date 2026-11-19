@@ -13,7 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -161,8 +161,8 @@ export class StreamStage {
     // One loader for both late days: Day 3 (cosplay) and Day 4 (yoga) are cut after the boot ladder and
     // may legitimately not exist yet - in that case the rig keeps the Day 2 art instead of 404-ing.
     const loadLadder = async (
-      day: 3 | 4,
-      flashPlate: string,
+      day: 3 | 4 | 5,
+      flashPlate: string | null,
     ): Promise<{ stages?: Texture[]; flash?: Texture }> => {
       const defs = getSubGoalStagesForDay(day);
       const heads = await Promise.all(
@@ -176,20 +176,26 @@ export class StreamStage {
       try {
         const loaded = await Promise.all(defs.map((def) => Assets.load<Texture>(def.plateUrl)));
         if (!loaded.every((tex) => Boolean(tex))) return {};
-        const flash = await Assets.load<Texture>(flashPlate).catch(() => undefined);
+        // Day 5 opts out of the flash frame (`flashPlate === null`), so nothing is fetched for it and
+        // the rig never swaps to a reveal plate nobody drew.
+        const flash = flashPlate
+          ? await Assets.load<Texture>(flashPlate).catch(() => undefined)
+          : undefined;
         return { stages: loaded, flash: flash ?? undefined };
       } catch {
         return {}; // decode failed - the Day 2 ladder keeps the rig alive
       }
     };
-    const [ghostLadder, yogaLadder] = await Promise.all([
+    const [ghostLadder, yogaLadder, bikiniLadder] = await Promise.all([
       loadLadder(3, DAY3_FLASH_PLATE),
       loadLadder(4, DAY4_FLASH_PLATE),
+      loadLadder(5, DAY5_FLASH_PLATE),
     ]);
     const day3StagesTex = ghostLadder.stages;
     const ghostFlashTex = ghostLadder.flash;
     const day4StagesTex = yogaLadder.stages;
     const yogaFlashTex = yogaLadder.flash;
+    const day5StagesTex = bikiniLadder.stages;
 
     // Layer 0: Tier 1 Starter Bedroom (webcam POV)
     this.bgSprite = new Sprite(bgTex);
@@ -250,6 +256,7 @@ export class StreamStage {
       ghostFlash: ghostFlashTex ? [ghostFlashTex] : undefined,
       day4Stages: day4StagesTex,
       yogaFlash: yogaFlashTex ? [yogaFlashTex] : undefined,
+      day5Stages: day5StagesTex,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -425,7 +432,7 @@ export class StreamStage {
     return this.rig?.triggerGhostBoo(durationMs) ?? false;
   }
 
-  public setWardrobeDay(day: 1 | 2 | 3 | 4): void {
+  public setWardrobeDay(day: 1 | 2 | 3 | 4 | 5): void {
     this.rig?.setWardrobeDay(day);
     this.rig?.setFaceAnchorFor(this.getActivePlateName());
   }

@@ -87,6 +87,14 @@ export interface StreamChallengeDef {
   reactionLineDay4?: string;
   chatBurst: string;
   chatBurstDay4?: string;
+  /**
+   * Day 5 is the micro-bikini stream: like the yoga day it has nothing left to take off, so the shop's
+   * spicy challenges must speak about CLOSING THE DISTANCE (lean, hold, arch, give the camera the angle)
+   * instead of about a garment leaving. Without these the challenge buttons would beg for a removal the
+   * approved four frames never show.
+   */
+  reactionLineDay5?: string;
+  chatBurstDay5?: string;
 }
 
 export interface StoryChapterDef {

@@ -49,7 +49,7 @@ test('chat engine creates valid ambient, zone, sub notification, and cascade mes
   }
 });
 
-test('renderChatTextWithEmotes replaces all 12 Twitch emote tokens with real Twitch emote images and escapes HTML', () => {
+test('renderChatTextWithEmotes replaces every Twitch emote token with a real emote and escapes HTML', () => {
   const html = renderChatTextWithEmotes(
     'чат <script> :BOOBA: :peepoShy: :monkaS: :EZ: :Nosebleed: :AWOOGA: :Overheat: :ClipIt:',
   );
@@ -60,6 +60,12 @@ test('renderChatTextWithEmotes replaces all 12 Twitch emote tokens with real Twi
   assert.ok(html.includes('/emotes/awooga.webp'));
   assert.ok(html.includes('/emotes/overheat.webp'));
   assert.ok(html.includes('/emotes/clipit.webp'));
+
+  // `:sub2:` is the Tier-2 sub badge the Day 3..5 copy leans on; it has to resolve to the star glyph,
+  // not leak into the log as literal text the player then reads as a bug.
+  const sub2 = renderChatTextWithEmotes('leгион :sub2:');
+  assert.ok(sub2.includes('tw-emote'), ':sub2: rendered as raw text instead of the sub badge');
+  assert.ok(!sub2.includes(':sub2:'), ':sub2: must not survive into the rendered chat line');
 
   const clipMsg = createViralClipChatMessage('feet', 180, 2);
   assert.equal(clipMsg.author, 'TwitchClips');

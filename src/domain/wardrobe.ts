@@ -10,7 +10,7 @@ import type { SubGoalStageIndex, TapZoneId } from './types.ts';
  */
 
 export type HoodieState = 'on' | 'tied' | 'hanging' | 'off';
-export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra' | 'bodysuit' | 'tube';
+export type TopState = 'underHoodie' | 'tee' | 'camisole' | 'bra' | 'bodysuit' | 'tube' | 'bikini';
 export type SockState = 'up' | 'gathered' | 'gone';
 /**
  * Day 3 (ghost cosplay): the sheet IS the reveal mechanic, so its state is tracked like a garment.
@@ -22,7 +22,13 @@ export type SockState = 'up' | 'gathered' | 'gone';
  */
 export type SheetState = 'veil' | 'hemLift' | 'hood' | 'off' | 'cape';
 
-export type DayIndex = 1 | 2 | 3 | 4;
+/**
+ * Day 5 «5 бикини стрим»: the whole outfit is two triangular panels and a pair of clear-vinyl heels, so
+ * the day has no garment state to track at all — the bikini never moves. What still has to be tracked is
+ * what is NOT on her: no legwear of any kind (his standing rule for this costume), no bare feet either
+ * (she is in heels; at the finale one of them only hangs from her toes by the strap).
+ */
+export type DayIndex = 1 | 2 | 3 | 4 | 5;
 
 export interface Wardrobe {
   day: DayIndex;
@@ -43,6 +49,12 @@ export interface Wardrobe {
    * contradicts the plate even though the words themselves look harmless.
    */
   yogaKit?: boolean;
+  /**
+   * Day 5 only: the micro bikini is the entire outfit for all four frames. Nothing is worn over it and
+   * nothing is taken off it, so the guard's job is to veto legwear/sock vocabulary (which the plate
+   * contradicts) and any present-tense claim that a panel moved.
+   */
+  bikiniKit?: boolean;
 }
 
 const W = (
@@ -120,10 +132,22 @@ export const WARDROBES: Record<DayIndex, Record<SubGoalStageIndex, Wardrobe>> = 
     // short ladder reads the finale plate instead of crashing into `undefined`.
     4: W(4, 4, 'off', 'tube', false, 'up', { midriff: true, yogaKit: true }),
   },
+  // Day 5 «5 бикини стрим»: микро-бикини на завязках и прозрачные шпильки, и это весь костюм. Ни одна
+  // деталь не едет: legs bare (никаких чулок/гольфов/носков — его правило на этот костюм), feet HEELED
+  // (поэтому «босиком» так же запрещено, как на коврике). Эскалирует поза и близость к вебке, не гардероб.
+  5: {
+    0: W(5, 0, 'off', 'bikini', false, 'gone', { midriff: true, bikiniKit: true }),
+    1: W(5, 1, 'off', 'bikini', false, 'gone', { midriff: true, bikiniKit: true }),
+    2: W(5, 2, 'off', 'bikini', false, 'gone', { midriff: true, bikiniKit: true }),
+    3: W(5, 3, 'off', 'bikini', false, 'gone', { midriff: true, bikiniKit: true }),
+    // The day ends at stage 3 (47000); stage 4 aliases the finale frame for anything indexing 0..4.
+    4: W(5, 4, 'off', 'bikini', false, 'gone', { midriff: true, bikiniKit: true }),
+  },
 };
 
 export function getWardrobe(streamDay: number, stage: number): Wardrobe {
-  const day: DayIndex = streamDay === 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
+  const day: DayIndex =
+    streamDay === 5 ? 5 : streamDay === 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
   const clamped = Math.max(0, Math.min(4, Math.floor(stage))) as SubGoalStageIndex;
   return WARDROBES[day][clamped] ?? WARDROBES[day][0]!;
 }
@@ -141,6 +165,15 @@ const REMOVAL_TALK =
  */
 const GOLF_SLOUCH = /гольф[ыаоеу]?[^.!?]{0,26}(сполз|съехал|спустил|спущен|спуска|собран|гармошк|свалил|ослаб)/i;
 const GOLF_TIGHT = /гольф[ыаоеу]?[^.!?]{0,26}(натянут|натянул|туго|по колено|до колена)/i;
+
+/**
+ * The toe part of a shoe, in Russian literally the same word family as "sock" (носок туфли = the vamp
+ * of a pump). Day 5's plates show a clear heel hanging from her toes by one strap, so a line about the
+ * "носок шпильки" describes the art; only a hosiery claim would contradict it. Scope: this is consulted
+ * on the bikini day and nowhere else, so Day 1/Day 2 cannot use it as an excuse to talk about socks.
+ */
+const SHOE_TOE =
+  /носк\w*[^.!?]{0,40}(шпильк|туфл|босоножк|ремешк)|(шпильк|туфл|босоножк)[^.!?]{0,40}носк\w*/i;
 
 /** "Бретелек тут нет", "без единой бретельки" - saying the straps are ABSENT is the whole gag. */
 const NEGATED_STRAP_TALK =
@@ -217,7 +250,9 @@ export function contradictsWardrobe(
   // Day 4 comes back to ANKLE socks — ivory with a red band — and they stay on for the whole stream.
   if (/носок|носочк|носк[иеов]/i.test(line)) {
     if (w.day === 2 || w.day === 3) return `day ${w.day} outfit has knee-highs, not ankle socks`;
-    if (w.socks === 'gone' && !removal) return 'mentions socks she already removed';
+    if (w.socks === 'gone' && !removal && !(w.bikiniKit && SHOE_TOE.test(line))) {
+      return 'mentions socks she already removed';
+    }
     if (w.socks === 'up' && /носк[а-я]*[^.!?]{0,26}(сполз|съехал|спустил|спущен|собран|гармошк)/i.test(line)) {
       return 'claims her socks slipped while they are on';
     }
@@ -331,7 +366,65 @@ export function contradictsWardrobe(
     }
   }
 
+  // Day 5 bikini kit: the outfit is everything and nothing, so the guard is a whitelist of absences.
+  if (w.bikiniKit) {
+    // His standing rule for this costume: bare legs in clear neon heels. Any legwear word contradicts
+    // the plate, including the Day-3 fishnets and the Day-4 socks that the earlier days made familiar.
+    // Saying the garment is ABSENT is the day's premise ("на мне только бикини и шпильки"), so it is
+    // allowed; naming one as if it were on her is what the plate contradicts.
+    const bikiniAbsence =
+      /(нет|не на|без|ни одной|ни единой|только)[^.!?]{0,20}(чулк|гольф|носк|сетк|колгот|подвязк|легинс|шорт|худи|простын|боди|вязан)|(чулк|гольф|носк|сетк|колгот|подвязк|легинс|шорт|худи)[^.!?]{0,14}(нет|не было|не будет|не надета|не надела|сняты не будут)/i;
+    if (
+      /чулк|гольф|носк|сетк|колгот|подвязк|легинс|шорт|худи|простын|боди|вязан/i.test(line) &&
+      !bikiniAbsence.test(line) &&
+      !(SHOE_TOE.test(line) && /шпильк|туфл|босоножк/i.test(line))
+    ) {
+      return 'names a garment the micro bikini does not have — bare legs, clear heels, nothing else';
+    }
+    // She is heeled in all four frames; at the finale one sandal only hangs from her toes by its strap.
+    if (!bikiniNegation(w, line) && /босиком|босые|голые ступн|голые пальц|без обуви/i.test(line)) {
+      return 'claims bare feet while she is wearing the clear vinyl heels';
+    }
+    // Nothing leaves her body on this day either — the ladder is the pose, like Day 4. Two escapes:
+    // future talk about the next stream, and the negation the chat keeps repeating.
+    const bikiniFutureTalk =
+      /дальше|следующ|будет|будем|будут|станет|станут|потом|скоро|обеща|до финал|ждём|ждите|не надо|не нужно|не просим|если добьё|когда добьёте|завтра|в другой стрим|в другой раз/i.test(
+        line,
+      );
+    // "Ни одной детали не сняла", "узелки не развязались", "всё на месте" — these are statements that
+    // nothing moved, which is exactly the truth of this day, so they must not be filtered as claims.
+    const bikiniNegationHere =
+      /(ни одной|ни единой|ни одна|ни одного|ноль снят|без единой|ничего не|не снял|не снят|не улетел|не съехал|не сполз|не развяз|никак не|не раздев|не просим|так и сидит|так и стоит|остаёт|остается|держится|не сдвину)/i.test(
+        line,
+      );
+    /**
+     * No `\b` and a Cyrillic lookbehind, both on purpose: JS word boundaries are ASCII, so `снял\b`
+     * never matches inside a Cyrillic word — that is how the Day-4 list quietly relies on its bare-stem
+     * alternatives, and why a bare stem alone would also flag «стеснялась». The lookbehind keeps the
+     * stem at a word start, and every branch stays a claim that a panel left her body, which no Day-5
+     * plate shows.
+     */
+    const bikiniRemovalClaim =
+      /(?<![а-яё])(снял|снята|снято|сняты|стянул|стянут|стянула|раздева|раздел[аи]|обнажи|оголи|сорва|сбросил|улетел|улетает|расстегн|развяз|распустил|унесла|полетел)/i.test(
+        line,
+      );
+    if (!bikiniFutureTalk && !bikiniNegationHere && bikiniRemovalClaim) {
+      return 'claims a bikini panel moved or came off — Day 5 escalates the pose, not the wardrobe';
+    }
+    // The straps are the whole costume, so "my straps slipped" is a plate contradiction, not flavor.
+    if (/бретел|лямк/i.test(line) && !/(без|нет|ни одной|ни единой)[^.!?]{0,14}(бретел|лямк)/i.test(line)) {
+      return 'claims strap trouble on a bikini whose shoulder ties are tied tight in the plate';
+    }
+  }
+
   return null;
+}
+
+/** "Без чехла", "не сняла ни одной вещи" — a negation is a statement about the outfit, not a change. */
+function bikiniNegation(_w: Wardrobe, line: string): boolean {
+  return /(без|не|ни одной|ни единой|ничего)[^.!?]{0,16}(обуви|туфель|шпилек|босоножк)|(обувь|шпажки?|туфли|босоножки)[^.!?]{0,12}(на месте|надеты|на ней|не сним)/i.test(
+    line,
+  );
 }
 
 /**
@@ -437,6 +530,30 @@ export const WARDROBE_SAFE_LINES: Record<DayIndex, Record<SubGoalStageIndex, rea
     4: [
       'Финал: я в кресле, голени лежат на подлокотниках, ладони у меня на животе. Никуда не встаю — свою часть договора вы выполнили~ ♥',
       'Ноги на подлокотниках, носочки на месте, топ держится на честном натяжении. Смотрите сколько хотите, это ваш стрим~ ★ ♥',
+    ],
+  },
+  // Day 5 bikini: four frames, one costume, and she sets the terms. The safe pool talks about the pose,
+  // the tension of the neon and the price — never about taking anything off, because there is nothing left.
+  5: {
+    0: [
+      'Микро-бикини — и это весь костюм, чат. Снимать нечего, поэтому дальше двигается только поза и ваша полоска сабов~',
+      'Нога вытянута в вебку, стопа крупнее головы, ладони на своих бёдрах. Я сидела так специально, не надо делать вид, что случайно.',
+    ],
+    1: [
+      'Обе ноги на подлокотнике, ступни у самой линзы, руки у меня на лодыжке. Тридцать три тысячи, чат, и я их отработала~',
+      'Шпильки прозрачные, каблуки неоновые, нога держится на ремешке. Ни одна деталь никуда не денется до сорока тысяч.',
+    ],
+    2: [
+      'Я на коленях в собственном кресле, спиной к камере, смотрю через плечо. Это поза, а не приглашение — приглашение будет дороже.',
+      'Спина длинная, ткань натянута, румянец есть, стыда нет. Сорок тысяч сабов, и я только разогрелась~ ★',
+    ],
+    3: [
+      'Финал: разворот квадратно к вебке, и ближе всего к линзе то, что чат просил с первого дня. Вы дошли, я дошла, все молодцы~ ★ ♥',
+      'Я смотрю назад через плечо и улыбаюсь, потому что это вы меня довели до camera-ready. Завтра — второй заход, если набьёте.',
+    ],
+    4: [
+      'Финал: разворот квадратно к вебке, и ближе всего к линзе то, что чат просил с первого дня. Вы дошли, я дошла, все молодцы~ ★ ♥',
+      'Я смотрю назад через плечо и улыбаюсь, потому что это вы меня довели до camera-ready. Завтра — второй заход, если набьёте.',
     ],
   },
 };

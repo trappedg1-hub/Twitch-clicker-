@@ -856,9 +856,212 @@ export const DAY4_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 /** The «Готово?» flash frame: the finale pose, crossfaded in for a few hundred ms. */
 export const DAY4_FLASH_PLATE = '/art/heroine_t4_flash.webp';
 
+/**
+ * Day 5 = BIKINI STREAM, «5 бикини стрим». There is nothing left to take off — she walked into the
+ * stream already in a micro bikini — so the ladder moves the CAMERA and the POSE instead: the fourth
+ * day ended with her holding a pose, the fifth ends with her selling one. Every number below is
+ * +7000 over the previous step, the same step size Day 3 opened with, and every one of the four
+ * stages is one of his approved frames, cut for the stream camera (close, front-on, feet crowding
+ * the near frame, the chair base sinking behind `fg_desk_t1`):
+ *   0     33000-шаг первый: one leg stretched at the webcam, her foot bigger than her head
+ *   33000 both legs thrown over the armrest, both soles low in frame, her hands on her own ankle
+ *   40000 «кошечка»: on all fours on the seat, turning her head back over the shoulder
+ *   47000 finale: the same cat, but squared to the lens, hips the widest thing in the stream
+ *
+ * Her voice is the escalation, not the outfit: she stopped being shy on Day 2 and stopped pretending
+ * on Day 4. On Day 5 she says the price out loud, asks for more herself, and lets the chat push.
+ */
+export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  {
+    stage: 0,
+    subsRequired: 0,
+    shortGoalTitle: 'Старт бикини-стрима',
+    outfitName: 'Неоново-розовое микро-бикини на завязках + прозрачные шпильки',
+    removedItemLabel: 'День 5 начат',
+    storyDesc:
+      'Мия вышла в эфир в микро-бикини и даже не попыталась сделать вид, что это «купальник для бассейна». Камера придвинута вплотную, поэтому в кадре сначала оказывается не она, а её стопа: одна нога вытянута вдоль сиденья прямо в объектив, вторая согнута, ладони лежат на её же бёдрах, пальцы не нервничают. Стянутые узелки на завязках, натянутая неоновая ткань, прозрачные шпильки с розовыми каблуками. Снимать нечего, чат, — дальше только поза, и цена за неё — ваша полоска сабов.',
+    incomeMultiplier: 1.0,
+    viewersBonus: 0,
+    boldnessBonus: 0,
+    unlockEmotion: 'tease',
+    unlockLine: '',
+    plateUrl: '/art/heroine_t5_s0.webp',
+    shyApproachLines: [
+      'Тридцать три тысячи до того, как я закину обе ноги на подлокотник. Не «если», а «когда», чат: я уже считаю.',
+      'Хотите, чтобы я стеснялась? Опоздали, четвёртый день прошёл. Теперь я хочу, чтобы вы сабили~',
+      'Да, я вижу, куда вы смотрите. Нет, я не уберу ногу — она стоила дороже, чем ваше «привет».',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ ДЕНЬ 5: «5 БИКИНИ СТРИМ» НАЧАЛСЯ. Снимать нечего — двигаем позу :Pog: :SubHype:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'feet_connoisseur',
+        color: '#f472b6',
+        badge: 'SUB',
+        text: 'СТОПА ПЕРВЫМ ПЛАНОМ, КРЕСЛО ВЗЯЛО ЕЁ ВЕС, ОНА УЛЫБАЕТСЯ. четвёртый день я этого ждал :Kreygasm: :ClipIt:',
+      },
+      {
+        author: 'kaktus_mod',
+        color: '#4ade80',
+        badge: 'MOD',
+        text: 'правило дня: мы не просим «снять». мы сабим на 33000 и смотрим, как она сама решит сесть глубже :EZ: :monkaS:',
+      },
+    ],
+  },
+  {
+    stage: 1,
+    subsRequired: 33000,
+    shortGoalTitle: 'Ножки в кадр',
+    outfitName: 'То же микро-бикини, обе ноги перекинуты через подлокотник, ступни внизу кадра',
+    removedItemLabel: '− Обе ступни в кадре!',
+    storyDesc:
+      '33000 сабов: она разворачивается в кресле глубже и перекидывает обе ноги через подлокотник, так что ступни ложатся в самый низ кадра, ближе к линзе, чем её лицо. Корпус откинут на спинку, ладони у неё же на лодыжке — она сама держит себе позу, как на фото, и смотрит в камеру с открытым смешком. Неоновая ткань натянута от плеча до бедра без единой складки, узелки на завязках впились в кожу. «Вот вам ножки, чат. Дальше дороже».',
+    plateUrl: '/art/heroine_t5_s1.webp',
+    incomeMultiplier: 1.8,
+    viewersBonus: 420,
+    boldnessBonus: 7,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Тридцать три тысячи! Ноги на подлокотнике, ступни прямо у вашей веб-линзы, руки на своей же лодыжке. Я это сделала специально, чат, и я хочу ещё~ ★',
+    shyApproachLines: [
+      'Сорок тысяч — и я сажусь на сиденье по-кошачьи. Не я это придумала, вы это посчитали, чат.',
+      'Я держу эту позу ровно столько, сколько вы держите темп сабов. Взаимная дисциплина~',
+      'Ноги затекают, а чат не затихает. Ладно, ещё двадцать секунд и одна улыбка в камеру.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 33000/33000! НОЖКИ В КАДР, ОВЕ ГОЛЕНИ НА ПОДЛОКОТНИКЕ :Pog: :BOOBA: :AWOOGA:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'Pasha_Donater',
+        color: '#ff6b9d',
+        badge: 'VIP',
+        text: 'она сама держит свою лодыжку и сама называет цену. это уже не стрим, это аукцион :Kreygasm: :SubHype:',
+      },
+      {
+        author: 'rich_uncle_msk',
+        color: '#ffd54f',
+        badge: 'DONATE',
+        text: 'ДОНАТ 3000 ₽: не убирай ноги, Мия. 40000 уже в пути, легион видит цифру и не спорит :sub2: :Pog:',
+        isSystemHighlight: true,
+      },
+    ],
+  },
+  {
+    stage: 2,
+    subsRequired: 40000,
+    shortGoalTitle: 'Кошечка на кресле',
+    outfitName: 'То же микро-бикини, на четвереньках на сиденье, голова через плечо',
+    removedItemLabel: '− Поза «кошечка», спиной в вебку!',
+    storyDesc:
+      '40000 сабов: она становится на сиденье на колени и опирается на оба локтя, спина длинная и ровная, кресло развёрнуто спинкой к камере. Разворот ещё не полный — три четверти, — поэтому чат видит линию от лопаток до бедра и её лицо через плечо: румянец, полуприкрытые глаза, открытый смешок в объектив. Одна шпилька съехала вперёд и висит на носке на прозрачном ремешке, вторая на ноге. «Красивее кадра у вас не было, и он стоил сорока тысяч».',
+    plateUrl: '/art/heroine_t5_s2.webp',
+    incomeMultiplier: 2.6,
+    viewersBonus: 840,
+    boldnessBonus: 10,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Сорок тысяч! Я на коленях в своём кресле, спиной к вам, смотрю через плечо и отлично понимаю, что вы сейчас напишете. Пишите, я не убираю~ ★ ♥',
+    shyApproachLines: [
+      'Полный разворот будет на 47000. Я сказала «будет», чат, а не «может быть» — считайте.',
+      'Мне не стыдно, мне интересно, сколько вы ещё выдержите. Это разные чувства, не путайте.',
+      'Да, я вижу, что это лучший клип недели. Нет, я его не повторю бесплатно.',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 40000/40000! КОШЕЧКА НА КРЕСЛЕ, СПИНА В КАДРЕ, ЛИЦО ЧЕРЕЗ ПЛЕЧО :AWOOGA: :Pog: :Kreygasm:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'neko_chan_uwu',
+        color: '#ff75c3',
+        badge: 'SUB',
+        text: 'линия спины до бедра и лицо через плечо, шпилька висит на ремешке. я ставлю будильник на 47000 :ClipIt: :Nosebleed:',
+      },
+      {
+        author: 'cosplay_anon',
+        color: '#00e5ff',
+        badge: 'VIP',
+        text: 'она уже сама торгуется позой. из «ой, не смотрите» за пять дней — и ни одной снятой вещи, уважаю :LUL: :SubHype:',
+      },
+    ],
+  },
+  {
+    stage: 3,
+    subsRequired: 47000,
+    shortGoalTitle: 'Финал: всё в кадр',
+    outfitName: 'То же микро-бикини, разворот квадратно к вебке, шпилька висит на ремешке',
+    removedItemLabel: '− Финал: она показала ровно то, о чём просил чат!',
+    storyDesc:
+      '47000 сабов: финал дня. Тот же разворот на коленях, но теперь квадратно — обе её стороны сложены в одну вертикальную колонну по центру кадра, ближе всего к линзе то, что чат просил с самого начала, а она смотрит назад через плечо с раскрепощённым открытым смешком, и ни один мускул на её лице не выдаёт смущения. Неон натянут между лопатками и по бедру, узелки впились, одна прозрачная шпилька висит на носке. «Вы дошли до сорока семи тысяч. Я дошла до camera-ready. Мы оба молодцы, и я хочу второй заход~ ★ ♥»',
+    plateUrl: '/art/heroine_t5_s3.webp',
+    incomeMultiplier: 3.6,
+    viewersBonus: 1400,
+    boldnessBonus: 13,
+    unlockEmotion: 'bold',
+    unlockLine:
+      'Сорок семь тысяч, финал: я сижу на своём кресле задом в вебку, смотрю через плечо и улыбаюсь, потому что это ВЫ довели меня до этой позы. Спасибо, легион~ ★ ♥',
+    shyApproachLines: [
+      'Последняя поза. Я в ней и останусь, пока вы не начнёте сабить на завтрашнюю.',
+      'Завтра я надену... ничего. Это моя лучшая мысль, чат, и она ваша заслуга~',
+    ],
+    chatCascade: [
+      {
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: '★ SUB GOAL 47000/47000! ФИНАЛ ДНЯ 5: РАЗВОРОТ КВАДРАТНО, ЛИЦО ЧЕРЕЗ ПЛЕЧО, НИ ОДНОЙ СНЯТОЙ ВЕЩИ :Pog: :SubHype: :AWOOGA:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'simp_police_ru',
+        color: '#4ade80',
+        badge: 'MOD',
+        text: 'кадр, за который не стыдно ни ей, ни нам. модерация молчит, чат рыдает, клип собран :ClipIt: :Kreygasm:',
+      },
+      {
+        author: 'rich_uncle_msk',
+        color: '#ffd54f',
+        badge: 'DONATE',
+        text: 'БИКИНИ-ДЕНЬ ЗАКРЫТ, 47000 сабов. Мия, ты свободна и ты уже договариваешься о завтрашнем эфире :sub2: :Pog:',
+        isSystemHighlight: true,
+      },
+      {
+        author: 'yoga_bro_kim',
+        color: '#4ecdc4',
+        badge: 'SUB',
+        text: 'после йоги она держит любую позу вечно. это был не финал, это контрольный замер гибкости :LUL: :EZ:',
+      },
+    ],
+  },
+] as const;
+
+/** Day 5 has no flash plate by design — see the note on `DAY5_SUB_GOAL_STAGES` and `HeroineRig`. */
+export const DAY5_FLASH_PLATE: string | null = null;
+
 export const DAY4_STEP_LABELS = ['18000 Бёдра', '22000 Шпагат', '26000 Кресло'];
 export const DAY4_SHORT_STEP_LABELS = ['18000', '22000', '26000'];
 export const DAY4_FINALE_SUBS = 26000;
+
+/**
+ * Day 5 ladder: +7000 per step from the close of Day 4, the same stride Day 3 opened with. The labels
+ * are what the OBS sub-goal panel and the HUD strip show, so they name the POSE, never a garment.
+ */
+export const DAY5_STEP_LABELS = ['33000 Ножки в кадр', '40000 Кошечка', '47000 Всё в кадр'];
+export const DAY5_SHORT_STEP_LABELS = ['33000', '40000', '47000'];
+export const DAY5_FINALE_SUBS = 47000;
 
 export const DAY3_STEP_LABELS = ['7000 Ткань', '10000 Ножки на столе', '13000 Бу!', '15000 Корточки'];
 export const DAY3_SHORT_STEP_LABELS = ['7000', '10000', '13000', '15000'];
@@ -910,6 +1113,11 @@ export async function probeDay3Art(): Promise<boolean> {
  * Day 4 (yoga) runs on its own four-frame ladder `heroine_t4_s0..s3` + the «Готово?» flash plate.
  * Same discipline as Day 3: until every file really exists in `public/art`, the day stays locked, so
  * nobody can click into a ladder whose art is still an AI draft. `window.__day4Unlocked` overrides.
+ *
+ * Day 5 (bikini stream) runs on `heroine_t5_s0..s3` and — unlike Days 3 and 4 — WITHOUT a flash plate:
+ * its reveal is the ladder itself, so there is no single frame to crossfade to, and shipping a fake
+ * file to satisfy a gate would put unapproved art on screen. `DAY5_FLASH_PLATE` is `null` and
+ * `probeDay5Art` reads only the four stage files. `window.__day5Unlocked` overrides the gate.
  */
 let day4ArtProbe = false;
 
@@ -921,6 +1129,19 @@ export function isDay4Unlocked(): boolean {
     /* no window during tests */
   }
   return day4ArtProbe;
+}
+
+/** The gate the Day-4 finale card and `startDay5` both read. */
+let day5ArtProbe = false;
+
+export function isDay5Unlocked(): boolean {
+  try {
+    const forced = (window as unknown as { __day5Unlocked?: boolean }).__day5Unlocked;
+    if (forced === true || forced === false) return forced;
+  } catch {
+    /* no window during tests */
+  }
+  return day5ArtProbe;
 }
 
 /** Probe the yoga plate ladder once; flips the Day 4 button as soon as the art is in place. */
@@ -942,9 +1163,36 @@ export async function probeDay4Art(): Promise<boolean> {
   return day4ArtProbe;
 }
 
+/**
+ * Probe the bikini ladder. Day 4's probe also waits for its flash plate; Day 5 has none, so the list
+ * is built by filtering out the `null` — which is exactly how a day without a reveal frame opts out
+ * instead of shipping a fake file to satisfy a gate.
+ */
+export async function probeDay5Art(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  try {
+    const files = [
+      ...DAY5_SUB_GOAL_STAGES.map((def) => def.plateUrl),
+      ...(DAY5_FLASH_PLATE ? [DAY5_FLASH_PLATE] : []),
+    ];
+    const checks = await Promise.all(
+      files.map((url) =>
+        fetch(url, { method: 'HEAD' })
+          .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('image/'))
+          .catch(() => false),
+      ),
+    );
+    day5ArtProbe = checks.length > 0 && checks.every(Boolean);
+  } catch {
+    day5ArtProbe = false;
+  }
+  return day5ArtProbe;
+}
+
 /** Day 2 runs on its own ladder: Day 1 goals are already paid off, so the bar is 10x higher. */
 /** Step labels follow the live day, so the OBS ladder never shows Day 1 wording on Day 3. */
 export function getStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 5) return DAY5_STEP_LABELS;
   if (streamDay === 4) return DAY4_STEP_LABELS;
   if (streamDay === 3) return DAY3_STEP_LABELS;
   if (streamDay === 2) return DAY2_STEP_LABELS;
@@ -952,6 +1200,7 @@ export function getStepLabelsForDay(streamDay: number): readonly string[] {
 }
 
 export function getShortStepLabelsForDay(streamDay: number): readonly string[] {
+  if (streamDay === 5) return DAY5_SHORT_STEP_LABELS;
   if (streamDay === 4) return DAY4_SHORT_STEP_LABELS;
   if (streamDay === 3) return DAY3_SHORT_STEP_LABELS;
   if (streamDay === 2) return DAY2_SHORT_STEP_LABELS;
@@ -959,6 +1208,7 @@ export function getShortStepLabelsForDay(streamDay: number): readonly string[] {
 }
 
 export function getSubGoalStagesForDay(streamDay: number): readonly SubGoalStageDef[] {
+  if (streamDay === 5) return DAY5_SUB_GOAL_STAGES;
   if (streamDay === 4) return DAY4_SUB_GOAL_STAGES;
   if (streamDay === 3) return DAY3_SUB_GOAL_STAGES;
   if (streamDay === 2) return DAY2_SUB_GOAL_STAGES;
@@ -1019,7 +1269,12 @@ export function getGiftSubUnitCost(currentSubs: number): number {
   // cost more than the last one bought at the bottom of the day before it.
   if (currentSubs < 22000) return 660;
   if (currentSubs < 26000) return 780;
-  return 910;
+  // Day 5 (bikini stream) runs 33000 / 40000 / 47000 — a +7000 stride, so the price keeps climbing
+  // with it and a sub bought at the top of Day 4 still stays cheaper than one bought at the bottom of 5.
+  if (currentSubs < 33000) return 910;
+  if (currentSubs < 40000) return 1060;
+  if (currentSubs < 47000) return 1220;
+  return 1400;
 }
 
 export function getGiftSubPackCost(currentSubs: number, count: number): number {

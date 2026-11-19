@@ -34,6 +34,7 @@ export interface AdminSnapshot {
   finaleSubs: number;
   day3Unlocked: boolean;
   day4Unlocked: boolean;
+  day5Unlocked: boolean;
   saveSuppressed: boolean;
 }
 
@@ -154,13 +155,17 @@ export class AdminPanel {
       const day = Number(btn.dataset.day);
       btn.classList.toggle('is-on', day === s.day);
       btn.disabled =
-        (day === 3 && !s.day3Unlocked) || (day === 4 && !s.day4Unlocked);
+        (day === 3 && !s.day3Unlocked) ||
+        (day === 4 && !s.day4Unlocked) ||
+        (day === 5 && !s.day5Unlocked);
       btn.title =
         day === 3 && !s.day3Unlocked
           ? 'Нет косплей-артов в сборке'
           : day === 4 && !s.day4Unlocked
             ? 'Нет йога-артов в сборке'
-            : `Прыгнуть в день ${day}, стадия 0`;
+            : day === 5 && !s.day5Unlocked
+              ? 'Нет бикини-артов в сборке'
+              : `Прыгнуть в день ${day}, стадия 0`;
     });
 
     // Stage chips are the day's own ladder, so their labels can never drift from the plates. They are
@@ -279,6 +284,7 @@ const TEMPLATE = `
         <button class="admin-btn" type="button" data-day="2">2</button>
         <button class="admin-btn" type="button" data-day="3">3</button>
         <button class="admin-btn" type="button" data-day="4">4</button>
+        <button class="admin-btn" type="button" data-day="5">5</button>
       </div>
     </div>
 

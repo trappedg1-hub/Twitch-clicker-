@@ -1,5 +1,12 @@
 import type { ChatMessage } from '../chat/chatEngine.ts';
-import { DAY1_FAREWELL_LINES, DAY2_FAREWELL_LINES, DAY3_FAREWELL_LINES, DAY4_FAREWELL_LINES, getStreamTitle } from '../domain/dialogue.ts';
+import {
+  DAY1_FAREWELL_LINES,
+  DAY2_FAREWELL_LINES,
+  DAY3_FAREWELL_LINES,
+  DAY4_FAREWELL_LINES,
+  DAY5_FAREWELL_LINES,
+  getStreamTitle,
+} from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
 import {
   dayFinaleSubs,
@@ -7,6 +14,7 @@ import {
   getStepLabelsForDay,
   isDay3Unlocked,
   isDay4Unlocked,
+  isDay5Unlocked,
   SUB_GOAL_STAGES,
   getGiftSubPackCost,
   getSubGoalStagesForDay,
@@ -113,7 +121,7 @@ export class UiController {
   // Day 1 finale farewell state machine: Miya says good-bye before Day 2 unlocks.
   private farewellPhase: 'idle' | 'playing' | 'done' = 'idle';
   /** Which day's farewell is playing (1 = Day 1 -> Day 2, 2 = Day 2 -> Day 3). */
-  private farewellDay: 1 | 2 | 3 | 4 = 1;
+  private farewellDay: 1 | 2 | 3 | 4 | 5 = 1;
   private farewellTimers: number[] = [];
 
   private activeTab: BottomTabId = 'stream';
@@ -262,6 +270,7 @@ export class UiController {
 
   /** The farewell belongs to whichever day just ended. */
   private farewellLines(): readonly string[] {
+    if (this.farewellDay === 5) return DAY5_FAREWELL_LINES;
     if (this.farewellDay === 4) return DAY4_FAREWELL_LINES;
     if (this.farewellDay === 3) return DAY3_FAREWELL_LINES;
     return this.farewellDay === 2 ? DAY2_FAREWELL_LINES : DAY1_FAREWELL_LINES;
@@ -319,14 +328,16 @@ export class UiController {
     this.farewellPhase = 'done';
     this.skipFarewellBtnEl.classList.add('hidden');
     this.finaleCardEl.classList.add('finale-ready');
-    // The button leads to the NEXT day, so it lights up on that day's art gate. Day 4 has no Day 5
-    // ladder yet, so its card never becomes clickable — the copy says so instead.
+    // The button leads to the NEXT day, so it lights up on that day's art gate. Day 5 is the last day
+    // built so far, so its own card has nothing to hand the player to — the copy says so instead.
     this.startDay2BtnEl.disabled =
       this.farewellDay === 2
         ? !isDay3Unlocked()
         : this.farewellDay === 3
           ? !isDay4Unlocked()
-          : this.farewellDay === 4;
+          : this.farewellDay === 4
+            ? !isDay5Unlocked()
+            : true;
   }
 
   private resetFarewell(): void {
@@ -345,24 +356,36 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.dayBadgeEl.textContent =
-      state.streamDay === 4
-        ? 'День 4 ★ ЙОГА'
+      state.streamDay === 5
+        ? 'День 5 ★ БИКИНИ'
+        : state.streamDay === 4
+          ? 'День 4 ★ ЙОГА'
         : state.streamDay === 3
           ? 'День 3 ★ ПРИЗРАК'
           : state.streamDay === 2
             ? 'День 2 ★'
             : 'День 1';
-    const finaleDay: 1 | 2 | 3 | 4 =
-      state.streamDay === 4 ? 4 : state.streamDay === 3 ? 3 : state.streamDay === 2 ? 2 : 1;
+    const finaleDay: 1 | 2 | 3 | 4 | 5 =
+      state.streamDay === 5
+        ? 5
+        : state.streamDay === 4
+          ? 4
+          : state.streamDay === 3
+            ? 3
+            : state.streamDay === 2
+              ? 2
+              : 1;
     const finaleTarget = dayFinaleSubs(finaleDay);
-    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 4;
+    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 5;
     if (isFinale && this.farewellDay !== finaleDay) {
       this.farewellDay = finaleDay;
       this.farewellPhase = 'idle';
     }
     if (isFinale) {
       this.finaleKickerEl.textContent =
-        finaleDay === 4
+        finaleDay === 5
+          ? '★ ФИНАЛ БИКИНИ-ДНЯ: 5 БИКИНИ СТРИМ ★'
+          : finaleDay === 4
           ? '★ ФИНАЛ ЙОГА-ДНЯ: РАСТЯЖКА ★'
           : finaleDay === 3
           ? '★ ФИНАЛ КОСПЛЕЙ-ДНЯ: ПРИЗРАК ★'
@@ -371,28 +394,39 @@ export class UiController {
             : '★ ФИНАЛ ПЕРВОГО ДНЯ ★';
       this.finaleTitleEl.textContent = `${finaleTarget} сабов пробито!`;
       this.finaleDescEl.innerHTML =
-        finaleDay === 4
+        finaleDay === 5
+          ? `Бикини-эфир закрыт: <strong>${finaleTarget} сабов</strong>, четыре кадра и ни одна деталь не сдвинулась. Мия сама выбирала ракурс — и уже думает, что вы набьёте в следующий раз.`
+          : finaleDay === 4
           ? `Йога-эфир закрыт: <strong>${finaleTarget} сабов</strong>, четыре позы и ни одна снятая вещь. Мия осталась сидеть в кресле и думает, какой формат выбрать дальше.`
           : finaleDay === 3
           ? `Призрачный эфир закрыт: <strong>${finaleTarget} сабов</strong>, простыня стала плащом. Мия уже думает, какой формат выбрать на следующий стрим.`
           : finaleDay === 2
           ? 'Второй эфир окончен: Мия прощается с чатом и уносит костюм. <strong>Завтра — День 3: косплей-стрим</strong>, и она обещала сюрприз.'
           : 'Первый эфир окончен: Мия прощается с чатом и выключает камеру. <strong>Завтра — День 2</strong>: новый образ и новые Sub Goal.';
+      // The CTA names the day it opens, and its gate is that NEXT day's art probe — so a card never
+      // promises a ladder whose plates are not in the build. Day 5 is the last day with art today, so
+      // its own card has nothing to hand the player to and stays a read-only goodbye.
       this.startDay2BtnEl.textContent =
-        finaleDay === 4
-          ? 'Йога-день закрыт — следующий формат выберет чат'
-          : finaleDay === 3
-          ? isDay4Unlocked()
-            ? 'Начать День 4 (растяжка с Мией) →'
-            : 'Коврик ещё не свёрнут — открытие завтра'
-          : finaleDay === 2
-          ? isDay3Unlocked()
-            ? 'Начать День 3 (призрачный косплей) →'
-            : 'Простыня ещё не подшита — открытие завтра'
-          : 'Начать День 2 →';
+        finaleDay === 5
+          ? 'Бикини-день закрыт — следующий формат выберет чат'
+          : finaleDay === 4
+            ? isDay5Unlocked()
+              ? 'Начать День 5 (5 бикини стрим) →'
+              : 'Микро-бикини ещё не в сборке — открытие завтра'
+            : finaleDay === 3
+              ? isDay4Unlocked()
+                ? 'Начать День 4 (растяжка с Мией) →'
+                : 'Коврик ещё не свёрнут — открытие завтра'
+              : finaleDay === 2
+                ? isDay3Unlocked()
+                  ? 'Начать День 3 (призрачный косплей) →'
+                  : 'Простыня ещё не подшита — открытие завтра'
+                : 'Начать День 2 →';
       this.finaleOpenBtnEl.classList.remove('hidden');
       this.finaleOpenBtnEl.textContent =
-        finaleDay === 4
+        finaleDay === 5
+          ? '★ Бикини-день закрыт — открыть финал'
+          : finaleDay === 4
           ? '★ Йога-день закрыт — открыть финал'
           : finaleDay === 3
           ? '★ Косплей-день закрыт — открыть финал'
@@ -409,10 +443,12 @@ export class UiController {
       // The Day-3 button re-checks the art probe on every render, so it lights up without a reload.
       if (this.farewellPhase === 'done') {
         this.startDay2BtnEl.disabled =
-          finaleDay === 4
+          finaleDay === 5
             ? true
-            : finaleDay === 3
-              ? !isDay4Unlocked()
+            : finaleDay === 4
+              ? !isDay5Unlocked()
+              : finaleDay === 3
+                ? !isDay4Unlocked()
               : finaleDay === 2
                 ? !isDay3Unlocked()
                 : false;
@@ -446,7 +482,9 @@ export class UiController {
     } else {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
-        state.streamDay === 4
+        state.streamDay === 5
+          ? `День 5: камера взяла всё, что обещала — ${finaleTarget} сабов! ★`
+          : state.streamDay === 4
           ? `День 4: кресло выдержало всё — ${finaleTarget} сабов! ★`
           : state.streamDay === 3
           ? `День 3: призрак ушёл сквозь стену — ${finaleTarget} сабов! ★`

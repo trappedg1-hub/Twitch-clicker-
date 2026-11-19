@@ -20,6 +20,8 @@ import {
   DAY4_DONE_LINES,
   DAY4_FAREWELL_LINES,
   DAY4_OPENING_LINE,
+  DAY5_FAREWELL_LINES,
+  DAY5_OPENING_LINE,
   GHOST_BOO_LINES,
   pickStageTapLine,
   pickSituationLine,
@@ -42,6 +44,7 @@ import {
   startDay2,
   startDay3,
   startDay4,
+  startDay5,
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
@@ -50,9 +53,11 @@ import {
   getSubGoalStagesForDay,
   isDay3Unlocked,
   isDay4Unlocked,
+  isDay5Unlocked,
   pickShySubGoalApproachLine,
   probeDay3Art,
   probeDay4Art,
+  probeDay5Art,
 } from '../domain/subGoals.ts';
 import { debugGotoDayStage, debugMaxOutShop, debugSetBars, finaleSubsForDay } from '../domain/debug.ts';
 import { getMicTier } from '../domain/upgrades.ts';
@@ -96,6 +101,9 @@ declare global {
       startDay2: () => boolean;
       startDay3: () => boolean;
       startDay4: () => boolean;
+      startDay5: () => boolean;
+      isDay5Unlocked: () => boolean;
+      bikiniInfo: () => { unlocked: boolean; plates: boolean; flashLive: boolean; day: number };
       isDay3Unlocked: () => boolean;
       isDay4Unlocked: () => boolean;
       ghostBoo: (ms?: number) => boolean;
@@ -150,8 +158,8 @@ export async function bootstrapApp(): Promise<void> {
    * and the rig falls back to the Day 2 art inside `setWardrobeDay` when that day's plates are not in
    * the build yet — so this map is about INTENT, never about availability.
    */
-  const wardrobeDayOf = (streamDay: number): 1 | 2 | 3 | 4 =>
-    streamDay >= 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
+  const wardrobeDayOf = (streamDay: number): 1 | 2 | 3 | 4 | 5 =>
+    streamDay >= 5 ? 5 : streamDay === 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
 
   const syncAll = () => {
     const stats = computeStats(state);
@@ -176,11 +184,13 @@ export async function bootstrapApp(): Promise<void> {
         isSystemHighlight: true,
       });
       ui.showSpeech(
-        state.streamDay === 4
-          ? 'Двадцать шесть тысяч, и я всё ещё сижу в кресле. Карточку держу — переходишь, когда решишь, что тебе нужнее: сон или следующий день.'
-          : state.streamDay === 3
-            ? 'Цель закрыта, чат, а я ещё в кадре. Кликай на здоровье — переход только когда скажешь.'
-            : 'Днём я своё заработала. Не выгоняю: кликай сколько надо, а карточку я держу в углу.',
+        state.streamDay === 5
+          ? 'Сорок семь тысяч, и я всё ещё в кадре, развернутая ровно так, как вы просили. Карточка в углу — переходи, когда решишь~'
+          : state.streamDay === 4
+            ? 'Двадцать шесть тысяч, и я всё ещё сижу в кресле. Карточку держу — переходишь, когда решишь, что тебе нужнее: сон или следующий день.'
+            : state.streamDay === 3
+              ? 'Цель закрыта, чат, а я ещё в кадре. Кликай на здоровье — переход только когда скажешь.'
+              : 'Днём я своё заработала. Не выгоняю: кликай сколько надо, а карточку я держу в углу.',
       );
     }
     if (!isQa && !adminSaveSuppressed) {
@@ -412,8 +422,10 @@ export async function bootstrapApp(): Promise<void> {
     ui.pushChatMessage(createFarewellChatMessage(index, state.streamDay));
     // Which day is closing decides the beat count, the emotion curve and the last callout.
     const beats =
-      state.streamDay === 4
-        ? DAY4_FAREWELL_LINES.length
+      state.streamDay === 5
+        ? DAY5_FAREWELL_LINES.length
+        : state.streamDay === 4
+          ? DAY4_FAREWELL_LINES.length
         : state.streamDay === 3
           ? DAY3_FAREWELL_LINES.length
           : state.streamDay === 2
@@ -439,6 +451,10 @@ export async function bootstrapApp(): Promise<void> {
 
   ui.onStartDay2 = () => {
     lastPlayerInteractionMs = performance.now();
+    if (state.streamDay === 4) {
+      startDay5Flow();
+      return;
+    }
     if (state.streamDay === 3) {
       startDay4Flow();
       return;
@@ -458,6 +474,9 @@ export async function bootstrapApp(): Promise<void> {
     // Day 2 arc: she is mortified about yesterday, the chat instantly starts provoking her.
     DAY2_SHAME_LINES.forEach((line, i) => {
       window.setTimeout(() => {
+        // The arc is timed across ~20s, so a day change (the admin jump does exactly that) must cut it
+        // off: Day 2's "I'm still blushing about yesterday" cannot be spoken over the bikini day.
+        if (state.streamDay !== 2) return;
         ui.showSpeech(line);
         ui.pushChatMessage(createDay2ProvocationChatMessage(i));
         stage.rig.triggerEmotion(i % 2 === 0 ? 'shy' : 'fluster', 2400);
@@ -485,7 +504,7 @@ export async function bootstrapApp(): Promise<void> {
   // Day 3 unlocks itself the moment the cosplay plates land in /art - no flag flipping needed.
   // Day 4 rides the same trick with its own four yoga plates, so the ship order of art and code is
   // irrelevant: the buttons light up as soon as the files exist.
-  void Promise.all([probeDay3Art(), probeDay4Art()]).then(() => {
+  void Promise.all([probeDay3Art(), probeDay4Art(), probeDay5Art()]).then(() => {
     syncAll();
   });
 
@@ -519,6 +538,34 @@ export async function bootstrapApp(): Promise<void> {
       isSystemHighlight: true,
     });
     ui.showDonationAlert('★ ДЕНЬ 4: ЙОГА!', 'Гардероб перенесён, цели обновлены, кресло закреплено!');
+    syncAll();
+  };
+
+  /**
+   * Day 5 = «5 бикини стрим». Same entry shape as Days 3-4 — carry the run over, swap the ladder, say the
+   * opening line — minus the flash demo: this day has no reveal plate (`DAY5_FLASH_PLATE` is null), so
+   * there is nothing to crossfade and `triggerGhostBoo` answers false on purpose. What the player gets
+   * instead is the price list: the chat is told the goal in the same breath she is introduced in.
+   */
+  const startDay5Flow = () => {
+    lastPlayerInteractionMs = performance.now();
+    const res = startDay5(state);
+    if (!res.ok) return;
+    state = res.state;
+    const afterStats = computeStats(state);
+    stage.rig.setBoldness(afterStats.boldness);
+    stage.setWardrobeDay(5);
+    stage.rig.triggerEmotion('bold', 2600);
+    ui.showSpeech(DAY5_OPENING_LINE);
+    ui.pushChatMessage({
+      id: `day5_${Date.now()}`,
+      author: 'StreamBot',
+      color: '#c084fc',
+      badge: 'MOD',
+      text: '★ ДЕНЬ 5: «5 БИКИНИ СТРИМ»! Снимать нечего — двигаем позу и придвигаем камеру :SubHype: :Pog:',
+      isSystemHighlight: true,
+    });
+    ui.showDonationAlert('★ ДЕНЬ 5: БИКИНИ-СТРИМ!', 'Гардероб перенесён, цели обновлены, кресло снова в работе!');
     syncAll();
   };
 
@@ -706,8 +753,10 @@ export async function bootstrapApp(): Promise<void> {
         isSystemHighlight: true,
       });
       const openLine =
-        state.streamDay === 4
-          ? DAY4_OPENING_LINE
+        state.streamDay === 5
+          ? DAY5_OPENING_LINE
+          : state.streamDay === 4
+            ? DAY4_OPENING_LINE
           : state.streamDay === 3
             ? DAY3_OPENING_LINE
             : state.streamDay === 2
@@ -757,6 +806,7 @@ export async function bootstrapApp(): Promise<void> {
         finaleSubs: finaleSubsForDay(state.streamDay),
         day3Unlocked: isDay3Unlocked(),
         day4Unlocked: isDay4Unlocked(),
+        day5Unlocked: isDay5Unlocked(),
         saveSuppressed: adminSaveSuppressed,
       };
     },
@@ -886,8 +936,10 @@ export async function bootstrapApp(): Promise<void> {
         });
       },
       farewellLineCount: () =>
-        state.streamDay === 4
-          ? DAY4_FAREWELL_LINES.length
+        state.streamDay === 5
+          ? DAY5_FAREWELL_LINES.length
+          : state.streamDay === 4
+            ? DAY4_FAREWELL_LINES.length
           : state.streamDay === 3
             ? DAY3_FAREWELL_LINES.length
             : state.streamDay === 2
@@ -937,6 +989,7 @@ export async function bootstrapApp(): Promise<void> {
       },
       isDay3Unlocked: () => isDay3Unlocked(),
       isDay4Unlocked: () => isDay4Unlocked(),
+      isDay5Unlocked: () => isDay5Unlocked(),
       ghostBoo: (ms?: number) => stage.triggerGhostBoo(ms ?? 520),
       facePatchDebug: () => stage.facePatchDebug(),
       ghostInfo: () => ({
@@ -950,6 +1003,14 @@ export async function bootstrapApp(): Promise<void> {
         flashLive: stage.hasGhostFlash(),
         day: state.streamDay,
       }),
+      // Day 5 reports `flashLive: false` on purpose — the day has no reveal plate, and a QA probe that
+      // claimed one existed would be a lie about the ladder rather than a bug report.
+      bikiniInfo: () => ({
+        unlocked: isDay5Unlocked(),
+        plates: stage.rig.hasDay5Plates(),
+        flashLive: false,
+        day: state.streamDay,
+      }),
       tapLine: (zone: TapZoneId, seed: number, stage: number, day: number) =>
         pickStageTapLine(zone, seed, stage as SubGoalStageIndex, day),
       startDay3: () => {
@@ -959,6 +1020,10 @@ export async function bootstrapApp(): Promise<void> {
       startDay4: () => {
         startDay4Flow();
         return state.streamDay === 4;
+      },
+      startDay5: () => {
+        startDay5Flow();
+        return state.streamDay === 5;
       },
       startDay2: () => {
         const prevDay = state.streamDay;

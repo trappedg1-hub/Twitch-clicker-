@@ -55,6 +55,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'М-мх, наклон к полу без сгибания в коленях... линза близко, спина круглая, чат довольный~ ★ ♥',
     chatBurstDay4: 'НАКЛОНЯЕТСЯ К ПОЛУ, НЕ СГИБАЯ КОЛЕНЕЙ!! :Pog: :AWOOGA: :ClipIt: ТЕХНИКА ЧИСТАЯ :SubHype:',
+    reactionLineDay5:
+      'Классика: наклон к линзе в микро-бикини, подбородок на груди, взгляд вверх. Не прожгите мне кожу глазами, чат~ ★ ♥',
+    chatBurstDay5: 'НАКЛОН ВПЛОТНУЮ К ВЕБКЕ, БЛИЖЕ УЖЕ НЕКУДА!! :BOOBA: :AWOOGA: :ClipIt: САБЬТЕ, МНЕ НРАВИТСЯ :SubHype:',
   },
   {
     id: 'pose_feet',
@@ -74,6 +77,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'Хи-хи, носочки сегодня остаются на месте — так что сжимаю пальчики прямо в вязке, и это тоже работа~ ♥',
     chatBurstDay4: 'НОСОК НА СЕБЯ, ПАЛЬЦЫ ВРОЗЬ!! :AWOOGA: :Kreygasm: :Pog: КРЕСЛО ЭТО ВИДИТ :SubHype:',
+    reactionLineDay5:
+      'Хи-хи, пальцы в прозрачной шпильке сжимаются и разжимаются — каприз на вашем кошельке, чат~ ♥',
+    chatBurstDay5: 'СТУПНЯ ПРЯМО У ЛИНЗЫ, ПАЛЬЦЫ СЖИМАЮТСЯ В ШПИЛЬКЕ!! :AWOOGA: :Nosebleed: :Kreygasm: ДЕРЖИ ТАК ДОЛЬШЕ :SubHype:',
   },
   {
     id: 'tug_tee',
@@ -91,6 +97,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'Упс, пальчик случайно оттянул край вязки... дальше ничего не поедет, сегодня у нас растяжка, а не стриптиз~ ♥',
     chatBurstDay4: 'КРАЙ ВЯЗКИ ПОЕХАЛ НА ПАРУ САНТИМЕТРОВ!! :BOOBA: :Overheat: :ClipIt: И ВСЁ, БОЛЬШЕ НИЧЕГО :LUL:',
+    reactionLineDay5:
+      'Край я оттягивать не буду — он и так натянут до предела, а узелки держат вашу жадность, чат~ ♥',
+    chatBurstDay5: 'ЕЙ НЕ НУЖНО НИЧЕГО ОТТЯГИВАТЬ, ОНА И ТАК ВСЁ ПОКАЗАЛА!! :BOOBA: :Overheat: :ClipIt: ЖМЁМ САБ ГОЛ :SubHype:',
   },
   {
     id: 'asmr_tease',
@@ -108,6 +117,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'Ш-ш-ш, дышим вместе: вдох на четыре счёта, выдох на восемь... *чмок* — это за тех, кто удержал позу~ ★ ♥',
     chatBurstDay4: 'СЧЁТ ВДОХА В МИКРОФОН!! :Nosebleed: :Kreygasm: :Overheat: ЭТО УЖЕ ASMR-КОНТЕНТ :miyaLove:',
+    reactionLineDay5:
+      'Ш-ш-ш, наушники плотнее... *чмок* — это за донат. За следующий саб я дышу в микрофон дольше, я торгуюсь честно~ ★ ♥',
+    chatBurstDay5: 'ШЁПОТ ВПЛОТНУЮ К МИКРОФОНУ, И ОНА ТОРГУЕТСЯ!! :Nosebleed: :Kreygasm: :Overheat: Я РАСТАЯЛ :miyaLove:',
   },
   {
     id: 'arch_stretch',
@@ -125,6 +137,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'А-ах, м-м-м... наконец-то поза по мне: руки в замок, спина прогнута, кресло держит~ ★ ♥',
     chatBurstDay4: 'КАК ОНА ВЫГНУЛАСЬ НАД КРЕСЛОМ!! ГИБКОСТЬ 12/10 :BOOBA: :AWOOGA: :ClipIt:',
+    reactionLineDay5:
+      'А-ах, м-м-м... спина прогнута, лопатки сводит, неон натянут от плеча до бедра. Это мой любимый кадр, чат, и он ваш~ ★ ♥',
+    chatBurstDay5: 'КАК ОНА ВЫГНУЛАСЬ В КРЕСЛЕ!! СПИНА 12/10 :BOOBA: :AWOOGA: :Nosebleed: :ClipIt:',
   },
   {
     id: 'garter_flash',
@@ -142,6 +157,9 @@ export const STREAM_CHALLENGES: readonly StreamChallengeDef[] = [
     reactionLineDay4:
       'Бёдра горят от софитов — это мышцы, чат, а не стыд. Раскрываю глубже, держите сабы~ ★ ♥',
     chatBurstDay4: 'БЕДРО РАСКРЫТО ДО ПРЕДЕЛА, И НИ ОДНА ВЕЩЬ НЕ СЪЕХАЛА!! :AWOOGA: :Overheat: :Pog:',
+    reactionLineDay5:
+      'Бёдра горят — от софитов и от ваших цифр. Веду ладошкой по своей же ноге вверх, а вы считайте сабы, чат~ ★ ♥',
+    chatBurstDay5: 'ЛАДОШКА ПОДНИМАЕТСЯ ВЫШЕ, ОНА НЕ СТЕСНЯЕТСЯ — ОНА ТОРГУЕТСЯ :AWOOGA: :Overheat: :Kreygasm: :SubHype:',
   },
 ] as const;
 
@@ -245,9 +263,52 @@ export const DAY4_STORY_CHAPTERS: readonly StoryChapterDef[] = [
   },
 ] as const;
 
+/**
+ * Day 5 arc: the bikini stream. The costume is fixed from the first frame to the last, so nothing in
+ * these chapters is about undressing — it is about her discovering that she can name a price and get it.
+ * The chat is the one pushing (сабьите, ещё, глубже), and the arc's punchline is that she stops
+ * pretending to be pushed: by the finale she is the one asking for the next goal.
+ */
+export const DAY5_STORY_CHAPTERS: readonly StoryChapterDef[] = [
+  {
+    stage: 1,
+    minBoldness: 0,
+    badgeTitle: 'День 5 • Нечего снимать',
+    headline: 'Выходит в микро-бикини и сама придвигает кресло ближе к вебке',
+    diaryThought:
+      '«Четыре дня они ждали, что я что-то сниму. Сегодня снимать нечего, и чат растерялся — а потом начал сабить вдвое быстрее. Я вытянула ногу к линзе и поняла: мне не нужно стесняться, мне нужно называть цену~ ♥»',
+  },
+  {
+    stage: 2,
+    minBoldness: 45,
+    badgeTitle: 'День 5 • Торгуюсь позой',
+    headline: 'Держит ноги на подлокотнике ровно столько, сколько считают сабы',
+    diaryThought:
+      '«Тридцать три тысячи за то, чтобы я не убрала ноги. Раньше за такую цену я краснела из-за носочков. Теперь я держу позу и смотрю, кто первый моргнёт~ ★»',
+  },
+  {
+    stage: 3,
+    minBoldness: 70,
+    badgeTitle: 'День 5 • Разворот по требованию',
+    headline: 'Садится на колени в собственном кресле и смотрит назад через плечо',
+    diaryThought:
+      '«Чат просил „кошечку“ с первого дня и стеснялся попросить прямо. Я сделала сама. Сорок тысяч, и ни одного „ой“ с моей стороны — только смех в микрофон, потому что это они стесняются, а не я~ ♥»',
+  },
+  {
+    stage: 4,
+    minBoldness: 88,
+    badgeTitle: 'День 5 • Camera-ready',
+    headline: 'Финал: квадратно к вебке, лицо через плечо и никакой дрожи в голосе',
+    diaryThought:
+      '«Сорок семь тысяч. Я развернулась ровно так, как они хотели, и сказала спасибо — без дрожи, без „вы меня довели“. Вела я. И я уже придумала, сколько будет стоить завтра~ ★ ♥»',
+  },
+] as const;
+
 export function getStoryChapter(boldness: number, streamDay = 1): StoryChapterDef {
   const chapters =
-    streamDay === 4
+    streamDay === 5
+      ? DAY5_STORY_CHAPTERS
+      : streamDay === 4
       ? DAY4_STORY_CHAPTERS
       : streamDay === 3
         ? DAY3_STORY_CHAPTERS

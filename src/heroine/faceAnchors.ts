@@ -42,6 +42,13 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t4_s2.webp": { x: 396, y: 91, w: 334, h: 300 },
   "heroine_t4_s3.webp": { x: 384, y: 214, w: 215, h: 300 },
   "heroine_t4_flash.webp": { x: 384, y: 214, w: 215, h: 300 },
+  // Day 5 is four separately drawn bikini frames cut with the same head row (88), and the last two of
+  // them show her BACK — there is no face to patch at all. The boxes below are the measured head caps
+  // (`measure_head_cap` in scripts/process_day5_frames.py), kept for the debug overlay only.
+  "heroine_t5_s0.webp": { x: 284, y: 89, w: 463, h: 300 },
+  "heroine_t5_s1.webp": { x: 370, y: 89, w: 329, h: 300 },
+  "heroine_t5_s2.webp": { x: 383, y: 88, w: 266, h: 300 },
+  "heroine_t5_s3.webp": { x: 393, y: 88, w: 271, h: 300 },
   "heroine_t2_s0.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s1.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s2.webp": { x: 336, y: 60, w: 347, h: 395 },
@@ -73,4 +80,10 @@ export const FACE_PATCH_COVERED_PLATES: ReadonlySet<string> = new Set([
   "heroine_t4_s2.webp",
   "heroine_t4_s3.webp",
   "heroine_t4_flash.webp",
+  // Day 5 paints its own expression into every frame, and stages 2-3 are rear views where a blush patch
+  // would land on her back. All four plates are covered, so the canonical patch fades out on this day too.
+  "heroine_t5_s0.webp",
+  "heroine_t5_s1.webp",
+  "heroine_t5_s2.webp",
+  "heroine_t5_s3.webp",
 ]);
