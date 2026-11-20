@@ -9,7 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { poseBreathOffset, tapReactionWave } from './poseBreathing.ts';
+import { poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
   HeroineEmotion,
@@ -146,6 +146,7 @@ export class HeroineRig {
 
   private elapsedSec = 0;
   private tapReactionStartedMs = -Infinity;
+  private tapReactionZone: TapZoneId = 'chest';
   private nextBlinkCountdownMs = 2600;
 
   // Damped spring state for localized soft-body bounce, sway & bashful shiver
@@ -444,11 +445,11 @@ export class HeroineRig {
   }
 
   public triggerTapReaction(
-    _zone: TapZoneId,
+    zone: TapZoneId,
     forcedEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): void {
     this.reactionCounter += 1;
-    // Reuse only the pose's safe torso interior, never move the shared chair texture.
+    this.tapReactionZone = zone;
     this.tapReactionStartedMs = this.elapsedSec * 1000;
     this.triggerEmotion(forcedEmotion ?? pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter), 1650);
   }
@@ -609,14 +610,15 @@ export class HeroineRig {
     this.boldRestSprite.position.set(this.faceBox.x, this.faceBox.y);
     this.emotionSprite.position.set(this.faceBox.x, this.faceBox.y);
     this.blinkSprite.position.set(this.faceBox.x, this.faceBox.y);
-    const tapWave = tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs);
-    const wave = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : breathWave + tapWave;
+    const motionOff = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0;
+    const tapWave = motionOff ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs, this.wardrobeDay);
     for (let i = 0; i < data.length; i += 2) {
       const rx = this.restPositions[i]!;
       const ry = this.restPositions[i + 1]!;
-      const offset = poseBreathOffset(this.wardrobeDay, this.currentStage, rx, ry, wave);
-      data[i] = rx + offset.x;
-      data[i + 1] = ry + offset.y;
+      const breath = poseBreathOffset(this.wardrobeDay, this.currentStage, rx, ry, motionOff ? 0 : breathWave);
+      const tap = poseTapOffset(this.wardrobeDay, this.currentStage, this.tapReactionZone, rx, ry, tapWave);
+      data[i] = rx + breath.x + tap.x;
+      data[i + 1] = ry + breath.y + tap.y;
     }
     posAttr.buffer.update();
   }
@@ -646,7 +648,7 @@ export class HeroineRig {
       bodyScaleY: this.bodyContainer.scale.y,
       bodyRotation: this.bodyContainer.rotation,
       torsoMovement,
-      tapWave: this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs),
+      tapWave: this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs, this.wardrobeDay),
       chairMovement,
     };
   }

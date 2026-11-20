@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BREATH_REGIONS, poseBreathOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
+import { BREATH_REGIONS, poseBreathOffset, poseTapOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
 import { createInitialState, deserializeState, serializeState } from '../src/domain/engine.ts';
 import type { SubGoalStageIndex } from '../src/domain/types.ts';
 
@@ -19,11 +19,26 @@ test('all thirty frames have contained breathing and a stationary chair', () => 
 
 test('tap response is bounded, brief and stays within the breathing region', () => {
   assert.equal(tapReactionWave(-1), 0);
-  assert.equal(tapReactionWave(650), 0);
-  assert.ok(tapReactionWave(100) > 0.5);
-  for (let ms = 0; ms <= 700; ms++) assert.ok(Math.abs(tapReactionWave(ms)) <= 1.8);
+  assert.equal(tapReactionWave(800), 0);
+  assert.ok(tapReactionWave(100) > 1);
+  assert.ok(tapReactionWave(100, 6) > tapReactionWave(100, 1));
+  for (let day = 1; day <= 6; day++) for (let ms = 0; ms <= 850; ms++) assert.ok(Math.abs(tapReactionWave(ms, day)) <= 6.4);
   for (let day = 1; day <= 6; day++) for (let stage = 0; stage < 5; stage++) {
     assert.deepEqual(poseBreathOffset(day, stage as SubGoalStageIndex, 100, 1400, tapReactionWave(100)), {x: 0, y: 0});
+  }
+});
+
+test('tap regions follow first-day legs and the two rear-view bikini poses', () => {
+  assert.notDeepEqual(poseTapOffset(1, 0, 'legs', 350, 820, 1), {x: 0, y: 0});
+  assert.deepEqual(poseTapOffset(1, 0, 'chest', 350, 820, 1), {x: 0, y: 0});
+  assert.notDeepEqual(poseTapOffset(5, 3, 'chest', 455, 840, 1), {x: 0, y: 0});
+  assert.notDeepEqual(poseTapOffset(5, 4, 'chest', 420, 590, 1), {x: 0, y: 0});
+  for (let day=1; day<=6; day++) for (let stage=0; stage<5; stage++) {
+    for (const zone of ['head','chest','belly','legs','feet'] as const) {
+      for (const [x,y] of [[100,1400], [950,1400], [0,0]]) {
+        assert.deepEqual(poseTapOffset(day, stage as SubGoalStageIndex, zone, x!, y!, 5), {x: 0,y: 0});
+      }
+    }
   }
 });
 
