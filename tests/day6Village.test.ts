@@ -14,7 +14,7 @@ test('day six ladder and shipped plates', () => {
   assert.deepEqual(DAY6_SUB_GOAL_STAGES.map(x => x.subsRequired), [0,50500,54000,61000,68000]);
   assert.equal(DAY6_FINALE_SUBS,68000); assert.equal(DAY6_FLASH_PLATE,null);
   for (const [i, def] of DAY6_SUB_GOAL_STAGES.entries()) {
-    const name = i === 0 ? 'heroine_t6_start.webp' : `heroine_t6_s${i-1}.webp`;
+    const name = i === 0 ? 'heroine_t6_start_hq.webp' : `heroine_t6_s${i-1}.webp`;
     assert.equal(def.plateUrl, `/art/${name}`);
     const dims=readWebpDims(readFileSync(new URL(`../public/art/${name}`,import.meta.url)));
     assert.equal(dims?.width,1024); assert.equal(dims?.height,1526); assert.equal(dims?.alpha,true);

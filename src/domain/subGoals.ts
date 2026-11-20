@@ -1350,7 +1350,7 @@ export const DAY6_STEP_LABELS = [
 /** Five-stage ladder: the new opener precedes the four previously approved plates. */
 export const DAY6_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
   { ...DAY6_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало деревенского стрима",
-    removedItemLabel: "День 6 начат", storyDesc: "Мия в джинсовом комбинезоне и соломенной шляпе держит огурец и кукурузу.", plateUrl: "/art/heroine_t6_start.webp",
+    removedItemLabel: "День 6 начат", storyDesc: "Мия в джинсовом комбинезоне и соломенной шляпе держит огурец и кукурузу.", plateUrl: "/art/heroine_t6_start_hq.webp",
     shyApproachLines: ["Огурец в одной руке, кукуруза в другой. Урожай готов, чат~"], chatCascade: [] },
   ...DAY6_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
     ...(index === 0 ? { subsRequired: 50500, shortGoalTitle: "Лямки спущены", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}) })),
