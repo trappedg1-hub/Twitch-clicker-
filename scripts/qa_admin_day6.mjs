@@ -16,10 +16,10 @@ try {
   await page.waitForFunction(() => !document.querySelector('#admin-panel [data-day="6"]').disabled, { timeout: 40000 });
   await button.click();
   await page.waitForFunction(() => document.querySelector('#admin-panel [data-out="day"]').textContent.includes('День 6'));
-  assert.match(await page.locator('#admin-panel [data-out="plate"]').textContent(), /heroine_t6_s0/);
-  for (const stage of [1, 2, 3]) {
+  assert.match(await page.locator('#admin-panel [data-out="plate"]').textContent(), /heroine_t6_start/);
+  for (const stage of [1, 2, 3, 4]) {
     await page.locator(`#admin-panel [data-stage="${stage}"]`).click();
-    await page.waitForFunction(s => document.querySelector('#admin-panel [data-out="plate"]').textContent.includes(`heroine_t6_s${s}`), stage, { timeout: 10000 });
+    await page.waitForFunction(s => document.querySelector('#admin-panel [data-out="plate"]').textContent.includes(`heroine_t6_s${s-1}`), stage, { timeout: 10000 });
   }
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.waitForSelector('#admin-toggle', { timeout: 40000 });

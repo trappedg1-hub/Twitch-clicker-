@@ -19,6 +19,9 @@ export const CANONICAL_FACE: FaceAnchor = { x: 338, y: 61, w: 348, h: 397 };
 
 /** Keyed by plate file name (as shipped in public/art). */
 export const FACE_ANCHORS: Record<string, FaceAnchor> = {
+  "heroine_t4_start.webp": { x: 267, y: 89, w: 410, h: 300 },
+  "heroine_t5_start.webp": { x: 270, y: 89, w: 544, h: 300 },
+  "heroine_t6_start.webp": { x: 191, y: 88, w: 694, h: 300 },
   // Day 3 is four separately drawn frames now, and each one paints its own expression (a wink at
   // the finale, an open-mouth «Бу!», a smirk through the eye holes). The face is also ~1.4x the
   // canonical scale there, so an overlay authored for the Day 1 face would land on her cheekbone
@@ -30,9 +33,9 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t3_s0.webp": { x: 393, y: 200, w: 224, h: 300 },
   "heroine_t3_s1.webp": { x: 450, y: 189, w: 224, h: 300 },
   "heroine_t3_s2.webp": { x: 408, y: 200, w: 224, h: 300 },
-  "heroine_t3_s3.webp": { x: 212, y: 154, w: 368, h: 300 },
+  "heroine_t3_s3.webp": { x: 106, y: 88, w: 784, h: 300 },
   "heroine_t3_s4.webp": { x: 382, y: 193, w: 248, h: 300 },
-  "heroine_t3_flash.webp": { x: 212, y: 154, w: 368, h: 300 },
+  "heroine_t3_flash.webp": { x: 106, y: 88, w: 784, h: 300 },
   // Day 4 is four separately drawn yoga frames, each painting its own face (a wink at the split, an
   // open-mouth laugh at the opener, a half-lidded look from the chair), so the canonical Day-1 patch
   // never lands on them. Boxes below are measured off the finished plates: head top row + the widest
@@ -51,8 +54,8 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t6_s3.webp": { x: 274, y: 88, w: 480, h: 300 },
   "heroine_t5_s0.webp": { x: 284, y: 89, w: 463, h: 300 },
   "heroine_t5_s1.webp": { x: 370, y: 89, w: 329, h: 300 },
-  "heroine_t5_s2.webp": { x: 383, y: 88, w: 266, h: 300 },
-  "heroine_t5_s3.webp": { x: 393, y: 88, w: 271, h: 300 },
+  "heroine_t5_s2.webp": { x: 360, y: 88, w: 293, h: 300 },
+  "heroine_t5_s3.webp": { x: 280, y: 88, w: 606, h: 300 },
   "heroine_t2_s0.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s1.webp": { x: 336, y: 60, w: 347, h: 395 },
   "heroine_t2_s2.webp": { x: 336, y: 60, w: 347, h: 395 },
@@ -72,6 +75,7 @@ export function faceAnchorFor(plateUrl: string): FaceAnchor {
 
 /** Plates whose face hides under a costume layer: emotion/blink patches must stay off. */
 export const FACE_PATCH_COVERED_PLATES: ReadonlySet<string> = new Set([
+  "heroine_t4_start.webp", "heroine_t5_start.webp", "heroine_t6_start.webp",
   "heroine_t3_s0.webp",
   "heroine_t3_s1.webp",
   "heroine_t3_s2.webp",

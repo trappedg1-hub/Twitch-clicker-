@@ -87,11 +87,11 @@ export const DAY6_FAREWELL_LINES: readonly string[] = [
   'До встречи, чат. Эфир закрыт, премия заслужена~ ♥',
 ];
 export const DAY6_IDLE_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
-  0: ['Как вам мой костюм? Я носила его, когда была маленькой, а теперь он мал на четыре размера~', 'Швы держатся, шляпа на месте. Чат, аванс за показ принимаю подписками.'],
-  1: ['Какой большой огурец! Что же мне с ним сделать, чат?~', 'Вы предлагаете его облизать? Интересная заявка, чат. Назовите тариф!'],
-  2: ['Я облизываю огурец... чмок! Сочный, а микрофон всё слышит~', 'Ммм, чмок-чмок! Я сосу сочный огурец, чат, вот это переработка урожая~'],
-  3: ['Ножки в масле... кто бы их облизал, чат? Я вижу ваши заявки~', 'Кукуруза в руках, ножки в масле. Работать надо по тарифу, чат!'],
-  4: ['Ножки в масле... кто бы их облизал? Чат уже отвечает за всех~'],
+  0: ['Огурец в одной руке, кукуруза в другой — урожай готов к эфиру, чат!', 'Комбинезон из детства, соломенная шляпа и весь урожай с собой~'],
+  1: ['Как вам мой костюм? Теперь он мал на четыре размера~', 'Швы держатся, шляпа на месте. Чат, аванс принимаю подписками.'],
+  2: ['Какой большой огурец! Что же мне с ним сделать, чат?~', 'Вы предлагаете его облизать? Интересная заявка, чат.'],
+  3: ['Огурец во рту, чат. Вот это переработка урожая~', 'Сочный огурец, а микрофон всё слышит~'],
+  4: ['Ножки в масле, кукуруза в руках. Работаем по тарифу, чат!'],
 };
 
 export const DAY5_FAREWELL_LINES: readonly string[] = [
@@ -197,14 +197,17 @@ export function pickStageTapLine(
 ): string {
   const w = getWardrobe(streamDay, displayedStage);
   if (streamDay === 6) return pickFromPool([DAY6_IDLE_BY_STAGE[displayedStage]], w, seed, zone);
+  if (streamDay === 5 && displayedStage === 0) return 'Бикини на месте, чат, начинаем эфир~';
+  if (streamDay === 5 && displayedStage === 4) return 'Наклоняюсь через спинку кресла. Финал за ваши сабы~';
+  if (streamDay === 4 && displayedStage === 0) return 'Начинаем разминку, чат. Устраивайтесь поудобнее~';
   if (streamDay === 5) {
-    const stagePool5 = DAY5_STAGE_ZONE_LINES[displayedStage]?.[zone] ?? [];
+    const stagePool5 = DAY5_STAGE_ZONE_LINES[Math.max(0, displayedStage - 1) as SubGoalStageIndex]?.[zone] ?? [];
     const picked5 = pickFromPool([stagePool5], w, seed, zone);
     if (picked5 !== safeWardrobeLine(w, seed)) return picked5;
     return pickFromPool([DAY5_TAP_LINES[zone] ?? [], stagePool5], w, seed, zone);
   }
   if (streamDay === 4) {
-    const stagePool4 = DAY4_STAGE_ZONE_LINES[displayedStage]?.[zone] ?? [];
+    const stagePool4 = DAY4_STAGE_ZONE_LINES[Math.max(0, displayedStage - 1) as SubGoalStageIndex]?.[zone] ?? [];
     const picked4 = pickFromPool([stagePool4], w, seed, zone);
     if (picked4 !== safeWardrobeLine(w, seed)) return picked4;
     return pickFromPool([DAY4_TAP_LINES[zone] ?? [], stagePool4], w, seed, zone);
@@ -858,10 +861,10 @@ export function pickSituationLine(s: StreamSituation): string {
         : 'Слышу «ещё позу». Ответ: цель уже закрыта, я сама решу, когда вставать. Это мой стрим~',
       'Дышим носом, живот подтянут, плечи вниз. Я реально веду разминку, просто у неё такие зрители.',
     );
-    if (s.stage === 0) yogaPool.push('Разминка. Руки вверх, спина длинная, вы пока просто считаете сабы.');
-    if (s.stage === 1) yogaPool.push('Бедро открыто, нога вытянута. Это поза «голубь», и она совсем не про вас, чат.');
-    if (s.stage === 2) yogaPool.push('Носок у головы, руки держат голень. Я так стоять могу долго, а вы — только смотреть.');
-    if (s.stage === 3 || s.stage === 4) yogaPool.push('Финал: я в кресле, ладони на животе, и я не встаю. Дальше — ваша совесть и сабы~');
+    if (s.stage === 1) yogaPool.push('Разминка. Руки вверх, спина длинная, вы пока просто считаете сабы.');
+    if (s.stage === 2) yogaPool.push('Бедро открыто, нога вытянута. Это поза «голубь», и она совсем не про вас, чат.');
+    if (s.stage === 3) yogaPool.push('Носок у головы, руки держат голень. Я так стоять могу долго, а вы — только смотреть.');
+    if (s.stage === 4) yogaPool.push('Финал: я в кресле, ладони на животе, и я не встаю. Дальше — ваша совесть и сабы~');
   }
   if (yogaPool.length > 0 && Math.abs(s.seed) % 3 !== 2) {
     return yogaPool[Math.abs(s.seed) % yogaPool.length]!;
@@ -877,10 +880,10 @@ export function pickSituationLine(s: StreamSituation): string {
         : 'Слышу «ещё ракурс». Ответ: цель закрыта, я сама решу, когда вставать. Это мой стрим~',
       'Я не стесняюсь и не притворяюсь. Я считаю, сколько стоит каждый мой поворот, и называю цифру вслух.',
     );
-    if (s.stage === 0) bikiniPool.push('Старт дня: я сижу ровно, нога вытянута к линзе. Разминкой это не назовёшь, чат.');
-    if (s.stage === 1) bikiniPool.push('Обе ступни внизу кадра, руки на своей лодыжке. Мне удобно ровно настолько, насколько вам полезно.');
-    if (s.stage === 2) bikiniPool.push('Я на коленях в кресле, спиной к вам, смотрю через плечо. Кошечка, чат, и она сама так легла.');
-    if (s.stage === 3 || s.stage === 4) bikiniPool.push('Финал: разворот квадратно, лицо через плечо, и я не встаю. Дальше — ваша совесть и сабы~');
+    if (s.stage === 1) bikiniPool.push('Старт дня: я сижу ровно, нога вытянута к линзе. Разминкой это не назовёшь, чат.');
+    if (s.stage === 2) bikiniPool.push('Обе ступни внизу кадра, руки на своей лодыжке. Мне удобно ровно настолько, насколько вам полезно.');
+    if (s.stage === 3) bikiniPool.push('Я на коленях в кресле, спиной к вам, смотрю через плечо. Кошечка, чат, и она сама так легла.');
+    if (s.stage === 4) bikiniPool.push('Финал: я наклонилась через спинку кресла. Дальше — ваша совесть и сабы~');
   }
   if (bikiniPool.length > 0 && Math.abs(s.seed) % 3 !== 2) {
     return bikiniPool[Math.abs(s.seed) % bikiniPool.length]!;
@@ -1277,9 +1280,9 @@ export function getStreamTitle(
   streamDay: number = 1,
 ): string {
   if (streamDay === 6) {
-    const titles = ['День 6: ДЕРЕВЕНСКАЯ ДЕВОЧКА', 'Огурец в руках', 'Сочный огурец', 'Ножки в масле', 'Финал деревенского дня'];
-    const target = displayedStage === 0 ? 54000 : displayedStage === 1 ? 61000 : 68000;
-    return `${titles[displayedStage]} ★ SUB GOAL ${subs}/${target}`;
+    const titles = ['День 6: ДЕРЕВЕНСКАЯ ДЕВОЧКА', 'Лямки спущены', 'Огурец у щеки', 'Огурец во рту', 'Финал деревенского дня'];
+    const targets = [50500, 54000, 61000, 68000, 68000];
+    return `${titles[displayedStage]} ★ SUB GOAL ${subs}/${targets[displayedStage]}`;
   }
   if (streamDay === 2) {
     switch (displayedStage) {
@@ -1296,32 +1299,14 @@ export function getStreamTitle(
     }
   }
   if (streamDay === 5) {
-    switch (displayedStage) {
-      case 0:
-        return `День 5: 5 БИКИНИ СТРИМ ♥ снимать нечего, двигаем позу ★ SUB GOAL ${subs}/33000`;
-      case 1:
-        return `Ножки в кадр, ступни ближе к линзе, чем моё лицо~ ♥ SUB GOAL ${subs}/40000`;
-      case 2:
-        return `Кошечка на кресле, я смотрю назад через плечо ★ SUB GOAL ${subs}/47000`;
-      case 3:
-        return `Разворот квадратно к вебке и ни капли смущения ♥ SUB GOAL ${subs}/47000 — финал дня`;
-      case 4:
-        return `47000 САБОВ ★ ФИНАЛ ДНЯ 5: микро-бикини, кресло и ноль снятых деталей~ ♥`;
-    }
+    const titles = ['День 5: БИКИНИ СТРИМ', 'Нога к камере', 'Ножки в кадр', 'Кошечка на кресле', 'ФИНАЛ ДНЯ 5'];
+    const targets = [29500, 33000, 40000, 47000, 47000];
+    return `${titles[displayedStage]} ★ SUB GOAL ${subs}/${targets[displayedStage]}`;
   }
   if (streamDay === 4) {
-    switch (displayedStage) {
-      case 0:
-        return `День 4: РАСТЯЖКА С МИЕЙ ♥ коврик не понадобился ★ SUB GOAL ${subs}/18000`;
-      case 1:
-        return `Бёдра открыты, носочек натянут, я смеюсь в камеру~ ♥ SUB GOAL ${subs}/22000`;
-      case 2:
-        return `Вертикальный шпагат и две пальца чату ★ SUB GOAL ${subs}/26000`;
-      case 3:
-        return `Я в кресле, руки на животе, «Готово?» ♥ SUB GOAL ${subs}/26000 — добьёте?`;
-      case 4:
-        return `26000 САБОВ ★ ФИНАЛ ДНЯ 4: йога, кресло и ноль снятых вещей~ ♥`;
-    }
+    const titles = ['День 4: РАСТЯЖКА С МИЕЙ', 'Разминка в кресле', 'Бёдра', 'Шпагат', 'ФИНАЛ ДНЯ 4'];
+    const targets = [16500, 18000, 22000, 26000, 26000];
+    return `${titles[displayedStage]} ★ SUB GOAL ${subs}/${targets[displayedStage]}`;
   }
   if (streamDay === 3) {
     switch (displayedStage) {
@@ -1386,14 +1371,17 @@ export function pickIdleTeaseLine(
 ): string {
   const w = getWardrobe(streamDay, displayedStage);
   if (streamDay === 6) return pickFromPool([DAY6_IDLE_BY_STAGE[displayedStage]], w, seed);
+  if (streamDay === 5 && displayedStage === 0) return 'Бикини на месте, чат, начинаем эфир~';
+  if (streamDay === 5 && displayedStage === 4) return 'Наклоняюсь через спинку кресла. Финал за ваши сабы~';
+  if (streamDay === 4 && displayedStage === 0) return 'Начинаем разминку, чат. Устраивайтесь поудобнее~';
   if (streamDay === 5) {
-    const stagePool = DAY5_IDLE_BY_STAGE[displayedStage] ?? [];
+    const stagePool = DAY5_IDLE_BY_STAGE[Math.max(0, displayedStage - 1) as SubGoalStageIndex] ?? [];
     const picked = pickFromPool([stagePool], w, seed);
     if (picked !== safeWardrobeLine(w, seed)) return picked;
     return pickFromPool([DAY5_IDLE_BY_STAGE[displayedStage === 0 ? 0 : 4] ?? [], stagePool], w, seed);
   }
   if (streamDay === 4) {
-    const stagePool = DAY4_IDLE_BY_STAGE[displayedStage] ?? [];
+    const stagePool = DAY4_IDLE_BY_STAGE[Math.max(0, displayedStage - 1) as SubGoalStageIndex] ?? [];
     const picked = pickFromPool([stagePool], w, seed);
     if (picked !== safeWardrobeLine(w, seed)) return picked;
     return pickFromPool([DAY4_IDLE_BY_STAGE[displayedStage === 0 ? 0 : 4] ?? [], stagePool], w, seed);

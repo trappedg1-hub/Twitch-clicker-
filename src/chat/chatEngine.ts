@@ -181,11 +181,11 @@ export const AMBIENT_DAY6: readonly string[] = [
  'проводим аванс по накладной, чат :SubHype:',
 ];
 export const AMBIENT_DAY6_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
- 0: ['костюм из детства, теперь мал на четыре размера. отчёт принят :Pog:', '54000 — следующий пункт накладной, собираем аванс :SubHype:'],
- 1: ['она спрашивает, что сделать с огурцом — ОБЛИЖИ ЕГО, Мия! :Pog:', 'чат подал заявку: оближи огурец! 61000 уже собираем :SubHype:'],
- 2: ['чмок-чмок в микрофон, урожай сочный, отчёт принят :ClipIt:', 'она сама облизывает огурец, фиксируем звук в накладной :Pog:'],
- 3: ['ножки в масле? я бы облизал! заявку подписываю :Pog:', 'весь чат бы облизал, заявка коллективная :SubHype:'],
- 4: ['мы бы облизали! коллективная заявка чата :Pog:'],
+  0: ['огурец и кукуруза в руках, эфир начинается :Pog:'],
+  1: ['комбинезон из детства, шляпа на месте :SubHype:'],
+  2: ['огурец у щеки, чат обсуждает урожай :Pog:'],
+  3: ['огурец во рту, урожай сочный :ClipIt:'],
+  4: ['кукуруза в руках, ножки в масле :SubHype:'],
 };
 const FAREWELL_CHAT_DAY6: readonly { author: string; color: string; badge?: "MOD" | "SUB" | "VIP" | "DONATE"; text: string; highlight?: boolean }[] = [
  {author:'StreamBot', color:'#c084fc', badge:'MOD' as const, text:'урожай собран, эфир закрыт :SubHype:'},
@@ -604,12 +604,12 @@ export function createAmbientChatMessage(
       ? [...AMBIENT_DAY6_BY_STAGE[displayedStage], ...AMBIENT_DAY6]
       : streamDay === 5
       ? [
-          ...(AMBIENT_DAY5_BY_STAGE[displayedStage] ?? []),
-          ...AMBIENT_DAY5,
+          ...(displayedStage === 0 ? ["бикини-стрим начинается :Pog:"] : displayedStage === 4 ? ["финал: Мия наклонилась через спинку кресла :ClipIt:"] : AMBIENT_DAY5_BY_STAGE[(displayedStage - 1) as SubGoalStageIndex]),
+          ...(displayedStage === 4 ? [] : AMBIENT_DAY5.filter(line => !/33000|стопа в кадре/i.test(line))),
         ]
       : streamDay === 4
         ? [
-            ...(AMBIENT_DAY4_BY_STAGE[displayedStage] ?? []),
+            ...(displayedStage === 0 ? ["разминка начинается :Pog:"] : AMBIENT_DAY4_BY_STAGE[(displayedStage - 1) as SubGoalStageIndex]),
             ...AMBIENT_DAY4,
           ]
       : streamDay === 3

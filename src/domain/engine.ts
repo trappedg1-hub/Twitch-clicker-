@@ -698,13 +698,13 @@ export function buyUpgrade(
 }
 
 export function serializeState(state: GameState): string {
-  return JSON.stringify(state);
+  return JSON.stringify({ ...state, ladderVersion: 2 });
 }
 
 export function deserializeState(raw: string | null, nowMs = Date.now()): GameState {
   if (!raw) return createInitialState(nowMs);
   try {
-    const parsed = JSON.parse(raw) as Partial<GameState>;
+    const parsed = JSON.parse(raw) as Partial<GameState> & { ladderVersion?: number };
     const base = createInitialState(nowMs);
     if (typeof parsed.balance !== 'number' || !Number.isFinite(parsed.balance)) {
       return base;
@@ -736,7 +736,11 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
       getSubGoalStageForSubs(subscribers, streamDay),
       carriedFloor,
     ) as SubGoalStageIndex;
-    const rawDisplayed = Number(parsed.displayedSubStage);
+    // Before ladder v2, days 4–6 had four plates. Preserve the selected old plate if
+    // it remains unlocked; a low-subscriber old opener maps to the new opener instead.
+    const storedDisplayed = Number(parsed.displayedSubStage);
+    const rawDisplayed = streamDay >= 4 && parsed.ladderVersion !== 2 && Number.isInteger(storedDisplayed)
+      ? Math.min(unlockedSubStage, storedDisplayed + 1) : storedDisplayed;
     const displayedSubStage: SubGoalStageIndex =
       Number.isInteger(rawDisplayed) && rawDisplayed >= 0 && rawDisplayed <= unlockedSubStage
         ? Math.min(4, rawDisplayed) as SubGoalStageIndex

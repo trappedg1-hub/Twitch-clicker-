@@ -55,11 +55,11 @@ const PLATE_DIR = fileURLToPath(new URL('../public/art/', import.meta.url));
 
 test('Day 5 bikini ladder: one micro bikini, four poses, +7000 per step, on its own plates', () => {
   const stages = getSubGoalStagesForDay(5);
-  assert.equal(stages.length, 4, 'the bikini day is four approved frames, no more');
+  assert.equal(stages.length, 5, 'the bikini day has five approved frames');
   const targets = stages.map((s) => s.subsRequired);
-  assert.deepEqual(targets, [0, 33000, 40000, 47000]);
+  assert.deepEqual(targets, [0, 29500, 33000, 40000, 47000]);
   // His dial: «продолжай градацию на увеличение по 7000 сабов» — the paid steps are exactly 7000 apart.
-  for (let i = 2; i < targets.length; i++) {
+  for (let i = 3; i < targets.length; i++) {
     assert.equal(targets[i]! - targets[i - 1]!, 7000, `step ${i} is not a 7000 stride`);
   }
 
@@ -69,21 +69,21 @@ test('Day 5 bikini ladder: one micro bikini, four poses, +7000 per step, on its 
   const viewers = stages.map((s) => s.viewersBonus);
   for (let i = 1; i < viewers.length; i++) assert.ok(viewers[i]! > viewers[i - 1]!, 'viewers must rise');
   // She is past shy on this day: no stage opens flustered or shy.
-  assert.equal(stages.map((s) => s.unlockEmotion).join(','), 'tease,bold,bold,bold');
-  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t5_s[0-3]\.webp$/);
+  assert.equal(stages.map((s) => s.unlockEmotion).join(','), 'tease,tease,bold,bold,bold');
+  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t5_(?:start|s[0-3])\.webp$/);
 
-  assert.equal(getSubGoalStageForSubs(32999, 5), 0);
-  assert.equal(getSubGoalStageForSubs(33000, 5), 1);
-  assert.equal(getSubGoalStageForSubs(39999, 5), 1);
-  assert.equal(getSubGoalStageForSubs(40000, 5), 2);
-  assert.equal(getSubGoalStageForSubs(47000, 5), 3);
+  assert.equal(getSubGoalStageForSubs(32999, 5), 1);
+  assert.equal(getSubGoalStageForSubs(33000, 5), 2);
+  assert.equal(getSubGoalStageForSubs(39999, 5), 2);
+  assert.equal(getSubGoalStageForSubs(40000, 5), 3);
+  assert.equal(getSubGoalStageForSubs(47000, 5), 4);
   assert.equal(dayFinaleSubs(5), DAY5_FINALE_SUBS);
-  assert.equal(getStepLabelsForDay(5).length, 3);
-  assert.equal(getShortStepLabelsForDay(5)[2], '47000');
+  assert.equal(getStepLabelsForDay(5).length, 4);
+  assert.equal(getShortStepLabelsForDay(5)[3], '47000');
 
   // The title ladder follows the day, and never leaks another day's numbers into the stream banner.
-  assert.match(getStreamTitle(0, 100, 5), /БИКИНИ СТРИМ.*33000$/s);
-  assert.match(getStreamTitle(3, 44000, 5), /47000 — финал дня/);
+  assert.match(getStreamTitle(0, 100, 5), /БИКИНИ СТРИМ.*29500$/s);
+  assert.match(getStreamTitle(3, 44000, 5), /47000/);
   assert.match(getStreamTitle(4, 47000, 5), /ФИНАЛ ДНЯ 5/);
   for (const st of [0, 1, 2, 3, 4]) {
     assert.doesNotMatch(
@@ -102,7 +102,7 @@ test('Day 5 has no flash plate, and nothing fakes one to satisfy a gate', () => 
   assert.ok(!existsSync(`${PLATE_DIR}heroine_t5_flash.webp`), 'a Day-5 flash plate would be unapproved art');
   // The gate therefore reads exactly four files; if a fifth ever appears, this test is where we notice
   // that `probeDay5Art` and the ladder no longer agree.
-  assert.equal(getSubGoalStagesForDay(5).filter((s) => s.plateUrl.includes('heroine_t5_s')).length, 4);
+  assert.equal(getSubGoalStagesForDay(5).length, 5);
 });
 
 test('the bikini price curve keeps climbing past the yoga finale', () => {

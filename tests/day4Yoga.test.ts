@@ -48,10 +48,10 @@ const PLATE_DIR = fileURLToPath(new URL('../public/art/', import.meta.url));
 
 test('Day 4 yoga ladder: one knit kit, four poses, 18000 / 22000 / 26000 on its own plates', () => {
   const stages = getSubGoalStagesForDay(4);
-  assert.equal(stages.length, 4, 'the yoga day is four approved frames, no more');
+  assert.equal(stages.length, 5, 'the yoga day has five approved frames');
   assert.deepEqual(
     stages.map((s) => s.subsRequired),
-    [0, 18000, 22000, 26000],
+    [0, 16500, 18000, 22000, 26000],
   );
 
   // Heat still climbs — but through income and viewers, because the outfit is constant.
@@ -62,9 +62,9 @@ test('Day 4 yoga ladder: one knit kit, four poses, 18000 / 22000 / 26000 on its 
   // She performs on this day: no stage is allowed to open shy or flustered.
   assert.equal(
     stages.map((s) => s.unlockEmotion).join(','),
-    'tease,tease,bold,bold',
+    'tease,tease,tease,bold,bold',
   );
-  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t4_s[0-3]\.webp$/);
+  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t4_(?:start|s[0-3])\.webp$/);
 
   // One costume for the whole day: no stage may name a garment from another day's wardrobe.
   for (const s of stages) {
@@ -102,18 +102,18 @@ test('Day 4 yoga ladder: one knit kit, four poses, 18000 / 22000 / 26000 on its 
     assert.match(s.outfitName, /топ|шорт|комплект|костюм|тот же/i, 'every stage must name the kit it is wearing');
   }
 
-  assert.equal(getSubGoalStageForSubs(17999, 4), 0);
-  assert.equal(getSubGoalStageForSubs(18000, 4), 1);
-  assert.equal(getSubGoalStageForSubs(25999, 4), 2);
-  assert.equal(getSubGoalStageForSubs(26000, 4), 3);
+  assert.equal(getSubGoalStageForSubs(17999, 4), 1);
+  assert.equal(getSubGoalStageForSubs(18000, 4), 2);
+  assert.equal(getSubGoalStageForSubs(25999, 4), 3);
+  assert.equal(getSubGoalStageForSubs(26000, 4), 4);
   assert.equal(dayFinaleSubs(4), DAY4_FINALE_SUBS);
-  assert.equal(getStepLabelsForDay(4).length, 3);
-  assert.equal(getShortStepLabelsForDay(4)[2], '26000');
+  assert.equal(getStepLabelsForDay(4).length, 4);
+  assert.equal(getShortStepLabelsForDay(4)[3], '26000');
   assert.equal(DAY4_FLASH_PLATE, '/art/heroine_t4_flash.webp');
   // The title ladder must never show another day's numbers on the yoga day, and the finale card is the
   // stage-4 title (stage 3 is the "keep going" card that still counts up to 26000).
-  assert.match(getStreamTitle(0, 100, 4), /РАСТЯЖКА С МИЕЙ.*18000$/s);
-  assert.match(getStreamTitle(3, 24000, 4), /26000 — добьёте\?/);
+  assert.match(getStreamTitle(0, 100, 4), /РАСТЯЖКА С МИЕЙ.*16500$/s);
+  assert.match(getStreamTitle(3, 24000, 4), /26000/);
   assert.match(getStreamTitle(4, 26000, 4), /ФИНАЛ ДНЯ 4/);
   for (const st of [0, 1, 2, 3, 4]) {
     assert.doesNotMatch(getStreamTitle(st as SubGoalStageIndex, 100, 4), /15000|5000 саб|косплей/);

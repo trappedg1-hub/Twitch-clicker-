@@ -26,12 +26,12 @@ try {
   assert.equal(cta.disabled,false); assert.match(cta.text,/День 6/);
   await page.evaluate(()=>document.getElementById('btn-start-day2').click());
   await page.waitForTimeout(400);
-  for (const [subs,index] of [[47000,0],[54000,1],[61000,2],[68000,3]]) {
+  for (const [subs,index] of [[47000,0],[50500,1],[54000,2],[61000,3],[68000,4]]) {
     await page.evaluate(n=>window.__qaScene.setSubscribers(n),subs);
     await page.waitForTimeout(300);
     const state=await page.evaluate(()=>({state:window.__qaScene.getState(),plate:window.__qaScene.getActivePlateName(),ghost:window.__qaScene.ghostBoo(500),has:window.__heroineRig.hasDay6Plates()}));
     assert.equal(state.state.streamDay,6); assert.equal(state.state.displayedSubStage,index);
-    assert.equal(state.plate,`heroine_t6_s${index}.webp`); assert.equal(state.ghost,false); assert.equal(state.has,true);
+    assert.equal(state.plate,index === 0 ? `heroine_t6_start.webp` : `heroine_t6_s${index-1}.webp`); assert.equal(state.ghost,false); assert.equal(state.has,true);
     await page.screenshot({path:`.qa-out/day6_live_s${index}.png`});
     console.log(`stage ${index}: ${state.plate}, subscribers ${subs}`);
   }

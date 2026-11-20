@@ -696,7 +696,7 @@ export const DAY3_FLASH_PLATE = "/art/heroine_t3_flash.webp";
  *   26000 finale: sunk into the chair facing the lens, both legs drawn up over the armrests, palms
  *         flat on her bare belly, half-lidded wink
  */
-export const DAY4_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+const DAY4_OLD_STAGES: readonly SubGoalStageDef[] = [
   {
     stage: 0,
     subsRequired: 0,
@@ -891,7 +891,7 @@ export const DAY4_FLASH_PLATE = "/art/heroine_t4_flash.webp";
  * Her voice is the escalation, not the outfit: she stopped being shy on Day 2 and stopped pretending
  * on Day 4. On Day 5 she says the price out loud, asks for more herself, and lets the chat push.
  */
-export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+const DAY5_OLD_STAGES: readonly SubGoalStageDef[] = [
   {
     stage: 0,
     subsRequired: 0,
@@ -1074,8 +1074,8 @@ export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 /** Day 5 has no flash plate by design — see the note on `DAY5_SUB_GOAL_STAGES` and `HeroineRig`. */
 export const DAY5_FLASH_PLATE: string | null = null;
 
-export const DAY4_STEP_LABELS = ["18000 Бёдра", "22000 Шпагат", "26000 Кресло"];
-export const DAY4_SHORT_STEP_LABELS = ["18000", "22000", "26000"];
+export const DAY4_STEP_LABELS = ["16500 Разминка", "18000 Бёдра", "22000 Шпагат", "26000 Кресло"];
+export const DAY4_SHORT_STEP_LABELS = ["16500", "18000", "22000", "26000"];
 export const DAY4_FINALE_SUBS = 26000;
 
 /**
@@ -1083,11 +1083,31 @@ export const DAY4_FINALE_SUBS = 26000;
  * are what the OBS sub-goal panel and the HUD strip show, so they name the POSE, never a garment.
  */
 export const DAY5_STEP_LABELS = [
+  "29500 Нога к камере",
   "33000 Ножки в кадр",
   "40000 Кошечка",
   "47000 Всё в кадр",
 ];
-export const DAY5_SHORT_STEP_LABELS = ["33000", "40000", "47000"];
+
+/** Five-stage ladder: the new opener precedes the four previously approved plates. */
+export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  { ...DAY5_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало бикини-стрима",
+    removedItemLabel: "День 5 начат", storyDesc: "Мия сидит в кресле в розовом бикини и приветствует чат.", plateUrl: "/art/heroine_t5_start.webp",
+    shyApproachLines: ["Привет, чат! Бикини на месте, начинаем эфир~"], chatCascade: [] },
+  ...DAY5_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
+    ...(index === 0 ? { subsRequired: 29500, shortGoalTitle: "Нога к камере", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}),
+    ...(index === 3 ? { outfitName: "Розовое бикини и прозрачные шпильки, наклон через спинку кресла", storyDesc: "47000 сабов: Мия на коленях в кресле наклоняется через спинку, отвернувшись к камере спиной.", unlockLine: "Финал! Наклоняюсь через спинку кресла. Спасибо за подписки, чат!", shyApproachLines: ["Финальная поза — через спинку кресла~"], chatCascade: [] } : {}) })),
+];
+
+/** Five-stage ladder: the new opener precedes the four previously approved plates. */
+export const DAY4_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  { ...DAY4_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало растяжки",
+    removedItemLabel: "День 4 начат", storyDesc: "Мия сидит боком в кресле, улыбается и поправляет волосы. Разминка только начинается.", plateUrl: "/art/heroine_t4_start.webp",
+    shyApproachLines: ["Устраивайтесь, чат. Разминка только начинается~"], chatCascade: [] },
+  ...DAY4_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
+    ...(index === 0 ? { subsRequired: 16500, shortGoalTitle: "Разминка в кресле", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}) })),
+];
+export const DAY5_SHORT_STEP_LABELS = ["29500", "33000", "40000", "47000"];
 export const DAY5_FINALE_SUBS = 47000;
 
 /**
@@ -1105,7 +1125,7 @@ export const DAY5_FINALE_SUBS = 47000;
  * Финальный кадр срезан по линии стола (`DESK_TOP = 1489` в скриптах): её каблуки стоят НА столешнице
  * `fg_desk_t1`, а не висят за ней, — поэтому финал читается как «ножки на столе игрока».
  */
-export const DAY6_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+const DAY6_OLD_STAGES: readonly SubGoalStageDef[] = [
   {
     stage: 0,
     subsRequired: 0,
@@ -1321,11 +1341,21 @@ export const DAY6_FLASH_PLATE: string | null = null;
  * today, and the step that says otherwise would promise a ladder the art does not contain.
  */
 export const DAY6_STEP_LABELS = [
+  "50500 Лямки спущены",
   "54000 Огурец в руках",
   "61000 Огурец во рту",
   "68000 Ножки в масле",
 ];
-export const DAY6_SHORT_STEP_LABELS = ["54000", "61000", "68000"];
+
+/** Five-stage ladder: the new opener precedes the four previously approved plates. */
+export const DAY6_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
+  { ...DAY6_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало деревенского стрима",
+    removedItemLabel: "День 6 начат", storyDesc: "Мия в джинсовом комбинезоне и соломенной шляпе держит огурец и кукурузу.", plateUrl: "/art/heroine_t6_start.webp",
+    shyApproachLines: ["Огурец в одной руке, кукуруза в другой. Урожай готов, чат~"], chatCascade: [] },
+  ...DAY6_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
+    ...(index === 0 ? { subsRequired: 50500, shortGoalTitle: "Лямки спущены", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}) })),
+];
+export const DAY6_SHORT_STEP_LABELS = ["50500", "54000", "61000", "68000"];
 export const DAY6_FINALE_SUBS = 68000;
 
 export const DAY3_STEP_LABELS = [

@@ -223,32 +223,11 @@ export const WARDROBES: Record<
   // The bib covers her stomach in all four, so `midriff` stays false the whole day — a line about a bare
   // belly would contradict the plate even though everything around it is bare.
   6: {
-    0: W(6, 0, "off", "overalls", false, "gone", {
-      denimKit: true,
-      strapsDown: true,
-      footwear: "both",
-    }),
-    1: W(6, 1, "off", "overalls", false, "gone", {
-      denimKit: true,
-      strapsDown: false,
-      footwear: "both",
-    }),
-    2: W(6, 2, "off", "overalls", false, "gone", {
-      denimKit: true,
-      strapsDown: false,
-      footwear: "one",
-    }),
-    3: W(6, 3, "off", "overalls", false, "gone", {
-      denimKit: true,
-      strapsDown: true,
-      footwear: "none",
-    }),
-    // The day ends at stage 3 (68000); stage 4 aliases the finale frame for anything indexing 0..4.
-    4: W(6, 4, "off", "overalls", false, "gone", {
-      denimKit: true,
-      strapsDown: true,
-      footwear: "none",
-    }),
+    0: W(6, 0, "off", "overalls", false, "gone", { denimKit: true, strapsDown: false, footwear: "both" }),
+    1: W(6, 1, "off", "overalls", false, "gone", { denimKit: true, strapsDown: true, footwear: "both" }),
+    2: W(6, 2, "off", "overalls", false, "gone", { denimKit: true, strapsDown: false, footwear: "both" }),
+    3: W(6, 3, "off", "overalls", false, "gone", { denimKit: true, strapsDown: false, footwear: "one" }),
+    4: W(6, 4, "off", "overalls", false, "gone", { denimKit: true, strapsDown: true, footwear: "none" }),
   },
 };
 
@@ -734,7 +713,7 @@ export function contradictsWardrobe(
     }
     // The prop ladder is the day, so a prop may only be named on the plate that carries it. The cucumber
     // is in her hands at 54000 and in her mouth at 61000; the corn and the butter belong to 68000 alone.
-    const cucumberHere = w.stage === 1 || w.stage === 2;
+    const cucumberHere = w.stage === 0 || w.stage === 2 || w.stage === 3;
     if (
       /огур[еёцч]/i.test(line) &&
       !cucumberHere &&
@@ -748,13 +727,13 @@ export function contradictsWardrobe(
       /огур[еёцч][^.!?]{0,20}(во рту|в рту)|(?<![а-яё])(во рту|в рту)[^.!?]{0,20}огур[еёцч]/i.test(
         line,
       ) &&
-      w.stage !== 2
+      w.stage !== 3
     ) {
       return "claims the cucumber is in her mouth — only the 61000 frame shows it between her teeth";
     }
     if (
       /(кукуруз|початк|зере[нм]|зёрн)/i.test(line) &&
-      w.stage !== 3 &&
+      w.stage !== 0 && w.stage !== 4 &&
       !denimFutureTalk &&
       !denimNegation
     ) {
@@ -762,7 +741,7 @@ export function contradictsWardrobe(
     }
     if (
       /масл/i.test(line) &&
-      w.stage !== 3 &&
+      w.stage !== 4 &&
       !denimFutureTalk &&
       !denimNegation &&
       !denimPastTalk
@@ -949,7 +928,9 @@ export const WARDROBE_SAFE_LINES: Record<
   },
 };
 export function safeWardrobeLine(w: Wardrobe, seed: number): string {
-  const pool =
-    WARDROBE_SAFE_LINES[w.day][w.stage] ?? WARDROBE_SAFE_LINES[w.day][0]!;
+  if (w.day === 6 && w.stage === 0) return "Огурец и кукуруза уже готовы, чат. Начинаем деревенский эфир~";
+  if (w.day === 5 && w.stage === 4) return "Финал: я наклонилась через спинку кресла. Спасибо за подписки, чат~";
+  const oldStage = w.day >= 4 ? Math.max(0, w.stage - 1) as SubGoalStageIndex : w.stage;
+  const pool = WARDROBE_SAFE_LINES[w.day][oldStage] ?? WARDROBE_SAFE_LINES[w.day][0]!;
   return pool[Math.abs(seed) % pool.length]!;
 }

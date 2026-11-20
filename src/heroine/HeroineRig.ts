@@ -9,7 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { day6BreathOffset } from './day6Breathing.ts';
+import { poseBreathOffset } from './poseBreathing.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
   HeroineEmotion,
@@ -443,56 +443,15 @@ export class HeroineRig {
   }
 
   public triggerTapReaction(
-    zone: TapZoneId,
+    _zone: TapZoneId,
     forcedEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): void {
     this.reactionCounter += 1;
-    // Village plates contain the chair and heroine in one texture: bouncing the whole mesh would
-    // animate the chair. Taps still reach the game; this day only uses the steady torso breath.
-    if (this.wardrobeDay === 6) return;
-    const chosen =
-      forcedEmotion ??
-      pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter);
-
-    const swayDir = this.reactionCounter % 2 === 0 ? 1 : -1;
-
-    if (zone === 'chest') {
-      this.chestVel -= 165;
-      this.archVel += 85;
-      this.swayVel += swayDir * 42;
-      this.chairRecoilVel += 44;
-      this.triggerEmotion(chosen, 1850);
-    } else if (zone === 'belly') {
-      this.chestVel -= 95;
-      this.hipVel -= 85;
-      this.swayVel += swayDir * 68;
-      this.shiverTimerMs = 420;
-      this.chairRecoilVel += 38;
-      this.triggerEmotion(chosen === 'bold' ? 'tease' : 'fluster', 1700);
-    } else if (zone === 'legs' || zone === 'feet') {
-      this.hipVel -= 135;
-      this.chestVel -= 65;
-      this.swayVel += swayDir * 48;
-      if (zone === 'feet' || this.boldnessLevel < 45) {
-        this.shiverTimerMs = 460;
-      }
-      this.chairRecoilVel += 50;
-      this.triggerEmotion(chosen, 1850);
-    } else {
-      this.chestVel -= 52;
-      this.swayVel += swayDir * 78;
-      this.chairRecoilVel += 28;
-      this.triggerEmotion(chosen, 1600);
-    }
+    // The chair and heroine share a texture. Do not displace the whole plate on taps.
+    this.triggerEmotion(forcedEmotion ?? pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter), 1650);
   }
 
   public triggerArchStretch(emo: Exclude<HeroineEmotion, 'neutral'> = 'bold'): void {
-    if (this.wardrobeDay === 6) return;
-    this.chestVel -= 210;
-    this.archVel += 160;
-    this.hipVel -= 95;
-    this.swayVel += (this.reactionCounter % 2 === 0 ? 1 : -1) * 65;
-    this.chairRecoilVel -= 35;
     this.triggerEmotion(emo, 2400);
   }
 
@@ -628,10 +587,7 @@ export class HeroineRig {
     if (this.shiverTimerMs > 0) {
       this.shiverTimerMs = Math.max(0, this.shiverTimerMs - clampedDtMs);
     }
-    const shiverWave =
-      this.shiverTimerMs > 0
-        ? Math.sin(this.elapsedSec * 58) * (this.shiverTimerMs / 460) * 3.2
-        : 0;
+
 
     // Day 3: when the «Бу!» flash is over, snap back to the current sheet stage.
     if (this.ghostFlashUntilMs > 0 && this.elapsedSec * 1000 >= this.ghostFlashUntilMs) {
@@ -643,84 +599,21 @@ export class HeroineRig {
       }
     }
 
-    // The sheet is light: on the ghost day she floats a little slower and deeper, like real fabric.
-    const ghostFloat =
-      this.wardrobeDay === 3 ? Math.sin(this.elapsedSec * 1.15 + this.ghostFloatSeed) * 3.4 : 0;
-    // Yoga day: she holds a pose, so the body drifts with the breath instead of with the fabric.
-    const yogaBreath =
-      this.wardrobeDay === 4 ? Math.sin(this.elapsedSec * 0.72 + this.ghostFloatSeed) * 1.9 : 0;
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
-    if (this.wardrobeDay === 6) {
-      // Chair is part of the plate, so leave the entire container fixed.
-      this.bodyContainer.position.set(0, 0);
-    } else {
-      this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat + yogaBreath;
-      this.bodyContainer.x = shiverWave * 0.65;
-    }
-
+    // Fixed plate transform: never move the chair, including during taps and unlocks.
+    this.bodyContainer.position.set(0, 0);
     const posAttr = this.mesh.geometry.getAttribute('aPosition');
     const data = posAttr.buffer.data as Float32Array;
-    const rest = this.restPositions;
-    const W = HeroineRig.PLATE_W;
-    const H = HeroineRig.PLATE_H;
-    // Sync face patch sprites with upper-body sway!
-    const headSwayX = this.swayDisp * 0.72 + shiverWave * 0.45;
-    const headArchY = -this.archDisp * 0.25;
-    const patchX = this.faceBox.x + headSwayX;
-    const patchY = this.faceBox.y + headArchY;
-    this.boldRestSprite.position.set(patchX, patchY);
-    this.emotionSprite.position.set(patchX, patchY);
-    this.blinkSprite.position.set(patchX, patchY);
-
+    this.boldRestSprite.position.set(this.faceBox.x, this.faceBox.y);
+    this.emotionSprite.position.set(this.faceBox.x, this.faceBox.y);
+    this.blinkSprite.position.set(this.faceBox.x, this.faceBox.y);
+    const wave = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : breathWave;
     for (let i = 0; i < data.length; i += 2) {
-      const rx = rest[i]!;
-      const ry = rest[i + 1]!;
-      if (this.wardrobeDay === 6) {
-        const wave = this.reducedMotion?.matches ? 0 : breathWave;
-        const offset = day6BreathOffset(this.currentStage, rx, ry, wave);
-        data[i] = rx + offset.x;
-        data[i + 1] = ry + offset.y;
-        continue;
-      }
-      const u = rx / W;
-      const v = ry / H;
-
-      let dx = 0;
-      let dy = 0;
-
-      // Upper-body seductive sway & arch (head + shoulders + torso)
-      if (v < 0.68) {
-        const upperWeight = Math.cos((v / 0.68) * (Math.PI * 0.5));
-        dx += this.swayDisp * upperWeight;
-        dy -= this.archDisp * 0.35 * upperWeight;
-      }
-
-      const cTop = 0.25;
-      const cBot = 0.54;
-      if (v > cTop && v < cBot && u > 0.26 && u < 0.76) {
-        const wy = Math.sin(((v - cTop) / (cBot - cTop)) * Math.PI);
-        const wx = Math.sin(((u - 0.26) / (0.76 - 0.26)) * Math.PI);
-        const weight = wy * wx;
-        const lushExpand = this.archDisp * 0.55;
-        dy += (-2.8 * breathWave + this.chestDisp - lushExpand * 0.4) * weight;
-        dx +=
-          (u - 0.5) *
-          (4.0 * (breathWave * 0.5 + 0.5) - this.chestDisp * 0.28 + lushExpand * 0.7) *
-          weight;
-      }
-
-      const lTop = 0.46;
-      const lBot = 0.88;
-      if (v > lTop && v < lBot && u > 0.14 && u < 0.86) {
-        const wy = Math.sin(((v - lTop) / (lBot - lTop)) * Math.PI);
-        const wx = Math.sin(((u - 0.14) / (0.86 - 0.14)) * Math.PI);
-        const weight = wy * wx;
-        dy += this.hipDisp * 0.75 * weight;
-        dx += ((u - 0.5) * (-this.hipDisp * 0.22) + shiverWave * 0.8) * weight;
-      }
-
-      data[i] = rx + dx;
-      data[i + 1] = ry + dy;
+      const rx = this.restPositions[i]!;
+      const ry = this.restPositions[i + 1]!;
+      const offset = poseBreathOffset(this.wardrobeDay, this.currentStage, rx, ry, wave);
+      data[i] = rx + offset.x;
+      data[i + 1] = ry + offset.y;
     }
     posAttr.buffer.update();
   }
