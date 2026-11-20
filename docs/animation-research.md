@@ -44,3 +44,11 @@ These are separate steps: (1) extract and complete overlapping artwork layers, (
 ### Recommended experiment
 
 Try one representative pose on a working copy: See-through extraction on a suitable GPU (or a privacy-approved service), manually correct chair/body/limb/prop separation and hidden pixels; evaluate Stretchy Studio and whether its export can actually be brought into OpenBone or Rigby2D. If not, author/import the corrected layers directly in the selected rig editor. Test idle breathing, tap, expression and hand/prop/foot motion visually against the original, including chair contact and seams. Only after a successful sample should the remaining 29 poses be costed and built. The current mesh approach is still in place; none of these external tools has been integrated into the game.
+
+### Additional lead: Mesh Avatar Studio
+
+[Mesh Avatar Studio](https://github.com/shinshin86/mesh-avatar-studio) is an MIT-licensed editor and mesh-avatar workflow that documents agent-assisted manual layer cutting, coordinate checks and visual motion review. It recommends transparent, front-facing head-and-shoulders art; full-body seated characters and integration into Pixi have not been validated. Its optional expression-generation workflow sends art to an external provider and requires consent. Its documented agent recommendations do not mean those other agents or models are available in this session. This is a lead to test rather than a proven automatic conversion.
+
+### Isolated motion lab
+
+`experiments/animation-lab` is a separate preview for one copy of the approved day-six starting plate. It compares still and moving art and offers breathing, torso/leg impulses, repeat and a strength control. It uses a fine Pixi mesh, not See-through, OpenBone or a real layered rig; the chair is baked into the source so isolation is not guaranteed. No game code or original artwork was changed. A browser smoke test checked both impulses and reduced motion; subjective visual quality and chair edges still require review. Run with `cd experiments/animation-lab && ../../node_modules/.bin/vite --host 0.0.0.0 --port 5186` after installing the project's dependencies.
