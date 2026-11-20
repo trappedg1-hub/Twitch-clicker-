@@ -27,5 +27,10 @@ export function poseBreathOffset(day: number, stage: SubGoalStageIndex, x: numbe
 }
 export function poseTapOffset(day: number, stage: SubGoalStageIndex, zone: TapZoneId, x: number, y: number, wave: number) {
   const anatomy = anatomyFor(day, stage);
-  return regionOffset(zone === 'legs' || zone === 'feet' ? anatomy.leg : anatomy.torso, x, y, wave);
+  const isLeg = zone === 'legs' || zone === 'feet';
+  // Slightly strengthen only explicit chest taps on front-facing chest regions.
+  // Covered torsos, rear views, other tap zones and idle breathing retain their
+  // previous amplitudes; this is still a shared-plate warp, not a layered rig.
+  const gain = zone === 'chest' && anatomy.torsoKind === 'chest' ? 1.2 : 1;
+  return regionOffset(isLeg ? anatomy.leg : anatomy.torso, x, y, wave * gain);
 }

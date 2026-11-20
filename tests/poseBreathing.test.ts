@@ -58,6 +58,17 @@ test('tap regions follow first-day legs and the two rear-view bikini poses', () 
   }
 });
 
+test('stronger chest tap is limited to front-facing chest, not idle, legs or covered poses', () => {
+  const [x,y] = POSE_ANATOMY[4]![0]!.torso;
+  const chest = poseTapOffset(5, 0, 'chest', x, y, 1);
+  const belly = poseTapOffset(5, 0, 'belly', x, y, 1);
+  assert.ok(Math.abs(chest.y / belly.y - 1.2) < 1e-12);
+  const [cx,cy] = POSE_ANATOMY[0]![0]!.torso;
+  assert.deepEqual(poseTapOffset(1, 0, 'chest', cx, cy, 1), poseTapOffset(1, 0, 'belly', cx, cy, 1));
+  const [hx,hy] = POSE_ANATOMY[4]![3]!.torso;
+  assert.deepEqual(poseTapOffset(5, 3, 'chest', hx, hy, 1), poseTapOffset(5, 3, 'belly', hx, hy, 1));
+});
+
 test('saved older late-day stage indices migrate without losing selected art', () => {
   const state={...createInitialState(),streamDay:6 as const,subscribers:61000,unlockedSubStage:2 as const,displayedSubStage:2 as const};
   assert.equal(deserializeState(JSON.stringify(state)).displayedSubStage,3);
