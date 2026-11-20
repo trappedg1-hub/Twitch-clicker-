@@ -1092,7 +1092,7 @@ export const DAY5_STEP_LABELS = [
 /** Five-stage ladder: the new opener precedes the four previously approved plates. */
 export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
   { ...DAY5_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало бикини-стрима",
-    removedItemLabel: "День 5 начат", storyDesc: "Мия сидит в кресле в розовом бикини и приветствует чат.", plateUrl: "/art/heroine_t5_start.webp",
+    removedItemLabel: "День 5 начат", storyDesc: "Мия сидит в кресле в розовом бикини и приветствует чат.", plateUrl: "/art/heroine_t5_start_hq.webp",
     shyApproachLines: ["Привет, чат! Бикини на месте, начинаем эфир~"], chatCascade: [] },
   ...DAY5_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
     ...(index === 0 ? { subsRequired: 29500, shortGoalTitle: "Нога к камере", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}),

@@ -12,7 +12,7 @@ from process_day6_frames import slide_to_bottom, measure_head_cap
 root=Path(__file__).resolve().parents[1]
 frames={
  'heroine_t4_start':'day4_style_mix.png',
- 'heroine_t5_start':'day5_new_start.png',
+ 'heroine_t5_start_hq':'day5_start_quality_candidate.png',
  'heroine_t6_start':'day6_new_start_no_top.png',
  'heroine_t3_s3':'day3_boo_style_mix_round2.png',
  'heroine_t3_flash':'day3_boo_style_mix_round2.png',
@@ -20,6 +20,8 @@ frames={
  'heroine_t5_s3':'day5_finale_chair_fixed.png',
 }
 for name, source in frames.items():
+ if len(sys.argv) > 1 and name not in sys.argv[1:]:
+  continue
  im=Image.open(root/'art-studio/raw'/source).convert('RGBA')
  if np.asarray(im.getchannel('A')).min()<250:
   rgba=im
