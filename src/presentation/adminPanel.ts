@@ -1,3 +1,4 @@
+import { ADMIN_MAX_DAY } from '../domain/debug.ts';
 import type { HeroineEmotion, SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
 
 /**
@@ -167,6 +168,8 @@ export class AdminPanel {
             ? 'Нет йога-артов в сборке'
             : day === 5 && !s.day5Unlocked
               ? 'Нет бикини-артов в сборке'
+              : day === 6 && !s.day6Unlocked
+                ? 'Нет артов шестого дня в сборке'
               : `Прыгнуть в день ${day}, стадия 0`;
     });
 
@@ -282,11 +285,9 @@ const TEMPLATE = `
     <div class="admin-sec">
       <div class="admin-label">День</div>
       <div class="admin-row">
-        <button class="admin-btn" type="button" data-day="1">1</button>
-        <button class="admin-btn" type="button" data-day="2">2</button>
-        <button class="admin-btn" type="button" data-day="3">3</button>
-        <button class="admin-btn" type="button" data-day="4">4</button>
-        <button class="admin-btn" type="button" data-day="5">5</button>
+        ${Array.from({ length: ADMIN_MAX_DAY }, (_, i) =>
+          `<button class="admin-btn" type="button" data-day="${i + 1}">${i + 1}</button>`,
+        ).join('')}
       </div>
     </div>
 
