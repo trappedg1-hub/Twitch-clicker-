@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BREATH_REGIONS, poseBreathOffset, poseTapOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
+import { POSE_ANATOMY } from '../src/heroine/poseAnatomy.ts';
 import { createInitialState, deserializeState, serializeState } from '../src/domain/engine.ts';
 import type { SubGoalStageIndex } from '../src/domain/types.ts';
 
@@ -29,11 +30,26 @@ test('tap response is bounded, brief and stays within the breathing region', () 
 });
 
 test('tap regions follow first-day legs and the two rear-view bikini poses', () => {
-  assert.notDeepEqual(poseTapOffset(1, 0, 'legs', 350, 820, 1), {x: 0, y: 0});
-  assert.deepEqual(poseTapOffset(1, 0, 'chest', 350, 820, 1), {x: 0, y: 0});
+  assert.notDeepEqual(poseTapOffset(1, 0, 'legs', 245, 835, 1), {x: 0, y: 0});
+  assert.deepEqual(poseTapOffset(1, 0, 'chest', 245, 835, 1), {x: 0, y: 0});
   assert.notDeepEqual(poseTapOffset(5, 3, 'chest', 455, 840, 1), {x: 0, y: 0});
   assert.notDeepEqual(poseTapOffset(5, 4, 'chest', 420, 590, 1), {x: 0, y: 0});
+  assert.equal(POSE_ANATOMY.length, 6);
   for (let day=1; day<=6; day++) for (let stage=0; stage<5; stage++) {
+    const s = stage as SubGoalStageIndex;
+    const anatomy = POSE_ANATOMY[day-1]![stage]!;
+    for (const [region, zone] of [[anatomy.torso, 'chest'], [anatomy.leg, 'legs']] as const) {
+      const [cx, cy, rx] = region;
+      assert.notDeepEqual(poseTapOffset(day, s, zone, cx, cy, 1), {x: 0, y: 0});
+      assert.deepEqual(poseTapOffset(day, s, zone, cx + rx + 50, cy, 1), {x: 0, y: 0});
+      // Each region actually intersects the 24 x 32 runtime mesh.
+      let max = 0;
+      for (let ix=0; ix<24; ix++) for (let iy=0; iy<32; iy++) {
+        const offset = poseTapOffset(day, s, zone, ix*1024/23, iy*1526/31, 1);
+        max = Math.max(max, Math.hypot(offset.x,offset.y));
+      }
+      assert.ok(max > 0.1, `${day}/${stage} ${zone} misses the mesh`);
+    }
     for (const zone of ['head','chest','belly','legs','feet'] as const) {
       for (const [x,y] of [[100,1400], [950,1400], [0,0]]) {
         assert.deepEqual(poseTapOffset(day, stage as SubGoalStageIndex, zone, x!, y!, 5), {x: 0,y: 0});

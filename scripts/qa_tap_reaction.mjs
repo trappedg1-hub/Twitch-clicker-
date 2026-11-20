@@ -10,7 +10,13 @@ try {
   await page.evaluate(z=>window.__qaScene.tapZone(z),zone);
   await page.waitForFunction(()=>Math.abs(window.__heroineRig.getDebugSnapshot().tapWave)>0.5,null,{timeout:5000});
   const r=await page.evaluate(()=>window.__heroineRig.getDebugSnapshot());
-  assert.equal(r.chairMovement,0);assert.equal(r.bodyY,0);assert.equal(r.bodyX,0);
+  assert.equal(r.tapZone,zone); assert.ok(r.tapMovement>0.1);
+  assert.equal(r.tapRegion,zone === 'legs' ? 'leg' : 'covered');
+  // The old chairMovement heuristic counts any motion on the left as chair,
+  // even when it is the leg. Check the plate transform here; visual chair-edge
+  // inspection is still needed because the image contains chair and body together.
+  if (zone === 'chest') assert.equal(r.chairMovement,0);
+  assert.equal(r.bodyY,0);assert.equal(r.bodyX,0);
   await page.screenshot({path:`.qa-out/day1_tap_${label}.png`});
  }
  await page.emulateMedia({reducedMotion:'reduce'});

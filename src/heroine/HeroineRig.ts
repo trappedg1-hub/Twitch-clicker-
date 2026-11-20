@@ -10,6 +10,7 @@ import {
   Texture,
 } from 'pixi.js';
 import { poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
+import { anatomyFor } from './poseAnatomy.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
   HeroineEmotion,
@@ -627,10 +628,16 @@ export class HeroineRig {
     const positions = this.mesh.geometry.getAttribute('aPosition').buffer.data as Float32Array;
     let torsoMovement = 0;
     let chairMovement = 0;
+    let tapMovement = 0;
+    const tapWave = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs, this.wardrobeDay);
     for (let i = 0; i < positions.length; i += 2) {
       const x = this.restPositions[i]!;
       const y = this.restPositions[i + 1]!;
       const moved = Math.hypot(positions[i]! - x, positions[i + 1]! - y);
+      const tap = poseTapOffset(this.wardrobeDay, this.currentStage, this.tapReactionZone, x, y, tapWave);
+      tapMovement = Math.max(tapMovement, Math.hypot(tap.x, tap.y));
+      // Historical broad heuristic: limbs can also occur in this area, so this is
+      // not a segmentation mask and cannot prove the chair pixels are stationary.
       if (x < 300 || x > 760 || y > 900) chairMovement = Math.max(chairMovement, moved);
       else torsoMovement = Math.max(torsoMovement, moved);
     }
@@ -648,7 +655,10 @@ export class HeroineRig {
       bodyScaleY: this.bodyContainer.scale.y,
       bodyRotation: this.bodyContainer.rotation,
       torsoMovement,
-      tapWave: this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs, this.wardrobeDay),
+      tapWave,
+      tapMovement,
+      tapZone: this.tapReactionZone,
+      tapRegion: this.tapReactionZone === 'legs' || this.tapReactionZone === 'feet' ? 'leg' : anatomyFor(this.wardrobeDay, this.currentStage).torsoKind,
       chairMovement,
     };
   }
