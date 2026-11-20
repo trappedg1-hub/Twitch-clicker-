@@ -1358,6 +1358,101 @@ export const DAY6_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 export const DAY6_SHORT_STEP_LABELS = ["50500", "54000", "61000", "68000"];
 export const DAY6_FINALE_SUBS = 68000;
 
+/**
+ * Transparent Costume — отдельный костюмный слот, не день.
+ * Четыре арта в стиле approuved артов игры: черный фон, офисное кресло,
+ * длинные черные волосы с челкой, лицо как у Дня 1, премиальный рендер.
+ * Пластины лежат в public/art/heroine_transparent_s0…s3.webp и не заменяют
+ * approuved арты дней 1–6 — подключаются отдельно после утверждения.
+ */
+export const TRANSPARENT_COSTUME_SUBS = [0, 1500, 4000, 8000] as const;
+
+export const TRANSPARENT_COSTUME_STAGES: readonly SubGoalStageDef[] = [
+  {
+    stage: 0,
+    subsRequired: 0,
+    shortGoalTitle: "Прозрачное начало",
+    outfitName: "Прозрачное бикини, старт",
+    removedItemLabel: "Костюм надет",
+    storyDesc: "Мия выходит в эфир в прозрачном бикини — ткань едва прикрывает фигуру, через неё чётко читаются контуры. Сидит в кресле, смущенно улыбается чату.",
+    incomeMultiplier: 1.0,
+    viewersBonus: 0,
+    boldnessBonus: 0,
+    unlockEmotion: "shy",
+    unlockLine: "",
+    plateUrl: "/art/heroine_transparent_s0.webp",
+    shyApproachLines: [
+      "Ч-чат, вы видели, во что я нарядилась? Это barely прикрывает!",
+      "Пояс завязан слабо, и я боюсь даже пошевелиться.",
+      "Вы правда платите за это? Мне стыдно, но приятно.",
+    ],
+    chatCascade: [],
+  },
+  {
+    stage: 1,
+    subsRequired: 1500,
+    shortGoalTitle: "Наряд открыт",
+    outfitName: "Прозрачное бикини, наряд открыт",
+    removedItemLabel: "− Пояс развязан!",
+    storyDesc: "1500 сабов: наряд открыт, через прозрачную ткань чётко видно контуры тела. Мия смущена, но не прячется, чуть откинувшись назад в кресле.",
+    incomeMultiplier: 1.6,
+    viewersBonus: 40,
+    boldnessBonus: 18,
+    unlockEmotion: "fluster",
+    unlockLine: "Пятнадцатьсот! Наряд открыт... чат, вы заставили меня это сделать~ ★",
+    plateUrl: "/art/heroine_transparent_s1.webp",
+    shyApproachLines: [
+      "Пятьдесят сабов назад я была в закрытом наряде, а теперь — открыта.",
+      "Через ткань видно всё, а я не знаю, куда деть руки.",
+      "Если добьёте 4000, я прилягу в кресле. Прямо сейчас.",
+    ],
+    chatCascade: [],
+  },
+  {
+    stage: 2,
+    subsRequired: 4000,
+    shortGoalTitle: "Нога к камере",
+    outfitName: "Прозрачное бикини, нога на краю стола",
+    removedItemLabel: "− Новая поза!",
+    storyDesc: "4000 сабов: одна нога на краю стола, вторая висит в воздухе. Спинка кресла видна целиком — она не скрывается за ней.",
+    incomeMultiplier: 2.4,
+    viewersBonus: 120,
+    boldnessBonus: 26,
+    unlockEmotion: "tease",
+    unlockLine: "Четыре тысячи! Нога к камере, спинка кресла видна, я не прячусь~ ★ ♥",
+    plateUrl: "/art/heroine_transparent_s2.webp",
+    shyApproachLines: [
+      "Восемь тысяч — и я лягу на спинку кресла. Полоска сабов уже почти полна.",
+      "Нога на краю стола, и кресло не прячет ничего. Вы это увидели, чат?",
+      "Я держусь за поручни и не закрываюсь. Это отчёт.",
+    ],
+    chatCascade: [],
+  },
+  {
+    stage: 3,
+    subsRequired: 8000,
+    shortGoalTitle: "Наклон через спинку",
+    outfitName: "Прозрачное бикини, вид со спины, наклон через спинку",
+    removedItemLabel: "− Финальная поза!",
+    storyDesc: "8000 сабов: вид со спины, наклон через спинку кресла, колени разведены, взгляд через плечо прямо в линзу.",
+    incomeMultiplier: 3.3,
+    viewersBonus: 300,
+    boldnessBonus: 34,
+    unlockEmotion: "bold",
+    unlockLine: "Восемь тысяч! Наклоняюсь через спинку кресла, колени разведены, чат, смотрите~ ★ ♥",
+    plateUrl: "/art/heroine_transparent_s3.webp",
+    shyApproachLines: [
+      "Пятнадцать тысяч — финал. Полностью прозрачно, и ничего не скрою.",
+      "Спинка кресла под животом, и я не прикрываюсь руками. Это всё для вас.",
+      "Я повернулась спиной, а вы всё равно видите каждый изгиб.",
+    ],
+    chatCascade: [],
+  },
+] as const;
+
+export const TRANSPARENT_COSTUME_SHORT_STEP_LABELS = ["1500", "4000", "8000"];
+export const TRANSPARENT_COSTUME_FINALE_SUBS = 8000;
+
 export const DAY3_STEP_LABELS = [
   "7000 Ткань",
   "10000 Ножки на столе",
