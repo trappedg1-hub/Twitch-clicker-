@@ -217,9 +217,9 @@ export const WARDROBES: Record<
   // object in the frame (cucumber in hands → cucumber in the mouth → an ear of corn in butter) and how
   // close her feet get to the lens. Each row below is written off HIS approved plate, not off the idea:
   //   s0 t136  both straps off the shoulders, hat over one eye, flip-flops ON both feet
-  //   s1 t142  straps buckled back up, the cucumber held in both hands at bib level, flip-flops ON
+  //   s1 t141  straps buckled back up, the cucumber held in both hands against her cheek
   //   s2 t147  straps buckled, half a cucumber caught between her front teeth, ONE flip-flop hanging
-  //   s3 t208  straps off again, corn in both hands at her chest, both feet bare and in butter
+  //   s3 t207  straps off again, corn in both hands at her chest, both feet bare and in butter
   // The bib covers her stomach in all four, so `midriff` stays false the whole day — a line about a bare
   // belly would contradict the plate even though everything around it is bare.
   6: {
@@ -932,7 +932,7 @@ export const WARDROBE_SAFE_LINES: Record<
     ],
     1: [
       "Лямки я застегнула обратно, поэтому огурец держат обе руки, а не платье. Пятьдесят четыре тысячи, чат, и я его даже не надкусила~",
-      "Огурец в двух руках на уровне грудки билда, шлепки на ногах, взгляд у меня деловой. Дальше будет дороже, и это не угроза, это прайс.",
+      "Огурец в двух руках у щеки, взгляд у меня деловой. Дальше будет дороже, и это не угроза, это прайс.",
     ],
     2: [
       "Половина огурца у меня во рту, руки подняты и пустые — вот вам доказательство, что я его держу зубами, а не выдумала~",

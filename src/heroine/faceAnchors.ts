@@ -46,7 +46,7 @@ export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   // them show her BACK — there is no face to patch at all. The boxes below are the measured head caps
   // (`measure_head_cap` in scripts/process_day5_frames.py), kept for the debug overlay only.
   "heroine_t6_s0.webp": { x: 240, y: 88, w: 535, h: 300 },
-  "heroine_t6_s1.webp": { x: 272, y: 88, w: 556, h: 300 },
+  "heroine_t6_s1.webp": { x: 263, y: 88, w: 477, h: 300 },
   "heroine_t6_s2.webp": { x: 174, y: 89, w: 693, h: 300 },
   "heroine_t6_s3.webp": { x: 274, y: 88, w: 480, h: 300 },
   "heroine_t5_s0.webp": { x: 284, y: 89, w: 463, h: 300 },
