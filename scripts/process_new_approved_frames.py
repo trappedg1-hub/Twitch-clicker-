@@ -12,7 +12,7 @@ from process_day6_frames import slide_to_bottom, measure_head_cap
 root=Path(__file__).resolve().parents[1]
 frames={
  'heroine_t4_start_hq':'day4_yoga_original_ref.png',
- 'heroine_t5_start_hq':'day5_start_quality_candidate.png',
+ 'heroine_t5_start_hq2':'day5_bikini_start_retry_hires.png',
  'heroine_t6_start_hq':'day6_farm_start_new_hires.png',
  'heroine_t3_s3':'day3_boo_style_mix_round2.png',
  'heroine_t3_flash':'day3_boo_style_mix_round2.png',

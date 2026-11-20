@@ -20,7 +20,7 @@ export const CANONICAL_FACE: FaceAnchor = { x: 338, y: 61, w: 348, h: 397 };
 /** Keyed by plate file name (as shipped in public/art). */
 export const FACE_ANCHORS: Record<string, FaceAnchor> = {
   "heroine_t4_start_hq.webp": { x: 274, y: 89, w: 420, h: 300 },
-  "heroine_t5_start_hq.webp": { x: 270, y: 89, w: 544, h: 300 },
+  "heroine_t5_start_hq2.webp": { x: 269, y: 89, w: 543, h: 300 },
   "heroine_t6_start_hq.webp": { x: 191, y: 88, w: 694, h: 300 },
   // Day 3 is four separately drawn frames now, and each one paints its own expression (a wink at
   // the finale, an open-mouth «Бу!», a smirk through the eye holes). The face is also ~1.4x the
@@ -75,7 +75,7 @@ export function faceAnchorFor(plateUrl: string): FaceAnchor {
 
 /** Plates whose face hides under a costume layer: emotion/blink patches must stay off. */
 export const FACE_PATCH_COVERED_PLATES: ReadonlySet<string> = new Set([
-  "heroine_t4_start_hq.webp", "heroine_t5_start_hq.webp", "heroine_t6_start_hq.webp",
+  "heroine_t4_start_hq.webp", "heroine_t5_start_hq2.webp", "heroine_t6_start_hq.webp",
   "heroine_t3_s0.webp",
   "heroine_t3_s1.webp",
   "heroine_t3_s2.webp",

@@ -70,7 +70,7 @@ test('Day 5 bikini ladder: one micro bikini, four poses, +7000 per step, on its 
   for (let i = 1; i < viewers.length; i++) assert.ok(viewers[i]! > viewers[i - 1]!, 'viewers must rise');
   // She is past shy on this day: no stage opens flustered or shy.
   assert.equal(stages.map((s) => s.unlockEmotion).join(','), 'tease,tease,bold,bold,bold');
-  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t5_(?:start_hq|s[0-3])\.webp$/);
+  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t5_(?:start_hq2|s[0-3])\.webp$/);
 
   assert.equal(getSubGoalStageForSubs(32999, 5), 1);
   assert.equal(getSubGoalStageForSubs(33000, 5), 2);
