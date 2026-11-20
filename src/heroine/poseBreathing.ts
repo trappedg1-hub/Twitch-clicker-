@@ -10,6 +10,13 @@ export const BREATH_REGIONS: ReadonlyArray<ReadonlyArray<readonly [number, numbe
   [[510,580,85,90],[510,560,80,80],[510,550,80,80],[470,580,80,85],[550,475,75,80]],
   [[510,650,80,85],[520,640,80,90],[570,690,85,90],[520,640,85,90],[535,650,85,90]],
 ];
+// A short, restrained response in the same safe interior as the breathing. It never
+// moves the shared plate or chair; repeated taps restart it rather than accumulating energy.
+export function tapReactionWave(elapsedMs: number): number {
+  if (elapsedMs < 0 || elapsedMs >= 650) return 0;
+  return Math.sin(Math.PI * elapsedMs / 325) * Math.exp(-elapsedMs / 270) * 1.8;
+}
+
 export function poseBreathOffset(day: number, stage: SubGoalStageIndex, x: number, y: number, wave: number) {
   if (!wave) return {x: 0, y: 0};
   const [cx,cy,rx,ry] = (BREATH_REGIONS[day-1] ?? BREATH_REGIONS[0]!) [stage]!;

@@ -9,7 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { poseBreathOffset } from './poseBreathing.ts';
+import { poseBreathOffset, tapReactionWave } from './poseBreathing.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
   HeroineEmotion,
@@ -145,6 +145,7 @@ export class HeroineRig {
   private static readonly SEG_Y = 32;
 
   private elapsedSec = 0;
+  private tapReactionStartedMs = -Infinity;
   private nextBlinkCountdownMs = 2600;
 
   // Damped spring state for localized soft-body bounce, sway & bashful shiver
@@ -447,7 +448,8 @@ export class HeroineRig {
     forcedEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): void {
     this.reactionCounter += 1;
-    // The chair and heroine share a texture. Do not displace the whole plate on taps.
+    // Reuse only the pose's safe torso interior, never move the shared chair texture.
+    this.tapReactionStartedMs = this.elapsedSec * 1000;
     this.triggerEmotion(forcedEmotion ?? pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter), 1650);
   }
 
@@ -607,7 +609,8 @@ export class HeroineRig {
     this.boldRestSprite.position.set(this.faceBox.x, this.faceBox.y);
     this.emotionSprite.position.set(this.faceBox.x, this.faceBox.y);
     this.blinkSprite.position.set(this.faceBox.x, this.faceBox.y);
-    const wave = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : breathWave;
+    const tapWave = tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs);
+    const wave = this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : breathWave + tapWave;
     for (let i = 0; i < data.length; i += 2) {
       const rx = this.restPositions[i]!;
       const ry = this.restPositions[i + 1]!;
@@ -643,6 +646,7 @@ export class HeroineRig {
       bodyScaleY: this.bodyContainer.scale.y,
       bodyRotation: this.bodyContainer.rotation,
       torsoMovement,
+      tapWave: this.reducedMotion?.matches || this.ghostFlashUntilMs > 0 ? 0 : tapReactionWave(this.elapsedSec * 1000 - this.tapReactionStartedMs),
       chairMovement,
     };
   }

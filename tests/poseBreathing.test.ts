@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BREATH_REGIONS, poseBreathOffset } from '../src/heroine/poseBreathing.ts';
+import { BREATH_REGIONS, poseBreathOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
 import { createInitialState, deserializeState, serializeState } from '../src/domain/engine.ts';
 import type { SubGoalStageIndex } from '../src/domain/types.ts';
 
@@ -14,6 +14,16 @@ test('all thirty frames have contained breathing and a stationary chair', () => 
     for(const [x,y] of [[cx-rx-50,cy],[cx+rx+50,cy],[cx,cy-ry-50],[cx,cy+ry+50],[100,1400],[950,1400]]) {
       assert.deepEqual(poseBreathOffset(day,s,x!,y!,1),{x:0,y:0});
     }
+  }
+});
+
+test('tap response is bounded, brief and stays within the breathing region', () => {
+  assert.equal(tapReactionWave(-1), 0);
+  assert.equal(tapReactionWave(650), 0);
+  assert.ok(tapReactionWave(100) > 0.5);
+  for (let ms = 0; ms <= 700; ms++) assert.ok(Math.abs(tapReactionWave(ms)) <= 1.8);
+  for (let day = 1; day <= 6; day++) for (let stage = 0; stage < 5; stage++) {
+    assert.deepEqual(poseBreathOffset(day, stage as SubGoalStageIndex, 100, 1400, tapReactionWave(100)), {x: 0, y: 0});
   }
 });
 

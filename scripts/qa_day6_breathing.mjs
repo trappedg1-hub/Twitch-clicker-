@@ -13,7 +13,7 @@ try {
     await page.evaluate(n=>window.__qaScene.setSubscribers(n),subs);
     await page.waitForFunction(()=>window.__heroineRig.getDebugSnapshot().torsoMovement > 0.15,null,{timeout:20000});
     const s=await page.evaluate(()=>({ rig:window.__heroineRig.getDebugSnapshot(), plate:window.__qaScene.getActivePlateName() }));
-    assert.equal(s.plate,index === 0 ? `heroine_t6_start.webp` : `heroine_t6_s${index-1}.webp`);
+    assert.equal(s.plate,index === 0 ? `heroine_t6_start_hq.webp` : `heroine_t6_s${index-1}.webp`);
     assert.equal(s.rig.chairMovement,0); assert.equal(s.rig.bodyX,0); assert.equal(s.rig.bodyY,0);
     assert.equal(s.rig.bodyScaleX,1); assert.equal(s.rig.bodyScaleY,1); assert.equal(s.rig.bodyRotation,0);
     console.log(`s${index}: torso ${s.rig.torsoMovement.toFixed(3)} px, chair ${s.rig.chairMovement} px`);
@@ -22,6 +22,7 @@ try {
   const previous=await page.evaluate(()=>window.__qaScene.getState().totalTaps);
   await page.evaluate(()=>{for(let i=0;i<12;i++)window.__qaScene.tapZone('head');});
   assert.equal(await page.evaluate(()=>window.__qaScene.getState().totalTaps),previous+12);
+  await page.waitForFunction(()=>Math.abs(window.__heroineRig.getDebugSnapshot().tapWave)>0.05,null,{timeout:10000});
   const after=await page.evaluate(()=>window.__heroineRig.getDebugSnapshot());
   assert.equal(after.chairMovement,0); assert.equal(after.bodyScaleX,1);
   await page.emulateMedia({ reducedMotion:'reduce' });
