@@ -1102,7 +1102,7 @@ export const DAY5_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
 /** Five-stage ladder: the new opener precedes the four previously approved plates. */
 export const DAY4_SUB_GOAL_STAGES: readonly SubGoalStageDef[] = [
   { ...DAY4_OLD_STAGES[0]!, stage: 0, subsRequired: 0, shortGoalTitle: "Начало растяжки",
-    removedItemLabel: "День 4 начат", storyDesc: "Мия сидит боком в кресле, улыбается и поправляет волосы. Разминка только начинается.", plateUrl: "/art/heroine_t4_start.webp",
+    removedItemLabel: "День 4 начат", storyDesc: "Мия сидит боком в кресле, улыбается и поправляет волосы. Разминка только начинается.", plateUrl: "/art/heroine_t4_start_hq.webp",
     shyApproachLines: ["Устраивайтесь, чат. Разминка только начинается~"], chatCascade: [] },
   ...DAY4_OLD_STAGES.map((def, index) => ({ ...def, stage: (index + 1) as SubGoalStageIndex,
     ...(index === 0 ? { subsRequired: 16500, shortGoalTitle: "Разминка в кресле", removedItemLabel: "Новая поза!", unlockLine: "Новая поза для чата!", incomeMultiplier: 1.25, viewersBonus: 200 } : {}) })),

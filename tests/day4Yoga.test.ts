@@ -64,7 +64,7 @@ test('Day 4 yoga ladder: one knit kit, four poses, 18000 / 22000 / 26000 on its 
     stages.map((s) => s.unlockEmotion).join(','),
     'tease,tease,tease,bold,bold',
   );
-  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t4_(?:start|s[0-3])\.webp$/);
+  for (const s of stages) assert.match(s.plateUrl, /^\/art\/heroine_t4_(?:start_hq|s[0-3])\.webp$/);
 
   // One costume for the whole day: no stage may name a garment from another day's wardrobe.
   for (const s of stages) {

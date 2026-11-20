@@ -11,7 +11,7 @@ from process_day4_frames import centre_horizontally, fit_head_row
 from process_day6_frames import slide_to_bottom, measure_head_cap
 root=Path(__file__).resolve().parents[1]
 frames={
- 'heroine_t4_start':'day4_style_mix.png',
+ 'heroine_t4_start_hq':'day4_yoga_original_ref.png',
  'heroine_t5_start_hq':'day5_start_quality_candidate.png',
  'heroine_t6_start':'day6_new_start_no_top.png',
  'heroine_t3_s3':'day3_boo_style_mix_round2.png',
