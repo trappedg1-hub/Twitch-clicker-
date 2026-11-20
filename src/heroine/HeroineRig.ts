@@ -9,6 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
+import { Day6Motion } from './day6Motion.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
   HeroineEmotion,
@@ -112,6 +113,12 @@ export class HeroineRig {
   /** Day 5 (bikini stream) plates; null until all four ship. No flash plate exists for this day. */
   private readonly day5Textures: Texture[] | null = null;
   private readonly day6Textures: Texture[] | null = null;
+  private readonly day6Motion = new Day6Motion();
+  private day6LastTickMs = 0;
+  public onDay6GestureStart?: (stage: SubGoalStageIndex) => void;
+  public onDay6GestureEnd?: () => void;
+  private readonly reducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
 
   /** Day 4 «Готово!» flash frame: the finale reveal plate, same crossfade machinery as Day 3. */
   private readonly yogaFlashTex: Texture | null = null;
@@ -337,6 +344,11 @@ export class HeroineRig {
   public setWardrobeDay(day: WardrobeDay): void {
     if (this.wardrobeDay === day) return;
     this.wardrobeDay = day;
+    this.day6Motion.reset();
+    this.day6LastTickMs = performance.now();
+    this.bodyContainer.scale.set(1);
+    this.bodyContainer.rotation = 0;
+    this.bodyContainer.pivot.set(0, 0);
     // Day 3 (cosplay) reuses the Day 2 plate ladder until heroine_t3_s0..s4 are cut, so the rig
     // never shows a missing texture; the plate swap happens in one place, right here.
     this.stageTextures =
@@ -444,6 +456,14 @@ export class HeroineRig {
     forcedEmotion?: Exclude<HeroineEmotion, 'neutral'>,
   ): void {
     this.reactionCounter += 1;
+    if (this.wardrobeDay === 6) {
+      // Keep the approved linework intact. Taps still go to the economy, but cannot restart the pose.
+      if (!forcedEmotion && !this.reducedMotion?.matches && this.day6Motion.tap(this.currentStage)) {
+        this.day6LastTickMs = performance.now();
+        this.onDay6GestureStart?.(this.currentStage);
+      }
+      return;
+    }
     const chosen =
       forcedEmotion ??
       pickEmotionForContext(this.boldnessLevel, this.currentStage, this.reactionCounter);
@@ -481,6 +501,7 @@ export class HeroineRig {
   }
 
   public triggerArchStretch(emo: Exclude<HeroineEmotion, 'neutral'> = 'bold'): void {
+    if (this.wardrobeDay === 6) return;
     this.chestVel -= 210;
     this.archVel += 160;
     this.hipVel -= 95;
@@ -544,10 +565,22 @@ export class HeroineRig {
     return stageChanged || celebrate;
   }
 
+  public isDay6GestureActive(): boolean { return this.wardrobeDay === 6 && this.day6Motion.isActive; }
+
   public update(dtMs: number): void {
     const clampedDtMs = Math.min(50, Math.max(0, dtMs));
     const dt = clampedDtMs / 1000;
     this.elapsedSec += dt;
+    if (this.wardrobeDay === 6) {
+      // A reduced-motion preference ends an active gesture safely rather than trapping a pending goal.
+      const now = performance.now();
+      const realDt = this.day6LastTickMs ? Math.max(0, now - this.day6LastTickMs) : clampedDtMs;
+      this.day6LastTickMs = now;
+      const finished = this.reducedMotion?.matches && this.day6Motion.isActive
+        ? (this.day6Motion.reset(), true)
+        : this.day6Motion.update(realDt);
+      if (finished) this.onDay6GestureEnd?.();
+    }
 
     // 1. Spontaneous micro-expressions while streaming live!
     this.nextAmbientMicroExprMs -= clampedDtMs;
@@ -643,8 +676,25 @@ export class HeroineRig {
     const yogaBreath =
       this.wardrobeDay === 4 ? Math.sin(this.elapsedSec * 0.72 + this.ghostFloatSeed) * 1.9 : 0;
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
-    this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat + yogaBreath;
-    this.bodyContainer.x = shiverWave * 0.65;
+    if (this.wardrobeDay === 6) {
+      // Rigid transform preserves texture and drawing detail. Pivot at the desk contact line on s3.
+      const reduced = this.reducedMotion?.matches ?? false;
+      const breath = reduced ? 0 : breathWave;
+      const gesture = this.day6Motion.intensity;
+      const stage = this.day6Motion.gestureStage;
+      const amount = stage === 3 ? 0.008 : stage === 2 ? 0.012 : stage === 1 ? 0.016 : 0.014;
+      const pivotY = stage === 3 || this.currentStage === 3 ? 1489 : 1450;
+      this.bodyContainer.pivot.set(512, pivotY);
+      this.bodyContainer.scale.set(1 + gesture * amount, 1 + gesture * amount + breath * 0.0007);
+      // Tiny chair sway, plus pose-specific camera emphasis; a rigid motion cannot invent body parts.
+      const drift = reduced ? 0 : Math.sin(this.elapsedSec * 0.6) * 0.00065;
+      const tilt = stage === 1 ? 0.0012 : stage === 2 ? -0.001 : stage === 3 ? 0 : 0.0008;
+      this.bodyContainer.rotation = drift + gesture * tilt;
+      this.bodyContainer.position.set(512 + breath * 0.7, pivotY);
+    } else {
+      this.bodyContainer.y = breathWave * 2.2 + this.chairRecoilY + ghostFloat + yogaBreath;
+      this.bodyContainer.x = shiverWave * 0.65;
+    }
 
     const posAttr = this.mesh.geometry.getAttribute('aPosition');
     const data = posAttr.buffer.data as Float32Array;
@@ -663,6 +713,7 @@ export class HeroineRig {
     for (let i = 0; i < data.length; i += 2) {
       const rx = rest[i]!;
       const ry = rest[i + 1]!;
+      if (this.wardrobeDay === 6) { data[i] = rx; data[i + 1] = ry; continue; }
       const u = rx / W;
       const v = ry / H;
 
@@ -715,6 +766,11 @@ export class HeroineRig {
       blinkAlpha: Number(this.blinkSprite.alpha.toFixed(3)),
       facePatchesHidden: this.facePatchesHidden,
       chestDisp: Number(this.chestDisp.toFixed(2)),
+      day6GestureActive: this.day6Motion.isActive,
+      day6GestureStage: this.day6Motion.gestureStage,
+      day6GestureProgress: this.day6Motion.progress,
+      day6GestureIntensity: this.day6Motion.intensity,
+      bodyScale: this.bodyContainer.scale.x,
     };
   }
 }

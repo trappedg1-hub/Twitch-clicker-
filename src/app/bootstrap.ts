@@ -168,7 +168,25 @@ export async function bootstrapApp(): Promise<void> {
   const wardrobeDayOf = (streamDay: number): 1 | 2 | 3 | 4 | 5 | 6 =>
     streamDay >= 6 ? 6 : streamDay >= 5 ? 5 : streamDay === 4 ? 4 : streamDay === 3 ? 3 : streamDay === 2 ? 2 : 1;
 
+  // While the short Day-6 gesture plays, keep the displayed plate and its copy together.
+  // Subscriber rewards still apply immediately; only the visual stage and its celebration wait.
+  let pendingDay6Stage: SubGoalStageIndex | null = null;
+  let pendingDay6Celebrations: SubGoalStageDef[] = [];
+  const holdDay6Stage = () => {
+    if (state.streamDay !== 6) {
+      pendingDay6Stage = null;
+      pendingDay6Celebrations = [];
+      return;
+    }
+    if (stage.rig.getWardrobeDay() === 6 && stage.rig.isDay6GestureActive() &&
+        state.displayedSubStage !== stage.rig.getStageIndex()) {
+      pendingDay6Stage = state.displayedSubStage;
+      state = { ...state, displayedSubStage: stage.rig.getStageIndex() };
+    }
+  };
+
   const syncAll = () => {
+    holdDay6Stage();
     const stats = computeStats(state);
     stage.setRingLampLevel(state.upgrades.ring_lamp ?? 0);
     stage.setHypeLevel(state.hype);
@@ -180,7 +198,7 @@ export async function bootstrapApp(): Promise<void> {
     // A closed day is an announcement, not a takeover: the finale card waits for the player's own
     // click (see UiController.openFinaleCard), so this only tells them the button exists. Without it
     // the HUD change is easy to miss while they are mid-click on her, and the day looks stuck.
-    if (state.subscribers >= dayFinaleSubs(state.streamDay) && finaleAnnouncedDay !== state.streamDay) {
+    if (state.subscribers >= dayFinaleSubs(state.streamDay) && finaleAnnouncedDay !== state.streamDay && pendingDay6Stage === null) {
       finaleAnnouncedDay = state.streamDay;
       ui.pushChatMessage({
         id: `finale_open_${state.streamDay}_${Date.now()}`,
@@ -210,6 +228,12 @@ export async function bootstrapApp(): Promise<void> {
 
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
     if (unlockedStages.length === 0) return;
+    if (state.streamDay === 6 && stage.rig.isDay6GestureActive()) {
+      pendingDay6Stage = unlockedStages[unlockedStages.length - 1]!.stage;
+      pendingDay6Celebrations.push(...unlockedStages);
+      holdDay6Stage();
+      return;
+    }
     lastCelebrationMs = performance.now();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
@@ -232,10 +256,31 @@ export async function bootstrapApp(): Promise<void> {
     });
   };
 
+  stage.rig.onDay6GestureStart = (gestureStage) => {
+    const chat = [
+      'Камера ближе — чат внимательно рассматривает костюм :Pog:',
+      'Камера ближе, заявка чата принята :SubHype:',
+      'Чат ловит момент и делает клип :ClipIt:',
+      'Финальный кадр ближе — чат не отводит взгляд :Pog:',
+    ];
+    ui.pushChatMessage({ id: `village_pose_${Date.now()}`, author: 'StreamBot', color: '#c084fc', badge: 'MOD', text: chat[Math.min(gestureStage, 3)]! });
+  };
+  stage.rig.onDay6GestureEnd = () => {
+    if (state.streamDay !== 6) return;
+    const next = pendingDay6Stage;
+    const celebrations = pendingDay6Celebrations;
+    pendingDay6Stage = null;
+    pendingDay6Celebrations = [];
+    if (next !== null) state = { ...state, displayedSubStage: next };
+    if (celebrations.length) celebrateSubGoalUnlocks(celebrations);
+    syncAll();
+  };
+
   stage.onHeroineTap = (zone: TapZoneId) => {
     lastPlayerInteractionMs = performance.now();
     const outcome = applyTap(state, zone);
     state = outcome.state;
+    holdDay6Stage();
     const afterStats = computeStats(state);
     stage.rig.setBoldness(afterStats.boldness);
 
@@ -258,14 +303,16 @@ export async function bootstrapApp(): Promise<void> {
       ui.showSpeech(GHOST_BOO_LINES[state.totalTaps % GHOST_BOO_LINES.length]!);
       stage.spawnReactionCallout('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 3));
-    } else if (isFeverTrigger) {
+    } else if (isFeverTrigger && state.streamDay !== 6) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
       ui.showSpeech(pickFeverOverheatLine(zone, state.displayedSubStage, state.totalTaps, state.streamDay));
     } else if (state.streamDay >= 2 && state.totalTaps % 2 === 1) {
       // Day 2/3: every tap gets an answer from her, tuned to the stage she is actually on.
       ui.showSpeech(pickStageTapLine(zone, state.totalTaps, state.displayedSubStage, state.streamDay));
     } else {
-      ui.showSpeech(outcome.line);
+      ui.showSpeech(state.streamDay === 6 && pendingDay6Stage !== null
+        ? pickStageTapLine(zone, state.totalTaps, state.displayedSubStage, 6)
+        : outcome.line);
     }
 
     if (state.totalTaps % 2 === 0 || isFeverTrigger) {
@@ -392,7 +439,7 @@ export async function bootstrapApp(): Promise<void> {
     const res = selectDisplayedSubStage(state, targetStage);
     if (!res.ok) return;
     state = res.state;
-    stage.setSubStage(state.displayedSubStage, true);
+    if (!stage.rig.isDay6GestureActive()) stage.setSubStage(state.displayedSubStage, true);
     syncAll();
   };
 
