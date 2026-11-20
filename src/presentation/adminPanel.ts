@@ -35,6 +35,7 @@ export interface AdminSnapshot {
   day3Unlocked: boolean;
   day4Unlocked: boolean;
   day5Unlocked: boolean;
+  day6Unlocked: boolean;
   saveSuppressed: boolean;
 }
 
@@ -157,7 +158,8 @@ export class AdminPanel {
       btn.disabled =
         (day === 3 && !s.day3Unlocked) ||
         (day === 4 && !s.day4Unlocked) ||
-        (day === 5 && !s.day5Unlocked);
+        (day === 5 && !s.day5Unlocked) ||
+        (day === 6 && !s.day6Unlocked);
       btn.title =
         day === 3 && !s.day3Unlocked
           ? 'Нет косплей-артов в сборке'

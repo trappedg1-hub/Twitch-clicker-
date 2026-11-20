@@ -176,6 +176,24 @@ const DONATION_TTS_LINES: readonly string[] = [
  * clear vinyl heels, and the fact that she is now the one naming prices. Exported for `copyAudit` and
  * `scripts/linescan_days.ts`, and every line here is checked against the plate that would be on screen.
  */
+export const AMBIENT_DAY6: readonly string[] = [
+ 'отчёт по эфиру: шляпа на месте, подписки растут :Pog:',
+ 'проводим аванс по накладной, чат :SubHype:',
+];
+export const AMBIENT_DAY6_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+ 0: ['костюм из детства, теперь мал на четыре размера. отчёт принят :Pog:', '54000 — следующий пункт накладной, собираем аванс :SubHype:'],
+ 1: ['она спрашивает, что сделать с огурцом — ОБЛИЖИ ЕГО, Мия! :Pog:', 'чат подал заявку: оближи огурец! 61000 уже собираем :SubHype:'],
+ 2: ['чмок-чмок в микрофон, урожай сочный, отчёт принят :ClipIt:', 'она сама облизывает огурец, фиксируем звук в накладной :Pog:'],
+ 3: ['ножки в масле? я бы облизал! заявку подписываю :Pog:', 'весь чат бы облизал, заявка коллективная :SubHype:'],
+ 4: ['мы бы облизали! коллективная заявка чата :Pog:'],
+};
+const FAREWELL_CHAT_DAY6: readonly { author: string; color: string; badge?: "MOD" | "SUB" | "VIP" | "DONATE"; text: string; highlight?: boolean }[] = [
+ {author:'StreamBot', color:'#c084fc', badge:'MOD' as const, text:'урожай собран, эфир закрыт :SubHype:'},
+ {author:'agronom', color:'#4ade80', badge:'SUB' as const, text:'накладная подписана, аванс отправлен :Pog:'},
+ {author:'zritel', color:'#00e5ff', badge:'VIP' as const, text:'переработка прошла по тарифу :ClipIt:'},
+ {author:'kaktus', color:'#4ade80', badge:'SUB' as const, text:'спасибо за эфир, до завтра :miyaLove:'},
+ {author:'StreamBot', color:'#c084fc', badge:'MOD' as const, text:'спокойной ночи, чат :Pog:'},
+];
 export const AMBIENT_DAY5: readonly string[] = [
   'она сама придвинула кресло ближе к вебке. ПЯТЬ ДНЕЙ НАЗАД Я ТАКОГО НЕ МОГ ПРЕДСТАВИТЬ :Kreygasm: :ClipIt:',
   'микро-бикини, прозрачные шпильки и ни грамма смущения на лице. это не стриптиз, это деловая встреча :Pog: :LUL:',
@@ -582,7 +600,9 @@ export function createAmbientChatMessage(
 ): ChatMessage {
   const viewer = VIEWER_NICKS[seed % VIEWER_NICKS.length]!;
   const pool =
-    streamDay === 5
+    streamDay === 6
+      ? [...AMBIENT_DAY6_BY_STAGE[displayedStage], ...AMBIENT_DAY6]
+      : streamDay === 5
       ? [
           ...(AMBIENT_DAY5_BY_STAGE[displayedStage] ?? []),
           ...AMBIENT_DAY5,
@@ -625,6 +645,10 @@ export function createZoneBurstMessage(
   streamDay = 1,
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 3 + 2) % VIEWER_NICKS.length]!;
+  if (streamDay === 6) {
+    const pool = AMBIENT_DAY6_BY_STAGE[displayedStage];
+    return { id: nextMsgId(), author: viewer.name, color: viewer.color, badge: viewer.badge, text: pool[Math.abs(seed) % pool.length]! };
+  }
   if (streamDay === 5) {
     // Bikini day: same contract as the yoga day — the tap buys a closer angle, not an uncovered inch.
     // The generic pools below are Day-1/Day-2 bare-skin vocabulary and would describe a plate that does
@@ -735,7 +759,9 @@ export function createViralClipChatMessage(
   const clipper = VIEWER_NICKS[(seed * 5 + 3) % VIEWER_NICKS.length]!;
   // The clip title is the day's poster: on the yoga day it names the pose, not a strip.
   const titles =
-    streamDay === 5
+    streamDay === 6
+      ? ['Деревенский эфир: заявка чата', 'Урожай по тарифу']
+      : streamDay === 5
       ? VIRAL_CLIP_TITLES_DAY5[zone]
       : streamDay === 4
         ? VIRAL_CLIP_TITLES_DAY4[zone]
@@ -760,7 +786,9 @@ export function createDonationChatMessage(
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 5 + 1) % VIEWER_NICKS.length]!;
   const pool =
-    streamDay === 5
+    streamDay === 6
+      ? ['Аванс за эфир отправлен, чат требует продолжения!', 'Внесите подписку в накладную, пожалуйста!']
+      : streamDay === 5
       ? DONATION_TTS_LINES_DAY5
       : streamDay === 4
         ? DONATION_TTS_LINES_DAY4
@@ -1023,7 +1051,9 @@ const FAREWELL_CHAT_DAY4: readonly {
 /** The goodbye chat follows the day that just ended - no stale "500 subs" copy on Day 3. */
 export function createFarewellChatMessage(index: number, streamDay = 1): ChatMessage {
   const pool =
-    streamDay === 5
+    streamDay === 6
+      ? FAREWELL_CHAT_DAY6
+      : streamDay === 5
       ? FAREWELL_CHAT_DAY5
       : streamDay === 4
         ? FAREWELL_CHAT_DAY4

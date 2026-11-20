@@ -1,5 +1,5 @@
 /** Which day's plate ladder the rig is currently showing. */
-export type WardrobeDay = 1 | 2 | 3 | 4 | 5;
+export type WardrobeDay = 1 | 2 | 3 | 4 | 5 | 6;
 
 import {
   Container,
@@ -45,6 +45,7 @@ export interface HeroineTextures {
    * single frame to crossfade to, and inventing one would put unapproved art on screen.
    */
   day5Stages?: Texture[];
+  day6Stages?: Texture[];
 }
 
 interface EnvelopeState {
@@ -110,6 +111,7 @@ export class HeroineRig {
   private readonly day4Textures: Texture[] | null;
   /** Day 5 (bikini stream) plates; null until all four ship. No flash plate exists for this day. */
   private readonly day5Textures: Texture[] | null = null;
+  private readonly day6Textures: Texture[] | null = null;
 
   /** Day 4 «Готово!» flash frame: the finale reveal plate, same crossfade machinery as Day 3. */
   private readonly yogaFlashTex: Texture | null = null;
@@ -192,6 +194,7 @@ export class HeroineRig {
     // "same length as Day 1": indexing past the end of it is handled by the `?? stage 0` fallbacks.
     this.day4Textures =
       textures.day4Stages && textures.day4Stages.length >= 4 ? [...textures.day4Stages] : null;
+    this.day6Textures = textures.day6Stages && textures.day6Stages.length >= 4 ? [...textures.day6Stages] : null;
     this.day5Textures =
       textures.day5Stages && textures.day5Stages.length >= 4 ? [...textures.day5Stages] : null;
     this.ghostFlashTex = textures.ghostFlash && textures.ghostFlash.length > 0
@@ -339,6 +342,8 @@ export class HeroineRig {
     this.stageTextures =
       day === 1
         ? [...this.day1Stages]
+        : day === 6 && this.day6Textures
+          ? [...this.day6Textures]
         : day === 5 && this.day5Textures
           ? [...this.day5Textures]
           : day === 4 && this.day4Textures
@@ -351,7 +356,7 @@ export class HeroineRig {
       this.mesh.texture = nextTex;
       this.applyPosePatchGeometry();
       this.triggerEmotion(
-        day === 1 ? 'shy' : day === 3 || day === 4 || day === 5 ? 'bold' : 'fluster',
+        day === 1 ? 'shy' : day === 3 || day === 4 || day === 5 || day === 6 ? 'bold' : 'fluster',
         2400,
       );
     }
@@ -370,7 +375,7 @@ export class HeroineRig {
   public triggerGhostBoo(durationMs = 520): boolean {
     // Day 5 has no flash plate at all (`DAY5_FLASH_PLATE === null`), so the crossfade machinery is not
     // borrowed this time: `false` tells the caller to skip the flash-specific callout and chat burst.
-    if (this.wardrobeDay === 5) return false;
+    if (this.wardrobeDay === 5 || this.wardrobeDay === 6) return false;
     // Day 4 owns the same crossfade machinery for its «Готово?» beat: one flash plate, one timer.
     if (this.wardrobeDay === 4) return this.flashTo(this.yogaFlashTex, durationMs);
     if (this.wardrobeDay !== 3 || !this.ghostFlashTex) return false;
@@ -413,7 +418,10 @@ export class HeroineRig {
   }
 
   /** Which plate ladder is actually on screen (Day 3/4 = Day 2 art until their plates ship). */
-  public getPlateDay(): 1 | 2 | 3 | 4 | 5 {
+  public hasDay6Plates(): boolean { return this.day6Textures !== null; }
+
+  public getPlateDay(): 1 | 2 | 3 | 4 | 5 | 6 {
+    if (this.wardrobeDay === 6 && !this.day6Textures) return 2;
     if (this.wardrobeDay === 5 && !this.day5Textures) return 2;
     if (this.wardrobeDay === 4 && !this.day4Textures) return 2;
     return this.wardrobeDay === 3 && !this.day3Textures ? 2 : this.wardrobeDay;

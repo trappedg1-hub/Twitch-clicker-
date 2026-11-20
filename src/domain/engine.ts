@@ -1,10 +1,12 @@
-import { type DialogueBand, pickDialogueLine } from './dialogue.ts';
+import { type DialogueBand, pickDialogueLine, pickIdleTeaseLine } from './dialogue.ts';
 import { getStoryChapter, STREAM_CHALLENGES } from './progression.ts';
 import {
   DAY1_FINALE_SUBS,
   DAY3_FINALE_SUBS,
   DAY4_FINALE_SUBS,
+  DAY5_FINALE_SUBS,
   isDay5Unlocked,
+  isDay6Unlocked,
   isDay4Unlocked,
   isDay3Unlocked,
   getGiftSubPackCost,
@@ -454,6 +456,16 @@ export function startDay5(state: GameState): { ok: boolean; state: GameState } {
   };
 }
 
+export function isDay5FinaleReached(state: GameState): boolean {
+  return state.streamDay === 5 && state.subscribers >= DAY5_FINALE_SUBS;
+}
+export function startDay6(state: GameState): { ok: boolean; state: GameState } {
+  if (!isDay5FinaleReached(state) || !isDay6Unlocked()) return { ok: false, state };
+  return { ok: true, state: { ...state, streamDay: 6,
+    carriedOverWardrobeStage: Math.max(state.carriedOverWardrobeStage ?? 0, state.unlockedSubStage) as SubGoalStageIndex,
+    unlockedSubStage: 0, displayedSubStage: 0, hype: 100 } };
+}
+
 export function triggerStreamChallenge(
   state: GameState,
   challengeId: ChallengeId,
@@ -543,6 +555,8 @@ export function triggerStreamChallenge(
     gainedSubs,
     line: latestUnlock
       ? latestUnlock.unlockLine
+      : subResolved.state.streamDay === 6
+        ? pickIdleTeaseLine(subResolved.state.displayedSubStage, challengeId.length, 6)
       : subResolved.state.streamDay === 2
         ? (def.reactionLineDay2 ?? def.reactionLine)
         : subResolved.state.streamDay === 4
@@ -554,7 +568,9 @@ export function triggerStreamChallenge(
     // Day 4 and Day 5 both rewrite the viewers' demand: neither day has a garment to remove, so the
     // chat asks for a closer pose instead of a strip.
     chatBurst:
-      subResolved.state.streamDay === 4
+      subResolved.state.streamDay === 6
+        ? 'Заявка принята, аванс за эфир поступил! :SubHype: :Pog:'
+        : subResolved.state.streamDay === 4
         ? (def.chatBurstDay4 ?? def.chatBurst)
         : subResolved.state.streamDay === 5
           ? (def.chatBurstDay5 ?? def.chatBurst)
@@ -708,7 +724,7 @@ export function deserializeState(raw: string | null, nowMs = Date.now()): GameSt
     // just to look at one plate again. Note this deliberately does NOT consult isDay3Unlocked() —
     // that flag only turns on after the async art probe resolves, so gating the load on it would
     // throw Day 3 away on every hard reload, which is exactly the bug being fixed.
-    const streamDay = rawDay === 5 ? 5 : rawDay === 4 ? 4 : rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
+    const streamDay = rawDay === 6 ? 6 : rawDay === 5 ? 5 : rawDay === 4 ? 4 : rawDay === 3 ? 3 : rawDay === 2 ? 2 : 1;
     const rawCarried = Number(parsed.carriedOverWardrobeStage);
     const carriedOverWardrobeStage: SubGoalStageIndex = (
       Number.isInteger(rawCarried) && rawCarried >= 0 && rawCarried <= 4

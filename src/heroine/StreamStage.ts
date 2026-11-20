@@ -13,7 +13,7 @@ import type {
   SubGoalStageIndex,
   TapZoneId,
 } from '../domain/types.ts';
-import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
+import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 
 interface FloatingParticle {
@@ -161,7 +161,7 @@ export class StreamStage {
     // One loader for both late days: Day 3 (cosplay) and Day 4 (yoga) are cut after the boot ladder and
     // may legitimately not exist yet - in that case the rig keeps the Day 2 art instead of 404-ing.
     const loadLadder = async (
-      day: 3 | 4 | 5,
+      day: 3 | 4 | 5 | 6,
       flashPlate: string | null,
     ): Promise<{ stages?: Texture[]; flash?: Texture }> => {
       const defs = getSubGoalStagesForDay(day);
@@ -186,10 +186,11 @@ export class StreamStage {
         return {}; // decode failed - the Day 2 ladder keeps the rig alive
       }
     };
-    const [ghostLadder, yogaLadder, bikiniLadder] = await Promise.all([
+    const [ghostLadder, yogaLadder, bikiniLadder, villageLadder] = await Promise.all([
       loadLadder(3, DAY3_FLASH_PLATE),
       loadLadder(4, DAY4_FLASH_PLATE),
       loadLadder(5, DAY5_FLASH_PLATE),
+      loadLadder(6, DAY6_FLASH_PLATE),
     ]);
     const day3StagesTex = ghostLadder.stages;
     const ghostFlashTex = ghostLadder.flash;
@@ -257,6 +258,7 @@ export class StreamStage {
       day4Stages: day4StagesTex,
       yogaFlash: yogaFlashTex ? [yogaFlashTex] : undefined,
       day5Stages: day5StagesTex,
+      day6Stages: villageLadder.stages,
     });
     const heroScale = 724 / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
@@ -432,7 +434,7 @@ export class StreamStage {
     return this.rig?.triggerGhostBoo(durationMs) ?? false;
   }
 
-  public setWardrobeDay(day: 1 | 2 | 3 | 4 | 5): void {
+  public setWardrobeDay(day: 1 | 2 | 3 | 4 | 5 | 6): void {
     this.rig?.setWardrobeDay(day);
     this.rig?.setFaceAnchorFor(this.getActivePlateName());
   }

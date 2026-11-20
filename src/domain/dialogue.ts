@@ -78,11 +78,27 @@ export const DAY3_FAREWELL_LINES: readonly string[] = [
  * asking for more. Day 5 is the last built day, so — exactly like Day 4 used to — she hands the format
  * vote back to the chat instead of promising a ladder that does not exist yet.
  */
+export const DAY6_OPENING_LINE = 'Чат, как вам мой костюм? Я носила этот комбинезон, когда была маленькой. Теперь он мне мал, зато аванс за эфир уже в кассе~';
+export const DAY6_FAREWELL_LINES: readonly string[] = [
+  'Шестьдесят восемь тысяч! Урожай собран, отчёт закрыт, а я всё ещё в кресле.',
+  'Спасибо за подписки, чат. Вы умеете считать аванс и уговаривать меня одновременно~',
+  'Ножки в масле, кукуруза в руках. В накладной это называется переработкой!',
+  'Следующий формат пока оставим сюрпризом. Отдыхайте, мои хорошие!',
+  'До встречи, чат. Эфир закрыт, премия заслужена~ ♥',
+];
+export const DAY6_IDLE_BY_STAGE: Record<SubGoalStageIndex, readonly string[]> = {
+  0: ['Как вам мой костюм? Я носила его, когда была маленькой, а теперь он мал на четыре размера~', 'Швы держатся, шляпа на месте. Чат, аванс за показ принимаю подписками.'],
+  1: ['Какой большой огурец! Что же мне с ним сделать, чат?~', 'Вы предлагаете его облизать? Интересная заявка, чат. Назовите тариф!'],
+  2: ['Я облизываю огурец... чмок! Сочный, а микрофон всё слышит~', 'Ммм, чмок-чмок! Я сосу сочный огурец, чат, вот это переработка урожая~'],
+  3: ['Ножки в масле... кто бы их облизал, чат? Я вижу ваши заявки~', 'Кукуруза в руках, ножки в масле. Работать надо по тарифу, чат!'],
+  4: ['Ножки в масле... кто бы их облизал? Чат уже отвечает за всех~'],
+};
+
 export const DAY5_FAREWELL_LINES: readonly string[] = [
   'Сорок семь тысяч сабов... и я за весь эфир не сняла ни одной детали. Я только поворачивалась. Чат, это и есть дисциплина~',
   'Спасибо каждому, кто сегодня считал вслух и не трогал руками. Кресло выдержало, неон натянулся, узелки не развязались — все справились.',
   'Мне понравилось, как прозвучало «смотрите и платите» в мой адрес. Пять дней назад за эту фразу я бы сгорела, а сегодня я её придумала.',
-  'Формат следующего эфира я ещё не выбрала. Чат, голосуйте подписками честно: что набьёте, то и будет, а я уже ничему не удивляюсь~',
+  'Завтра День 6: деревенская девочка и мой комбинезон из детства. Готовьте подписки, чат~',
   'Всем спокойной ночи, мои хорошие. Камера выключается первой, я — последней. Пятый день закрыт, и он был мой~ ★ ♥',
 ];
 
@@ -180,6 +196,7 @@ export function pickStageTapLine(
   streamDay = 2,
 ): string {
   const w = getWardrobe(streamDay, displayedStage);
+  if (streamDay === 6) return pickFromPool([DAY6_IDLE_BY_STAGE[displayedStage]], w, seed, zone);
   if (streamDay === 5) {
     const stagePool5 = DAY5_STAGE_ZONE_LINES[displayedStage]?.[zone] ?? [];
     const picked5 = pickFromPool([stagePool5], w, seed, zone);
@@ -788,6 +805,7 @@ export interface StreamSituation {
 }
 
 export function pickSituationLine(s: StreamSituation): string {
+  if (s.streamDay === 6) return pickFromPool([DAY6_IDLE_BY_STAGE[s.stage]], getWardrobe(6, s.stage), s.seed);
   const left = s.nextGoalSubs === null ? 0 : Math.max(0, s.nextGoalSubs - s.subs);
   const total = s.nextGoalSubs ?? 1;
   const nearly = total > 0 && left > 0 && left / total < 0.08;
@@ -1258,6 +1276,11 @@ export function getStreamTitle(
   subs: number,
   streamDay: number = 1,
 ): string {
+  if (streamDay === 6) {
+    const titles = ['День 6: ДЕРЕВЕНСКАЯ ДЕВОЧКА', 'Огурец в руках', 'Сочный огурец', 'Ножки в масле', 'Финал деревенского дня'];
+    const target = displayedStage === 0 ? 54000 : displayedStage === 1 ? 61000 : 68000;
+    return `${titles[displayedStage]} ★ SUB GOAL ${subs}/${target}`;
+  }
   if (streamDay === 2) {
     switch (displayedStage) {
       case 0:
@@ -1336,6 +1359,7 @@ export function pickDialogueLine(
   streamDay: number = 1,
 ): string {
   const w = getWardrobe(streamDay, displayedStage);
+  if (streamDay === 6) return pickStageTapLine(zone, seedIndex, displayedStage, 6);
   const stagePool = STAGE_ZONE_OVERRIDES[displayedStage]?.[zone];
   const bandPool = ZONE_DIALOGUES[zone][band];
   if (stagePool && stagePool.length > 0 && (band <= 2 || seedIndex % 2 === 0)) {
@@ -1361,6 +1385,7 @@ export function pickIdleTeaseLine(
   streamDay = 1,
 ): string {
   const w = getWardrobe(streamDay, displayedStage);
+  if (streamDay === 6) return pickFromPool([DAY6_IDLE_BY_STAGE[displayedStage]], w, seed);
   if (streamDay === 5) {
     const stagePool = DAY5_IDLE_BY_STAGE[displayedStage] ?? [];
     const picked = pickFromPool([stagePool], w, seed);

@@ -304,9 +304,18 @@ export const DAY5_STORY_CHAPTERS: readonly StoryChapterDef[] = [
   },
 ] as const;
 
+export const DAY6_STORY_CHAPTERS: readonly StoryChapterDef[] = [
+ {stage:1,minBoldness:0,badgeTitle:'День 6 • Костюм',headline:'Комбинезон из детства и аванс за эфир',diaryThought:'«Костюм стал мал, а я научилась называть цену.»'},
+ {stage:2,minBoldness:45,badgeTitle:'День 6 • Урожай',headline:'Огурец и заявки чата',diaryThought:'«Чат предложил план переработки, а я установила тариф.»'},
+ {stage:3,minBoldness:70,badgeTitle:'День 6 • Переработка',headline:'Сочный урожай и звук в микрофон',diaryThought:'«Сочный урожай и отчёт для чата — всё по плану.»'},
+ {stage:4,minBoldness:88,badgeTitle:'День 6 • Финал',headline:'Ножки в масле и кукуруза',diaryThought:'«Урожай собран, премия выплачена, а чат просит продолжения.»'},
+];
+
 export function getStoryChapter(boldness: number, streamDay = 1): StoryChapterDef {
   const chapters =
-    streamDay === 5
+    streamDay === 6
+      ? DAY6_STORY_CHAPTERS
+      : streamDay === 5
       ? DAY5_STORY_CHAPTERS
       : streamDay === 4
       ? DAY4_STORY_CHAPTERS

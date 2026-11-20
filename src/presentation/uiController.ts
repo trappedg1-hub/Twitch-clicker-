@@ -5,6 +5,7 @@ import {
   DAY3_FAREWELL_LINES,
   DAY4_FAREWELL_LINES,
   DAY5_FAREWELL_LINES,
+  DAY6_FAREWELL_LINES,
   getStreamTitle,
 } from '../domain/dialogue.ts';
 import { STREAM_CHALLENGES } from '../domain/progression.ts';
@@ -15,6 +16,7 @@ import {
   isDay3Unlocked,
   isDay4Unlocked,
   isDay5Unlocked,
+  isDay6Unlocked,
   SUB_GOAL_STAGES,
   getGiftSubPackCost,
   getSubGoalStagesForDay,
@@ -121,7 +123,7 @@ export class UiController {
   // Day 1 finale farewell state machine: Miya says good-bye before Day 2 unlocks.
   private farewellPhase: 'idle' | 'playing' | 'done' = 'idle';
   /** Which day's farewell is playing (1 = Day 1 -> Day 2, 2 = Day 2 -> Day 3). */
-  private farewellDay: 1 | 2 | 3 | 4 | 5 = 1;
+  private farewellDay: 1 | 2 | 3 | 4 | 5 | 6 = 1;
   private farewellTimers: number[] = [];
 
   private activeTab: BottomTabId = 'stream';
@@ -270,6 +272,7 @@ export class UiController {
 
   /** The farewell belongs to whichever day just ended. */
   private farewellLines(): readonly string[] {
+    if (this.farewellDay === 6) return DAY6_FAREWELL_LINES;
     if (this.farewellDay === 5) return DAY5_FAREWELL_LINES;
     if (this.farewellDay === 4) return DAY4_FAREWELL_LINES;
     if (this.farewellDay === 3) return DAY3_FAREWELL_LINES;
@@ -331,7 +334,9 @@ export class UiController {
     // The button leads to the NEXT day, so it lights up on that day's art gate. Day 5 is the last day
     // built so far, so its own card has nothing to hand the player to — the copy says so instead.
     this.startDay2BtnEl.disabled =
-      this.farewellDay === 2
+      this.farewellDay === 5
+        ? !isDay6Unlocked()
+        : this.farewellDay === 2
         ? !isDay3Unlocked()
         : this.farewellDay === 3
           ? !isDay4Unlocked()
@@ -356,7 +361,9 @@ export class UiController {
 
   public render(state: GameState, stats: ComputedStats, nowMs = Date.now()): void {
     this.dayBadgeEl.textContent =
-      state.streamDay === 5
+      state.streamDay === 6
+        ? 'День 6 ★ ДЕРЕВНЯ'
+        : state.streamDay === 5
         ? 'День 5 ★ БИКИНИ'
         : state.streamDay === 4
           ? 'День 4 ★ ЙОГА'
@@ -365,8 +372,10 @@ export class UiController {
           : state.streamDay === 2
             ? 'День 2 ★'
             : 'День 1';
-    const finaleDay: 1 | 2 | 3 | 4 | 5 =
-      state.streamDay === 5
+    const finaleDay: 1 | 2 | 3 | 4 | 5 | 6 =
+      state.streamDay === 6
+        ? 6
+        : state.streamDay === 5
         ? 5
         : state.streamDay === 4
           ? 4
@@ -376,14 +385,16 @@ export class UiController {
               ? 2
               : 1;
     const finaleTarget = dayFinaleSubs(finaleDay);
-    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 5;
+    const isFinale = state.subscribers >= finaleTarget && state.streamDay <= 6;
     if (isFinale && this.farewellDay !== finaleDay) {
       this.farewellDay = finaleDay;
       this.farewellPhase = 'idle';
     }
     if (isFinale) {
       this.finaleKickerEl.textContent =
-        finaleDay === 5
+        finaleDay === 6
+          ? '★ ФИНАЛ ДЕРЕВЕНСКОГО ДНЯ ★'
+          : finaleDay === 5
           ? '★ ФИНАЛ БИКИНИ-ДНЯ: 5 БИКИНИ СТРИМ ★'
           : finaleDay === 4
           ? '★ ФИНАЛ ЙОГА-ДНЯ: РАСТЯЖКА ★'
@@ -394,7 +405,9 @@ export class UiController {
             : '★ ФИНАЛ ПЕРВОГО ДНЯ ★';
       this.finaleTitleEl.textContent = `${finaleTarget} сабов пробито!`;
       this.finaleDescEl.innerHTML =
-        finaleDay === 5
+        finaleDay === 6
+          ? `Деревенский эфир закрыт: <strong>${finaleTarget} сабов</strong>. Урожай собран, чат доволен!`
+          : finaleDay === 5
           ? `Бикини-эфир закрыт: <strong>${finaleTarget} сабов</strong>, четыре кадра и ни одна деталь не сдвинулась. Мия сама выбирала ракурс — и уже думает, что вы набьёте в следующий раз.`
           : finaleDay === 4
           ? `Йога-эфир закрыт: <strong>${finaleTarget} сабов</strong>, четыре позы и ни одна снятая вещь. Мия осталась сидеть в кресле и думает, какой формат выбрать дальше.`
@@ -407,8 +420,10 @@ export class UiController {
       // promises a ladder whose plates are not in the build. Day 5 is the last day with art today, so
       // its own card has nothing to hand the player to and stays a read-only goodbye.
       this.startDay2BtnEl.textContent =
-        finaleDay === 5
-          ? 'Бикини-день закрыт — следующий формат выберет чат'
+        finaleDay === 6
+          ? 'Деревенский день закрыт'
+          : finaleDay === 5
+          ? (isDay6Unlocked() ? 'Начать День 6 (деревенская девочка) →' : 'Арты дня 6 ещё не загружены')
           : finaleDay === 4
             ? isDay5Unlocked()
               ? 'Начать День 5 (5 бикини стрим) →'
@@ -424,7 +439,9 @@ export class UiController {
                 : 'Начать День 2 →';
       this.finaleOpenBtnEl.classList.remove('hidden');
       this.finaleOpenBtnEl.textContent =
-        finaleDay === 5
+        finaleDay === 6
+          ? '★ Деревенский день закрыт — открыть финал'
+          : finaleDay === 5
           ? '★ Бикини-день закрыт — открыть финал'
           : finaleDay === 4
           ? '★ Йога-день закрыт — открыть финал'
@@ -443,8 +460,10 @@ export class UiController {
       // The Day-3 button re-checks the art probe on every render, so it lights up without a reload.
       if (this.farewellPhase === 'done') {
         this.startDay2BtnEl.disabled =
-          finaleDay === 5
+          finaleDay === 6
             ? true
+            : finaleDay === 5
+            ? !isDay6Unlocked()
             : finaleDay === 4
               ? !isDay5Unlocked()
               : finaleDay === 3
@@ -482,7 +501,9 @@ export class UiController {
     } else {
       this.obsSubgoalEl.classList.add('completed');
       this.subgoalTargetNameEl.textContent =
-        state.streamDay === 5
+        state.streamDay === 6
+          ? `День 6: урожай собран — ${finaleTarget} сабов! ★`
+          : state.streamDay === 5
           ? `День 5: камера взяла всё, что обещала — ${finaleTarget} сабов! ★`
           : state.streamDay === 4
           ? `День 4: кресло выдержало всё — ${finaleTarget} сабов! ★`
