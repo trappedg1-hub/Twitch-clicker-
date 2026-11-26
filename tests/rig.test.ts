@@ -30,15 +30,17 @@ test('index lists the arts that have a face kit', () => {
   }
 });
 
+const rig = (art: string) => index[art]!;
+
 test('art with food at the mouth never animates the mouth', () => {
   for (const art of ['t6_s1', 't6_s2', 't6_s3']) {
-    assert.equal(index[art].hasMouth, false, `${art} must not ship a mouth slot`);
-    assert.ok(!index[art].animations.includes('idle_talk'), `${art} must not ship idle_talk`);
+    assert.equal(rig(art).hasMouth, false, `${art} must not ship a mouth slot`);
+    assert.ok(!rig(art).animations.includes('idle_talk'), `${art} must not ship idle_talk`);
   }
   // ...and arts without a prop do have it, or the talk state would be dead weight.
   for (const art of ['t1_s0', 't5_start_hq2']) {
-    assert.equal(index[art].hasMouth, true, `${art} should ship a mouth slot`);
-    assert.ok(index[art].animations.includes('idle_talk'), `${art} should ship idle_talk`);
+    assert.equal(rig(art).hasMouth, true, `${art} should ship a mouth slot`);
+    assert.ok(rig(art).animations.includes('idle_talk'), `${art} should ship idle_talk`);
   }
 });
 
@@ -58,10 +60,12 @@ for (const [art, entry] of Object.entries(index)) {
     const mesh = doc.skeleton.skins[0].attachments.slot_body.miya_body;
     const verts: number[] = mesh.vertices;
     for (let i = 0; i < verts.length; i += 2) {
-      assert.ok(verts[i] >= 0 && verts[i] <= doc.width, `${art}: vertex x ${verts[i]} outside canvas`);
+      const v = verts[i]!;
+      assert.ok(v >= 0 && v <= doc.width, `${art}: vertex x ${v} outside canvas`);
     }
     for (let i = 1; i < verts.length; i += 2) {
-      assert.ok(verts[i] >= 0 && verts[i] <= doc.height, `${art}: vertex y ${verts[i]} outside canvas`);
+      const v = verts[i]!;
+      assert.ok(v >= 0 && v <= doc.height, `${art}: vertex y ${v} outside canvas`);
     }
 
     // Mesh bookkeeping the renderer depends on.
@@ -94,9 +98,10 @@ for (const [art, entry] of Object.entries(index)) {
         const bone = bones.get(timeline.id);
         assert.ok(bone, `${art}/${anim.name}: timeline targets unknown bone ${timeline.id}`);
         const first = timeline.keys[0].value as number;
+        const setup = bone[timeline.property] ?? Number.NaN;
         assert.ok(
-          Math.abs(first - bone[timeline.property]) < 1e-6,
-          `${art}/${anim.name}: ${timeline.id}.${timeline.property} opens at ${first}, setup is ${bone[timeline.property]}`,
+          Math.abs(first - setup) < 1e-6,
+          `${art}/${anim.name}: ${timeline.id}.${timeline.property} opens at ${first}, setup is ${setup}`,
         );
       }
     }

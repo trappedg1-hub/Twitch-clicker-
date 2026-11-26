@@ -148,7 +148,13 @@ export class HeroineRig {
    * flash frame, a load failure — is instant and never shows a half-built heroine.
    */
   public setPlateVisible(visible: boolean): void {
-    this.bodyContainer.visible = visible;
+    // Only the PICTURE goes away. `hitLayer` lives in the same container and carries the tap
+    // zones — hiding the container would make the whole clicker stop responding to taps on her,
+    // which is the one thing this screen must do.
+    this.mesh.visible = visible;
+    this.boldRestSprite.visible = visible;
+    this.emotionSprite.visible = visible;
+    this.blinkSprite.visible = visible;
   }
 
   public static readonly PLATE_W = 1024;
