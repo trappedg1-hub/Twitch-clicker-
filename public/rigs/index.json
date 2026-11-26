@@ -8,6 +8,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk",
@@ -25,6 +26,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk",
@@ -42,6 +44,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk",
@@ -59,6 +62,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -75,6 +79,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -91,6 +96,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -107,6 +113,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -123,6 +130,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -139,6 +147,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -155,6 +164,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -171,6 +181,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -187,6 +198,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -203,6 +215,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -219,6 +232,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -235,6 +249,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -251,6 +266,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -267,6 +283,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -283,6 +300,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -299,6 +317,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink",
    "idle_talk",
    "talk"
@@ -315,6 +334,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink"
   ],
   "hasMouth": false,
@@ -329,6 +349,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink"
   ],
   "hasMouth": false,
@@ -343,6 +364,7 @@
    "sway",
    "turn",
    "shake",
+   "tap",
    "blink"
   ],
   "hasMouth": false,

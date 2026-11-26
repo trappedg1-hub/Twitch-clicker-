@@ -341,6 +341,9 @@ export class StreamStage {
 
     this.rig.onZoneTap = (zone, globalPt) => {
       const localPt = this.root.toLocal(globalPt);
+      // Every tap is a beat: a 0.4 s nod on the skeleton, small enough to repeat. `LiveHeroine`
+      // drops requests that arrive mid-beat, so hammering her animates once, not ten times.
+      this.live?.react('tap', 420);
       const res = this.onHeroineTap?.(zone);
       if (res) {
         this.spawnTapBurst(localPt.x, localPt.y, res.earned, res.alert, zone);
@@ -540,7 +543,7 @@ export class StreamStage {
     // She answers the chat: talk with the mouth, and a small head turn the hair has to catch up
     // with. Both are no-ops when the plate on screen has no rig.
     this.live?.talk(2400);
-    this.live?.react('shake', 1100);
+    this.live?.react('shake', 900);
     // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
     if (this.activeCalloutParticle) {
       const idx = this.particles.indexOf(this.activeCalloutParticle);
@@ -783,6 +786,12 @@ export class StreamStage {
     // Guarded inside `LiveHeroine`: the skeleton ticks on the stage's clock, so an exception in it
     // can never stop the app's ticker (that is exactly how a rig bug becomes a black screen).
     this.live.update(performance.now());
+
+    // One invariant instead of a dozen call sites: while the skeleton is on screen the flat plate
+    // underneath is hidden. Every path that can raise the plate — a flash beat, a stage change, a
+    // load failure, a re-shown patch layer — has to be right anyway, but if one of them is not, the
+    // player sees a doubled heroine ("ghosting") for a frame. This is that frame, deleted.
+    if (this.live.view.visible && this.rig.plateVisible) this.rig.setPlateVisible(false);
 
     // Subtle 3D webcam parallax between room back wall, heroine, and foreground desk!
     this.bgSprite.x = -12 - this.pointerNormX * 5.5;

@@ -480,20 +480,40 @@ def build() -> dict:
         "events": [],
     }
 
-    # Shake: a quick head swing and settle. Gentle authored animations (breath, sway) barely
-    # excite the springs, and that is correct — but the game needs one move that reads as
-    # "she reacted", and this is also the honest test that the hair physics is alive.
+    # Bone levers are long: the face sits ~580 px above the chest and ~166 px from the head bone,
+    # so one degree on each of the three adds up to ~10 px of travel. That is why the numbers below
+    # look tiny and the reaction reads perfectly.
+    #
+    # A reaction has to read as a beat, not as a wobble. The first cut swung the head ±6° over a
+    # full second — measured, that is 70 px of travel on her face, and because a clicker fires a
+    # reaction every few hundred milliseconds she never settled: on screen it was jelly, and the
+    # hair, chasing a 70 px swing, smeared. One beat, one overshoot, done.
     shake = {
         "id": "anim_shake",
         "name": "shake",
-        "duration": 1.1,
+        "duration": 0.8,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.18, -6.0), (0.42, 4.5), (0.66, -2.5), (0.9, 1.0), (1.1, 0))),
-            tl("bone_neck", "rotation", ((0, 0), (0.18, -2.2), (0.42, 1.6), (0.66, -0.9), (0.9, 0.4), (1.1, 0))),
-            tl("bone_chest", "rotation", ((0, 0), (0.22, 1.2), (0.5, -0.8), (0.8, 0.3), (1.1, 0))),
+            tl("bone_head", "rotation", ((0, 0), (0.12, -1.2), (0.3, 0.85), (0.5, -0.4), (0.66, 0.13), (0.8, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (0.12, -0.4), (0.3, 0.28), (0.5, -0.12), (0.8, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (0.15, 0.3), (0.42, -0.2), (0.8, 0))),
             # A small vertical dip: a reaction has weight, and without it the bust spring has
             # nothing to overshoot.
-            tl("bone_chest", "y", ((0, 0), (0.18, 5.0), (0.44, -2.5), (0.7, 1.2), (1.1, 0))),
+            tl("bone_chest", "y", ((0, 0), (0.12, 2.5), (0.34, -1.0), (0.56, 0.4), (0.8, 0))),
+        ],
+        "events": [],
+    }
+
+    # Tap: the clicker's own pulse — one short nod, small enough to repeat ten times a second
+    # without ever looking like a seizure. Different from `shake` on purpose: a donation should
+    # feel bigger than a click.
+    tap = {
+        "id": "anim_tap",
+        "name": "tap",
+        "duration": 0.42,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.07, -0.5), (0.19, 0.28), (0.42, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (0.07, -0.18), (0.19, 0.1), (0.42, 0))),
+            tl("bone_chest", "y", ((0, 0), (0.07, -1.6), (0.22, 0.6), (0.42, 0))),
         ],
         "events": [],
     }
@@ -719,7 +739,7 @@ def build() -> dict:
             "physics": physics,
         },
         "events": [],
-        "animations": [idle, breath, sway, turn, shake, blink]
+        "animations": [idle, breath, sway, turn, shake, tap, blink]
         + ([idle_talk, talk] if has_mouth else [])
         + ([smile] if has_closed_mouth else []),
         "stateMachines": [

@@ -25,7 +25,7 @@ import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } fro
  * inside a guard: whatever the skeleton does, it can only ever cost us the skeleton.
  */
 
-export type LiveReaction = 'shake' | 'turn' | 'sway';
+export type LiveReaction = 'shake' | 'turn' | 'sway' | 'tap';
 
 export interface RigStats {
   bones: number;
@@ -48,6 +48,8 @@ export class LiveHeroine {
   private pendingArt: string | null = null;
   private talkUntil = 0;
   private reactionUntil = 0;
+  /** When the last reaction was asked for — the clicker asks faster than a beat lasts. */
+  private lastReactionAt = -Infinity;
   private destroyed = false;
   /** Animation the panel/state asked for last — the readout in the admin console. */
   private current = 'idle';
@@ -174,7 +176,11 @@ export class LiveHeroine {
   public talk(ms = 2600): void {
     const bone = this.bone;
     if (!bone || this.fault) return;
-    this.talkUntil = performance.now() + ms;
+    const now = performance.now();
+    this.talkUntil = Math.max(this.talkUntil, now + ms);
+    // Already talking, or mid-reaction: extend the deadline and leave the picture alone. Replaying
+    // the mouth pattern from its first key on every chat line is a stutter, not speech.
+    if (this.current === 'idle_talk' || this.reactionUntil > now) return;
     if (!this.animations.includes('idle_talk')) return;
     this.guard('речь', () => {
       bone.play('idle_talk', true);
@@ -182,15 +188,28 @@ export class LiveHeroine {
     });
   }
 
-  /** One-shot secondary motion — the head turns and the hair catches up by itself. */
+  /**
+   * One-shot secondary motion — the head turns and the hair catches up by itself.
+   *
+   * A clicker asks for this faster than a beat lasts. Restarting the animation on every request
+   * re-seeds the physics springs from scratch, so a nod becomes a permanent wobble; a request that
+   * arrives while the same beat is still playing is therefore dropped, not restarted. `tap` is the
+   * clicker's own pulse (a 0.4 s nod), `shake` belongs to donations.
+   */
   public react(kind: LiveReaction = 'shake', ms = 1100): void {
     const bone = this.bone;
     if (!bone || this.fault) return;
+    const now = performance.now();
+    // A tap is the common case and must never restart a beat that is still playing; a donation is
+    // rare and should always be felt, so it only yields to a reaction from the last 160 ms.
+    if (kind === 'tap' ? this.reactionUntil > now : now - this.lastReactionAt < 160) return;
+    const animation = this.animations.includes(kind) ? kind : 'shake';
     this.guard('реакция', () => {
-      bone.play(kind, false);
-      this.current = kind;
+      bone.play(animation, false);
+      this.current = animation;
     });
-    this.reactionUntil = performance.now() + ms;
+    this.reactionUntil = now + ms;
+    this.lastReactionAt = now;
   }
 
   /**

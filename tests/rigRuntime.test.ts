@@ -158,3 +158,57 @@ test('she talks from the first beat, not from the second half of the loop', () =
     assert.ok(opened, `${art}: the mouth never opens in the first half second of idle_talk`);
   }
 });
+
+test('a tap is a nod, a donation is a beat — and neither keeps wobbling', () => {
+  for (const art of ARTS) {
+    const { doc } = open(art);
+    const names = doc.animations.map((animation: { name: string }) => animation.name);
+    assert.ok(names.includes('tap'), `${art}: no tap animation`);
+    assert.ok(names.includes('shake'), `${art}: no shake animation`);
+
+    const amplitude = (anim: string, retriggerMs = 0) => {
+      const run = open(art);
+      const setup = Float32Array.from(run.vertices());
+      run.instance.play('idle', true);
+      let max = 0;
+      const step = Math.max(1, Math.round(retriggerMs / (1000 / 60)));
+      for (let frame = 0; frame < 220; frame++) {
+        if (frame === 20) run.instance.play(anim, false);
+        if (retriggerMs && frame > 20 && (frame - 20) % step === 0) run.instance.play(anim, false);
+        run.instance.advance(1 / 60);
+        const v = run.vertices();
+        for (let i = 0; i < v.length; i += 2) {
+          max = Math.max(max, Math.hypot(v[i]! - setup[i]!, v[i + 1]! - setup[i + 1]!));
+        }
+      }
+      return max;
+    };
+
+    // Bone levers are long, so these are not "big" numbers in degrees — they are pixels on a
+    // 1526 px canvas. The first shake shipped at 70 px over a full second and read as jelly.
+    const tap = amplitude('tap');
+    assert.ok(tap <= 12, `${art}: tap moves her ${tap.toFixed(1)} px (limit 12)`);
+    // A clicker fires faster than a beat lasts: the retriggered reaction must not pile up.
+    const tapped = amplitude('tap', 100);
+    assert.ok(tapped <= 12, `${art}: tap retriggered every 100 ms reaches ${tapped.toFixed(1)} px`);
+
+    const shake = amplitude('shake');
+    assert.ok(shake <= 32, `${art}: shake moves her ${shake.toFixed(1)} px (limit 32)`);
+
+    // ...and it has to END: a spring that keeps ringing is the wobble the player complained about.
+    const run = open(art);
+    const setup = Float32Array.from(run.vertices());
+    run.instance.play('idle', true);
+    let tail = 0;
+    for (let frame = 0; frame < 200; frame++) {
+      if (frame === 20) run.instance.play('shake', false);
+      run.instance.advance(1 / 60);
+      if (frame < 130) continue; // 2 s after the reaction
+      const v = run.vertices();
+      for (let i = 0; i < v.length; i += 2) {
+        tail = Math.max(tail, Math.hypot(v[i]! - setup[i]!, v[i + 1]! - setup[i + 1]!));
+      }
+    }
+    assert.ok(tail <= 2, `${art}: still moving ${tail.toFixed(1)} px two seconds after the reaction`);
+  }
+});

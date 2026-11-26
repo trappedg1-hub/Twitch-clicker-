@@ -132,7 +132,7 @@ export class HeroineRig {
   /** Day 3: while a costume layer covers her face, the blush/blink/emotion patches stay off. */
   private facePatchesHidden = false;
   /** False while the authored skeleton owns the picture — see `setPlateVisible`. */
-  private plateVisible = true;
+  private _plateVisible = true;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -149,11 +149,16 @@ export class HeroineRig {
    * the old renderer keeps ticking underneath so that switching back — a plate with no rig, a
    * flash frame, a load failure — is instant and never shows a half-built heroine.
    */
+  /** True while the flat plate is drawn. The stage uses this as an invariant, see `StreamStage.tick`. */
+  public get plateVisible(): boolean {
+    return this._plateVisible;
+  }
+
   public setPlateVisible(visible: boolean): void {
     // Only the PICTURE goes away. `hitLayer` lives in the same container and carries the tap
     // zones — hiding the container would make the whole clicker stop responding to taps on her,
     // which is the one thing this screen must do.
-    this.plateVisible = visible;
+    this._plateVisible = visible;
     this.mesh.visible = visible;
     this.boldRestSprite.visible = visible;
     this.emotionSprite.visible = visible;
@@ -298,7 +303,7 @@ export class HeroineRig {
     apply(this.emotionSprite, this.emotionTextures[this.activeEmotion]);
     apply(this.blinkSprite, this.uprightBlinkTex);
     apply(this.boldRestSprite, this.emotionTextures.bold);
-    this.boldRestSprite.visible = this.plateVisible;
+    this.boldRestSprite.visible = this._plateVisible;
   }
 
   /**
@@ -579,7 +584,7 @@ export class HeroineRig {
         : 0;
     // The live skeleton draws its own blink and its own blush. Anything this class paints on her
     // face would land on top of it at a plate-era position, so the gate is closed for both reasons.
-    const patchGate = this.facePatchesHidden || !this.plateVisible ? 0 : 1;
+    const patchGate = this.facePatchesHidden || !this._plateVisible ? 0 : 1;
     this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha) * patchGate;
     this.emotionSprite.alpha = emoAlpha * patchGate;
     this.blinkSprite.alpha =
