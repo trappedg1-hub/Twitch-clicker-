@@ -78,7 +78,16 @@ import type {
 } from '../domain/types.ts';
 import type { HeroineRig } from '../heroine/HeroineRig.ts';
 import { StreamStage } from '../heroine/StreamStage.ts';
-import { AdminPanel, type AdminPanelApi } from '../presentation/adminPanel.ts';
+import { AdminPanel, type AdminPanelApi, type AdminRigApi } from '../presentation/adminPanel.ts';
+import {
+  constraintLabel,
+  diffTuning,
+  displayValue,
+  formatTuningReport,
+  mergeTuning,
+  parseStoredTuning,
+  type RigTuning,
+} from '../heroine/rigTuning.ts';
 import { UiController } from '../presentation/uiController.ts';
 
 declare global {
@@ -155,6 +164,106 @@ export async function bootstrapApp(): Promise<void> {
   await stage.mount(stageHost);
   stage.setSubStage(state.displayedSubStage, false);
 
+  // ---- The rig can only ever cost us the rig -------------------------------------------------
+  // The skeleton draws inside the game's own Pixi stage, on the game's own clock. If anything about
+  // it throws while a frame is being drawn — a texture that is not decoded yet, a mesh rebuild on a
+  // slow phone — Pixi's ticker stops rescheduling itself and the player gets a black canvas with the
+  // HUD still on top of it. Nobody can read a console on a phone, so this page heals itself: drop
+  // the rig, restart the loop, repaint, and say why on screen.
+  const RIG_OFF_KEY = 'mt_rig_off_v1';
+  const readFlag = (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null; // private mode / blocked storage: a missing flag, not a crash
+    }
+  };
+  const writeFlag = (key: string, value: string | null): void => {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch {
+      /* storage is a convenience here, never a requirement */
+    }
+  };
+
+  const rigFaults: string[] = [];
+  const rigBanner = document.createElement('div');
+  rigBanner.id = 'rig-fault';
+  rigBanner.className = 'rig-fault hidden';
+  rigBanner.innerHTML =
+    '<b>живой риг отключён — игра на плоских артах</b><span data-reason></span>' +
+    '<button type="button" aria-label="Скрыть">✕</button>';
+  stageHost.append(rigBanner);
+  let rigBannerTimer = 0;
+  rigBanner.querySelector('button')?.addEventListener('click', () => rigBanner.classList.add('hidden'));
+
+  const reportRigFault = (reason: string): void => {
+    rigFaults.push(reason);
+    // Remember it: a device that could not draw the skeleton should not re-learn that on every
+    // reload. `?rig=1` is the deliberate exception.
+    writeFlag(RIG_OFF_KEY, '1');
+    const line = rigBanner.querySelector<HTMLElement>('[data-reason]');
+    if (line) line.textContent = reason;
+    rigBanner.classList.remove('hidden');
+    window.clearTimeout(rigBannerTimer);
+    rigBannerTimer = window.setTimeout(() => rigBanner.classList.add('hidden'), 15_000);
+  };
+  stage.onLiveFault = reportRigFault;
+
+  /**
+   * Is the render loop dead? Pixi's ticker re-requests the next frame AFTER running the callbacks,
+   * so an exception leaves `started === true` with no frame pending — the exact state of a black
+   * canvas that no `started` check would notice.
+   */
+  const tickerStalled = (): boolean => {
+    const ticker = stage.app.ticker as unknown as { started: boolean; _requestId: number | null };
+    return document.visibilityState === 'visible' && ticker.started && ticker._requestId === null;
+  };
+  const restartLoop = (): void => {
+    // `start()` is a no-op while `started` is true, so the ticker has to be cycled.
+    stage.app.ticker.stop();
+    stage.app.ticker.start();
+    stage.app.render();
+  };
+  const recoverRig = (where: string, error: unknown): void => {
+    // Only a stalled loop is a black screen. Anything else — an image that failed, a rejected
+    // promise from audio — must NOT cost the player her animated heroine.
+    if (!tickerStalled()) return;
+    const message = error instanceof Error ? error.message : String(error);
+    const culprit = stage.liveEnabled && stage.live.currentArt !== null;
+    if (stage.liveEnabled) stage.setLiveEnabled(false);
+    restartLoop();
+    if (culprit) reportRigFault(`${where}: ${message}`);
+  };
+  if (!isQa) {
+    window.addEventListener('error', (e) => recoverRig('ошибка', e.error ?? e.message));
+    window.addEventListener('unhandledrejection', (e) => recoverRig('промис', e.reason));
+    // The swallowed case: something killed the loop without reaching a listener at all.
+    window.setInterval(() => {
+      if (!tickerStalled()) return;
+      if (stage.liveEnabled) stage.setLiveEnabled(false);
+      restartLoop();
+    }, 1500);
+  }
+
+  // `?rig=0` forces flat plates, `?rig=1` forces the skeleton back on a device that gave up on it.
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('rig') === '0') stage.setLiveEnabled(false);
+  else if (urlParams.get('rig') === '1') writeFlag(RIG_OFF_KEY, null);
+  else if (readFlag(RIG_OFF_KEY) === '1') stage.setLiveEnabled(false);
+
+  // Which arts actually have a rig — asked once, from the same index the game could use.
+  let riggedArts: Set<string> | null = null;
+  void fetch('/rigs/index.json')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((json: unknown) => {
+      if (json && typeof json === 'object') riggedArts = new Set(Object.keys(json as object));
+    })
+    .catch(() => undefined);
+
+  const artOfPlate = (plate: string) => plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
+
   ui.onTabChange = (tab: BottomTabId) => {
     lastPlayerInteractionMs = performance.now();
     stage.setDrawerOpen(tab !== 'stream');
@@ -205,7 +314,13 @@ export async function bootstrapApp(): Promise<void> {
     if (!isQa && !adminSaveSuppressed) {
       localStorage.setItem(SAVE_STORAGE_KEY, serializeState(state));
     }
-    adminPanel?.refresh();
+    // The console is a tool, not a load-bearing part of the game: a bug in it must not be able to
+    // stop a frame from being drawn.
+    try {
+      adminPanel?.refresh();
+    } catch (error) {
+      console.warn('[admin] refresh failed (ignored)', error);
+    }
   };
 
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
@@ -811,6 +926,78 @@ export async function bootstrapApp(): Promise<void> {
     return res.note;
   };
 
+  // ---- Rig console ---------------------------------------------------------------------------
+  // Sliders write into the runtime's live constraint values (the same channel an animation timeline
+  // uses), so tuning is felt on the next breath. What survives a reload is kept in localStorage:
+  // tuning that vanishes when the phone locks is not tuning, it is a demo.
+  const RIG_TUNING_KEY = 'mt_admin_rig_tuning_v1';
+  let rigTuning: RigTuning = parseStoredTuning(readFlag(RIG_TUNING_KEY));
+  if (Object.keys(rigTuning).length > 0) stage.live.setDefaultTuning(rigTuning);
+  const saveRigTuning = (): void => writeFlag(RIG_TUNING_KEY, JSON.stringify(rigTuning));
+
+  /** Animations that are a beat, not a loop — the console should not leave her mid-shake. */
+  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk']);
+
+  const rigApi: AdminRigApi = {
+    snapshot: () => {
+      const docTuning = stage.live.docTuning();
+      const current = stage.live.tuning();
+      const constraints = Object.keys(docTuning).map((id) => ({
+        id,
+        label: constraintLabel(id),
+        values: current[id] ?? {},
+        doc: docTuning[id] ?? {},
+      }));
+      const plate = stage.getActivePlateName();
+      const art = artOfPlate(plate);
+      const stats = stage.live.stats();
+      return {
+        enabled: stage.liveEnabled,
+        art: stage.live.currentArt,
+        plateHasRig: riggedArts?.has(art) ?? false,
+        animations: stage.live.animations,
+        current: stage.live.currentAnimation,
+        constraints,
+        stats: { ...stats, fps: stage.app.ticker.FPS },
+        plate,
+        changes: diffTuning(current, docTuning).map(
+          (c) => `${c.label} ${c.keyLabel} ${displayValue(c.key, c.from)} → ${displayValue(c.key, c.to)}`,
+        ),
+      };
+    },
+    setEnabled: (on) => {
+      stage.setLiveEnabled(on);
+      adminPanel?.refresh();
+    },
+    play: (name) => {
+      stage.live.playAnimation(name, !ONESHOT.has(name));
+      stage.app.render();
+      adminPanel?.refresh();
+    },
+    setParam: (id, key, value) => {
+      rigTuning = mergeTuning(rigTuning, { [id]: { [key]: value } });
+      stage.live.setDefaultTuning(rigTuning);
+      saveRigTuning();
+      adminPanel?.refresh();
+    },
+    resetConstraint: (id) => {
+      const docTuning = stage.live.docTuning();
+      stage.live.applyTuning({ [id]: docTuning[id] ?? {} });
+      const next = { ...rigTuning };
+      delete next[id];
+      rigTuning = next;
+      saveRigTuning();
+      adminPanel?.refresh();
+    },
+    resetAll: () => {
+      rigTuning = {};
+      writeFlag(RIG_TUNING_KEY, null);
+      stage.live.resetTuning();
+      adminPanel?.refresh();
+    },
+    report: () => formatTuningReport(stage.live.tuning(), stage.live.docTuning()),
+  };
+
   const adminApi: AdminPanelApi = {
     snapshot: () => {
       const stats = computeStats(state);
@@ -936,9 +1123,15 @@ export async function bootstrapApp(): Promise<void> {
       syncAll();
       ui.showSpeech('Сейв стёрт, День 1 начинается заново.');
     },
+    rig: rigApi,
   };
-  adminPanel = new AdminPanel(adminApi);
-  adminPanel.init({ hidden: isQa || new URLSearchParams(window.location.search).has('noadmin') });
+  try {
+    adminPanel = new AdminPanel(adminApi);
+    adminPanel.init({ hidden: isQa || new URLSearchParams(window.location.search).has('noadmin') });
+  } catch (error) {
+    adminPanel = null;
+    console.warn('[admin] panel failed to mount (game keeps running)', error);
+  }
 
   if (isQa) {
     window.__pixiApp = stage.app;

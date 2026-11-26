@@ -30,7 +30,10 @@ def main() -> int:
     for path in sorted(SRC.glob("miya_*.obone")):
         art = art_of(path)
         doc = json.loads(path.read_text())
-        doc.pop("scripts", None)
+        # `scripts` is a REQUIRED field of the document: the runtime reads `doc.scripts.length` when
+        # a state machine is created, and a document without it throws inside the animation loop.
+        # It was stripped here as "empty anyway" — which is exactly how a rig becomes a black screen.
+        doc.setdefault("scripts", [])
         payload = json.dumps(doc, separators=(",", ":"), ensure_ascii=False)
         target = OUT / f"{art}.obone"
         target.write_text(payload)

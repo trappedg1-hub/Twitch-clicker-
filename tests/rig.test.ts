@@ -106,6 +106,28 @@ for (const [art, entry] of Object.entries(index)) {
       }
     }
 
+    // The runtime reads `scripts.length` on the document and iterates `scripts` on every state
+    // machine start. A document without those fields does not fail loudly — it throws inside the
+    // animation loop, which is how a missing empty array became a black screen on the deployed site.
+    assert.ok(Array.isArray(doc.scripts), `${art}: document.scripts must be an array`);
+    for (const machine of doc.stateMachines ?? []) {
+      assert.ok(Array.isArray(machine.scripts), `${art}: state machine ${machine.id} needs scripts: []`);
+      for (const layer of machine.layers ?? []) {
+        for (const state of layer.states ?? []) {
+          const animationId = state.animation;
+          assert.ok(
+            doc.animations.some((a: { id: string }) => a.id === animationId),
+            `${art}/${machine.id}: state ${state.id} points at unknown animation ${animationId}`,
+          );
+          assert.equal(
+            layer.states.filter((s2: { id: string }) => s2.id === state.id).length,
+            1,
+            `${art}/${machine.id}: duplicate state id ${state.id}`,
+          );
+        }
+      }
+    }
+
     // Physics constraints must point at real bones, or the runtime silently skips them.
     for (const c of doc.skeleton.physics ?? []) {
       assert.ok(bones.has(c.bone), `${art}: physics points at unknown bone ${c.bone}`);

@@ -2163,7 +2163,7 @@ body.drawer-open .obs-chat-overlay {
   top: 10px;
   right: 10px;
   z-index: 61;
-  width: min(348px, calc(100vw - 20px));
+  width: min(376px, calc(100vw - 20px));
   max-height: calc(100dvh - 20px);
   display: flex;
   flex-direction: column;
@@ -2386,6 +2386,235 @@ body.drawer-open .obs-chat-overlay {
   font-size: 9px;
   padding: 5px 6px;
   user-select: text;
+}
+
+/* Tabs: the console answers four questions, and the reason it grew a tab bar instead of a longer
+   scroll is that a slider must never move because you scrolled past a button. */
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 6px 2px 5px;
+  cursor: pointer;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+
+.admin-tab:hover {
+  color: #d7c6ff;
+}
+
+.admin-tab.is-on {
+  color: #bf94ff;
+  border-bottom-color: #9147ff;
+}
+
+.admin-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-pane.hidden {
+  display: none;
+}
+
+.admin-pane.is-dim {
+  opacity: 0.5;
+}
+
+/* Rig console */
+.admin-rig-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.admin-rig-stat span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7ee787;
+}
+
+.admin-rig-stat code {
+  font-size: 9px;
+}
+
+.admin-note-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.admin-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2bff9e;
+  box-shadow: 0 0 6px rgba(43, 255, 158, 0.7);
+}
+
+.admin-rig-constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-rig-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-rig-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 1px;
+}
+
+.admin-rig-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffd54f;
+}
+
+.admin-rig-head code {
+  font-size: 8.5px;
+  color: var(--text-muted);
+}
+
+.admin-btn-tiny {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.admin-range-rig {
+  grid-template-columns: 62px 1fr 32px;
+  font-size: 9.5px;
+}
+
+.admin-range-rig b {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #bf94ff;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-range input[type='range'] {
+  width: 100%;
+  accent-color: #9147ff;
+}
+
+/* A moved value is the whole point of the panel: it has to be visible without reading numbers. */
+.admin-range-rig input.is-moved {
+  accent-color: #ffd54f;
+}
+
+.admin-anim {
+  padding: 3px 7px;
+  font-size: 9.5px;
+}
+
+.admin-note {
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.admin-note code {
+  color: #7ee787;
+}
+
+.admin-label-note {
+  margin-left: 6px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #bf94ff;
+}
+
+.admin-check em {
+  font-style: normal;
+  opacity: 0.72;
+}
+
+/* The rig gave up: said once, on screen, in the player's language — not in a console they cannot
+   open. Sits inside the stage frame so it never covers the footer controls. */
+.rig-fault {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, 92vw);
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(235, 4, 0, 0.45);
+  background: rgba(32, 13, 15, 0.94);
+  color: #ffd7d5;
+  font-size: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+
+.rig-fault.hidden {
+  display: none;
+}
+
+.rig-fault b {
+  flex: none;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ff7a75;
+}
+
+.rig-fault span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  opacity: 0.85;
+}
+
+.rig-fault button {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: #ff9b97;
+  font-size: 11px;
+  cursor: pointer;
 }
 
 @media (max-width: 760px) {

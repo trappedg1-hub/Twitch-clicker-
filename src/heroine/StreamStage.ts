@@ -278,6 +278,15 @@ export class StreamStage {
     // Plate pixels, unit scale: the rig document is authored on the 1024x1526 canvas.
     this.live = new LiveHeroine();
     this.rig.view.addChild(this.live.view);
+    // A broken skeleton is a broken ornament, never a broken game: the moment it throws, the flat
+    // plate comes back and the console says why (see `onLiveFault` in bootstrap).
+    this.live.onFault = (reason) => {
+      this.liveEnabled = false;
+      this.rig?.setPlateVisible(true);
+      this.onLiveFault?.(reason);
+    };
+    // `?rig=0` — the escape hatch that needs no deploy: flat plates, exactly as before the rig.
+    this.liveEnabled = new URLSearchParams(window.location.search).get('rig') !== '0';
     void this.syncLiveHeroine();
 
     // HUD safe zone: `?hudsafe=1` outlines the exact screen column the character owns, so a
@@ -487,11 +496,34 @@ export class StreamStage {
    * purpose. Either way this never throws: a missing rig is a normal outcome.
    */
   public async syncLiveHeroine(): Promise<void> {
+    if (!this.liveEnabled) {
+      // The admin console's A/B switch: compare the animated skeleton against the plate it was
+      // built from, on the same frame. Turning it off is a promise — nothing may re-show it until
+      // the switch is flipped back, so this line sits before every other path into `show()`.
+      this.live.hide();
+      this.rig?.setPlateVisible(true);
+      return;
+    }
     const plate = this.getActivePlateName();
     const art = plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
     if (!art) return;
     const ok = await this.live.show(art);
     this.rig?.setPlateVisible(!ok);
+  }
+
+  /** Whether plates may be replaced by their rigs. Off = the flat art, exactly as before the rig. */
+  public liveEnabled = true;
+
+  /** Fired when the skeleton gave up after a throw, with the reason. */
+  public onLiveFault: ((reason: string) => void) | null = null;
+
+  /** Flip the live skeleton off/on and re-settle the current plate immediately. */
+  public setLiveEnabled(on: boolean): void {
+    this.liveEnabled = on;
+    void this.syncLiveHeroine().then(
+      () => this.app?.render(),
+      () => this.app?.render(),
+    );
   }
 
   /** One-shot secondary motion on the live skeleton, if one is up. */
@@ -748,6 +780,8 @@ export class StreamStage {
     this.elapsedSec += dt;
 
     this.rig.update(safeDt);
+    // Guarded inside `LiveHeroine`: the skeleton ticks on the stage's clock, so an exception in it
+    // can never stop the app's ticker (that is exactly how a rig bug becomes a black screen).
     this.live.update(performance.now());
 
     // Subtle 3D webcam parallax between room back wall, heroine, and foreground desk!

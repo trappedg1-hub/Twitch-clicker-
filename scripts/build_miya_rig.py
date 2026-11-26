@@ -696,6 +696,8 @@ def build() -> dict:
             {
                 "id": "sm_miya",
                 "name": "miya",
+                # Required by the format: the runtime iterates it on every machine start.
+                "scripts": [],
                 "inputs": [],
                 "bindings": [],
                 "listeners": [],
