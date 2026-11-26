@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Прозрачный костюм — презентация артов | Twitch Clicker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      overflow-x: hidden;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 60px 20px 100px;
+    }
+    header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #ff3b9a 0%, #ffd6ec 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    header p {
+      color: #999;
+      font-size: 1.1rem;
+    }
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+    .card {
+      position: relative;
+      aspect-ratio: 2/3;
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 16px;
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: #ff3b9a;
+      box-shadow: 0 20px 40px rgba(255, 59, 154, 0.15);
+    }
+    .card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.6s ease;
+    }
+    .card:hover img {
+      transform: scale(1.05);
+    }
+    .label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 16px 20px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.85));
+      color: #fff;
+    }
+    .stage-name {
+      display: block;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subs {
+      display: block;
+      font-size: 0.85rem;
+      color: #ff3b9a;
+      font-weight: 600;
+    }
+    .notes {
+      margin-top: 60px;
+      color: #888;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    .notes b { color: #fff; }
+    .back {
+      display: inline-block;
+      margin-top: 40px;
+      color: #ff3b9a;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .back:hover { text-decoration: underline; }
+    @media (max-width: 640px) {
+      .gallery { grid-template-columns: 1fr; }
+      .container { padding: 40px 16px 80px; }
+      header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Прозрачный костюм</h1>
+      <p>4 арта • 4 саб-уровня • Презентация</p>
+    </header>
+
+    <div class="gallery">
+      <div class="card">
+        <img src="/art/heroine_transparent_s0.webp" alt="Прозрачный костюм — Этап 0" />
+        <div class="label">
+          <span class="stage-name">Этап 0 — Стартовый образ</span>
+          <span class="subs">0 сабов • Базовый уровень</span>
+        </div>
+      </div>
+      <div class="card">
+        <img src="/art/heroine_transparent_s1.webp" alt="Прозрачный костюм — Этап 1" />
+        <div class="label">
+          <span class="stage-name">Этап 1 — Раскрытый костюм</span>
+          <span class="subs">1500 сабов • Первый уровень</span>
+        </div>
+      </div>
+      <div class="card">
+        <img src="/art/heroine_transparent_s2.webp" alt="Прозрачный костюм — Этап 2" />
+        <div class="label">
+          <span class="stage-name">Этап 2 — Полупрозрачный костюм</span>
+          <span class="subs">4000 сабов • Второй уровень</span>
+        </div>
+      </div>
+      <div class="card">
+        <img src="/art/heroine_transparent_s3.webp" alt="Прозрачный костюм — Этап 3" />
+        <div class="label">
+          <span class="stage-name">Этап 3 — Полностью прозрачный</span>
+          <span class="subs">8000 сабов • Максимальный уровень</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <p><b>Стиль:</b> чёрный фон, офисное кресло, длинные чёрные волосы с челкой, лицо как у Дня 1, премиальный рендер, розовое бикини под костюмом.</p>
+      <p><b>Саб-уровни:</b> 0 / 1500 / 4000 / 8000 сабов.</p>
+      <p><b>Размер арта:</b> 1024 × 1526 px, WebP с альфа-каналом.</p>
+      <p><b>Костюм не заменяет</b> утверждённые арты Дней 1–6 — это отдельный костюмный слот.</p>
+    </div>
+
+    <a href="/" class="back">← Назад к игре</a>
+  </div>
+</body>
+</html>

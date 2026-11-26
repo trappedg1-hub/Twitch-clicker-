@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>miya_nyash — Twitch</title>
+  </head>
+  <body>
+    <div id="app">
+      <!-- Pure Unobstructed Twitch Video Player Stage -->
+      <main class="stage-shell">
+        <div id="stream-stage-host" class="stream-stage-host"></div>
+
+        <!-- Unified Non-Overlapping Top HUD Row (Sub Goal Left + Status Badges Right) -->
+        <div class="stage-top-hud">
+          <!-- Authentic Twitch / StreamElements OBS Creator Sub Goal Overlay (Top-Left) -->
+          <div id="obs-subgoal" class="obs-subgoal" aria-label="Цель подписок канала">
+            <div class="tw-goal-header">
+              <div class="tw-goal-icon-badge" aria-hidden="true">
+                <svg viewBox="0 0 20 20" class="tw-star-svg">
+                  <path
+                    fill="currentColor"
+                    d="M10 1.6l2.45 5.1 5.55.78-4.02 3.9.96 5.52L10 14.28 5.06 16.9l.96-5.52-4.02-3.9 5.55-.78L10 1.6z"
+                  />
+                </svg>
+              </div>
+              <div class="tw-goal-titles">
+                <span class="tw-goal-kicker">SUB GOAL КАНАЛА</span>
+                <span id="subgoal-target-name" class="tw-goal-main">Снять носочки</span>
+              </div>
+            </div>
+
+            <div class="tw-goal-bar-wrap">
+              <div id="subgoal-fill" class="tw-goal-bar-fill"></div>
+              <div class="tw-goal-bar-labels">
+                <span id="subgoal-count" class="tw-goal-nums">0 / 10 сабов</span>
+                <span id="subgoal-pct" class="tw-goal-pct">0%</span>
+              </div>
+            </div>
+
+            <div id="subgoal-steps-row" class="tw-goal-steps">
+              <span class="goal-step active" data-step="1">10 Носки</span>
+              <span class="goal-step" data-step="2">50 Легинсы</span>
+              <span class="goal-step" data-step="3">200 Худи</span>
+              <span class="goal-step" data-step="4">500 Тишка ★</span>
+            </div>
+
+            <!-- Finale = an offer, never an interruption. The card only opens when the player asks,
+                 so the goal closing cannot steal the stream out from under their clicks. -->
+            <button id="btn-finale-open" class="finale-open-cta hidden" type="button">
+              ★ Финал дня пробит — открыть карточку
+            </button>
+          </div>
+
+          <!-- Authentic Top-Right Twitch Player Status Badges (Hype Multiplier + 1080p60 + LIVE — no duplicate boldness!) -->
+          <div class="tw-player-top-right" aria-label="Статус трансляции">
+            <div class="tw-hype-pill" title="Множитель хайпа чата">
+              <span class="tw-hype-tag">ХАЙП <strong id="stat-hype-mult">x1.00</strong></span>
+              <div class="hype-bar-track">
+                <div id="stat-hype-fill" class="hype-bar-fill"></div>
+              </div>
+            </div>
+            <div class="tw-quality-badge">1080p60</div>
+            <div class="tw-live-corner-badge">
+              <span class="tw-live-dot"></span>
+              В ЭФИРЕ
+            </div>
+          </div>
+        </div>
+
+        <!-- Compact transparent Twitch/DonationAlerts-style alert with cute puppy mascot -->
+        <div id="donation-alert" class="tw-alert-card hidden">
+          <img class="alert-puppy" src="/art/alert_puppy.webp" alt="" aria-hidden="true" />
+          <div class="tw-alert-text">
+            <div class="alert-amount" id="donation-alert-amount">★ НОВЫЙ ДОНАТ +45 ₽</div>
+            <div class="alert-sub" id="donation-alert-sub">«Не стесняйся, ты невероятно горячая!»</div>
+          </div>
+        </div>
+
+        <!-- Day 1 Finale -> Day 2 carry-over overlay (500 subs = end of Day 1!) -->
+        <div id="day-finale-overlay" class="day-finale-overlay hidden">
+          <div class="day-finale-card">
+            <div class="day-finale-kicker" id="finale-kicker">★ ФИНАЛ ПЕРВОГО ДНЯ ★</div>
+            <div class="day-finale-title" id="finale-title">500 сабов пробито!</div>
+
+            <!-- Miya says good-bye to everyone in chat before the stream closes -->
+            <div class="finale-farewell" id="finale-farewell">
+              <img class="farewell-avatar" src="/art/avatar_miya.webp" alt="" />
+              <div class="farewell-body">
+                <div class="farewell-meta">
+                  <span class="farewell-author">miya_nyash</span>
+                  <span class="farewell-tag">закрывает эфир • прощается с чатом</span>
+                </div>
+                <p class="farewell-line" id="finale-farewell-line">
+                  Мия поправляет наушники, смотрит в чат и собирается с мыслями...
+                </p>
+              </div>
+            </div>
+            <button class="farewell-skip" id="btn-skip-farewell" type="button">
+              Пропустить прощание
+            </button>
+
+            <p class="day-finale-desc" id="finale-desc">
+              Первый эфир окончен: Мия прощается с чатом и выключает камеру.
+              <strong>Завтра — День 2</strong>: новый образ и новые Sub Goal.
+            </p>
+            <button id="btn-start-day2" class="day-finale-btn" type="button" disabled>
+              Начать День 2 →
+            </button>
+            <button id="btn-finale-close" class="day-finale-close" type="button">
+              ← пока нет, вернуться к эфиру
+            </button>
+          </div>
+        </div>
+
+        <!-- Borderless Airy OBS Transparent Chat (no boxes, with custom Twitch emotes!) -->
+        <aside class="obs-chat-overlay" aria-label="Чат на экране стрима">
+          <div id="chat-messages" class="obs-chat-feed"></div>
+        </aside>
+
+        <!-- Frameless Voice Subtitle along the Wooden Desk Edge (below feet, auto-fades!) -->
+        <div id="speech-subtitle" class="speech-subtitle visible">
+          <span class="sub-name">Мия:</span>
+          <span id="speech-text">«Ой... кто-то зашёл! Зачем я вообще согласилась на этот Sub Goal... т-только не дарите сабы слишком быстро!»</span>
+        </div>
+      </main>
+
+      <!-- Authentic Below-the-Player Twitch Channel Info Bar + Optional Tab Drawer -->
+      <footer id="twitch-footer" class="twitch-footer">
+        <div class="channel-bar">
+          <!-- Left: Avatar + В ЭФИРЕ + Nickname + Stream Title + Boldness Bar -->
+          <div class="channel-info">
+            <div class="avatar-ring-wrap">
+              <img class="channel-avatar-img" src="/art/avatar_miya.webp" alt="miya_nyash" />
+              <span class="live-pill">LIVE</span>
+            </div>
+
+            <div class="channel-text">
+              <div class="channel-name-line">
+                <span class="channel-name">miya_nyash</span>
+                <svg class="verified-icon" viewBox="0 0 16 16" aria-hidden="true">
+                  <path
+                    fill="#a970ff"
+                    d="M8 1l2.1 1.6 2.6-.3.8 2.5 2.2 1.4-1 2.4 1 2.4-2.2 1.4-.8 2.5-2.6-.3L8 16l-2.1-1.6-2.6.3-.8-2.5L.3 10.8l1-2.4-1-2.4L2.5 4.6l.8-2.5 2.6.3L8 1zm-.9 9.7l4.3-4.3-1.1-1.1-3.2 3.2-1.6-1.6-1.1 1.1 2.7 2.7z"
+                  />
+                </svg>
+                <span id="stream-day-badge" class="day-pill">День 1</span>
+              </div>
+              <div id="stream-title" class="stream-title">
+                Первый стрим, дико стесняюсь... ★ SUB GOAL 0/10 — снимаю носочки?!
+              </div>
+              <div class="channel-sub-row">
+                <span class="category-link">Just Chatting</span>
+                <span class="dot-sep">•</span>
+                <span class="subs-inline-pill">★ <strong id="stat-subs-val">0</strong> сабов</span>
+                <span class="dot-sep">•</span>
+                <span class="boldness-inline-label">♥ Раскрепощённость</span>
+                <div class="boldness-track">
+                  <div id="boldness-fill" class="boldness-fill"></div>
+                </div>
+                <span id="boldness-pct" class="boldness-pct">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Authentic Twitch Navigation Tabs -->
+          <nav class="twitch-tabs" aria-label="Разделы канала">
+            <button class="tw-tab active" data-tab="stream" type="button">Стрим</button>
+            <button class="tw-tab" data-tab="upgrades" type="button">
+              Улучшения
+              <span id="upg-avail-dot" class="tab-notify-dot hidden"></span>
+            </button>
+            <button class="tw-tab" data-tab="outfits" type="button">
+              <span class="tab-label-full">Sub Goal • Одежда</span>
+              <span class="tab-label-short">Sub Goal</span>
+              <span id="sub-avail-dot" class="tab-notify-dot hidden"></span>
+            </button>
+            <button class="tw-tab" data-tab="story" type="button">
+              <span class="tab-label-full">Фансервис и сюжет</span>
+              <span class="tab-label-short">Фансервис</span>
+            </button>
+          </nav>
+
+          <!-- Right: Authentic Twitch Gift-Sub Button Group + Viewer Counter + Wallet -->
+          <div class="stream-metrics">
+            <!-- Native Twitch #9147ff Gift a Sub Split-Button -->
+            <div class="tw-gift-group" role="group" aria-label="Подарить подписку каналу">
+              <button id="btn-gift-sub-1" class="tw-sub-btn-primary" type="button" title="Подарить 1 платную подписку в чат">
+                <svg class="tw-gift-svg" viewBox="0 0 20 20" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M16 6h-2.18A2.99 2.99 0 0014 5a3 3 0 00-4-2.83A3 3 0 006 5c0 .35.07.69.18 1H4a2 2 0 00-2 2v2c0 .55.45 1 1 1v6a2 2 0 002 2h10a2 2 0 002-2v-6c.55 0 1-.45 1-1V8a2 2 0 00-2-2zm-4-2a1 1 0 110 2h-1V5a1 1 0 011-1zM8 4a1 1 0 011 1v1H8a1 1 0 110-2zm1 13H5v-6h4v6zm0-8H4V8h5v1zm6 8h-4v-6h4v6zm1-8h-5V8h5v1z"
+                  />
+                </svg>
+                <span class="tab-label-full">Подарить саб</span>
+                <span class="tab-label-short">Саб</span>
+                <span id="gift-cost-1" class="tw-sub-price">18 ₽</span>
+              </button>
+              <button id="btn-gift-sub-menu" class="tw-sub-btn-split tw-sub-btn-caret" type="button"
+                aria-haspopup="true" aria-expanded="false" aria-controls="sub-pack-menu"
+                title="Выбрать, сколько сабов подарить">
+                <span class="tw-sub-pack-now">x5</span>
+                <small id="gift-cost-pack">90 ₽</small>
+                <svg class="tw-caret-svg" viewBox="0 0 16 16" aria-hidden="true">
+                  <path fill="currentColor" d="M3 6l5 5 5-5z" />
+                </svg>
+              </button>
+
+              <div id="sub-pack-menu" class="sub-pack-menu" role="menu" aria-label="Количество подписок" hidden>
+                <p class="sub-pack-title">Подарить сабы<span>массовый дроп в чат</span></p>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="5">
+                  <b>x5</b><i>Саб-бомба</i><span id="gift-cost-5">90 ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="25">
+                  <b>x25</b><i>Шейх-дроп</i><span id="gift-cost-25">600 ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="50">
+                  <b>x50</b><i>Тяжёлый легион</i><span id="gift-cost-50">1,3к ₽</span>
+                </button>
+                <button class="sub-pack-row" role="menuitemradio" type="button" data-pack="100">
+                  <b>x100</b><i>Полный захват чата</i><span id="gift-cost-100">2,9к ₽</span>
+                </button>
+                <p class="sub-pack-foot">Одиночный саб остаётся кнопкой слева • цена саба растёт вместе с Sub Goal</p>
+              </div>
+            </div>
+
+            <div class="viewer-counter" title="Зрители онлайн">
+              <svg class="viewer-svg" viewBox="0 0 20 20" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M10 9a3.5 3.5 0 100-7 3.5 3.5 0 000 7zm-6.5 8a6.5 6.5 0 0113 0v1h-13v-1z"
+                />
+              </svg>
+              <div>
+                <div class="viewer-num-row">
+                  <span id="stat-viewers-val" class="viewer-num">3</span>
+                  <span id="milestone-progress-label" class="viewer-goal">/ 10</span>
+                </div>
+                <div class="mini-goal-track">
+                  <div id="milestone-fill" class="mini-goal-fill"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="wallet-pill" title="Ваш баланс для улучшений и подарочных сабов">
+              <div class="wallet-top-line">
+                <span class="wallet-label">БАЛАНС</span>
+                <span id="stat-income-val" class="wallet-rate">+5 ₽</span>
+              </div>
+              <span id="stat-balance-val" class="wallet-val">0 ₽</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expandable Tab Drawer (hidden on 'stream' tab so video gets maximum screen!) -->
+        <div id="tab-drawer" class="tab-drawer hidden">
+          <!-- Tab: Upgrades -->
+          <div id="tab-panel-upgrades" class="tab-panel">
+            <div id="upgrades-grid" class="upgrades-grid"></div>
+          </div>
+
+          <!-- Tab: Sub Goal Outfits -->
+          <div id="tab-panel-outfits" class="tab-panel">
+            <div id="outfits-grid" class="outfits-grid"></div>
+          </div>
+
+          <!-- Tab: Fanservice & Story -->
+          <div id="tab-panel-story" class="tab-panel">
+            <div class="story-split">
+              <div class="diary-card">
+                <div class="diary-header">
+                  <span id="diary-stage-pill" class="diary-pill">Дневник Мии • Этап 1/4</span>
+                  <span id="diary-headline" class="diary-headline">Прячется в худи, легинсах и носочках</span>
+                  <span id="milestone-title" class="diary-goal-tag"></span>
+                </div>
+                <p id="diary-thought" class="diary-thought"></p>
+              </div>
+              <div id="challenges-grid" class="challenges-grid"></div>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

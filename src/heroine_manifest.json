@@ -1,0 +1,28 @@
+{
+  "tier1": {
+    "size": [1024, 1526],
+    "base": "/art/heroine_t1_base.webp",
+    "stages": [
+      "/art/heroine_t1_s0.webp",
+      "/art/heroine_t1_s1.webp",
+      "/art/heroine_t1_s2.webp",
+      "/art/heroine_t1_base.webp",
+      "/art/heroine_t1_s4.webp",
+      "/art/heroine_t1_s5.webp"
+    ],
+    "patches": {
+      "blink": { "url": "/art/patch_t1_blink.webp", "x": 338, "y": 61, "w": 348, "h": 397 },
+      "shy": { "url": "/art/patch_t1_shy.webp", "x": 338, "y": 61, "w": 348, "h": 397 },
+      "fluster": { "url": "/art/patch_t1_fluster.webp", "x": 338, "y": 61, "w": 348, "h": 397 },
+      "tease": { "url": "/art/patch_t1_tease.webp", "x": 338, "y": 61, "w": 348, "h": 397 },
+      "bold": { "url": "/art/patch_t1_bold.webp", "x": 338, "y": 61, "w": 348, "h": 397 }
+    },
+    "stage5Patches": {
+      "blink": { "url": "/art/patch_t1_s5_blink.webp", "x": 368, "y": 282, "w": 304, "h": 296 },
+      "tease": { "url": "/art/patch_t1_s5_tease.webp", "x": 368, "y": 282, "w": 304, "h": 296 },
+      "fluster": { "url": "/art/patch_t1_s5_fluster.webp", "x": 368, "y": 282, "w": 304, "h": 296 }
+    },
+    "bg": "/art/bg_room_t1.webp",
+    "fgDesk": "/art/fg_desk_t1.webp"
+  }
+}

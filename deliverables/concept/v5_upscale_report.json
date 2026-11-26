@@ -1,0 +1,35 @@
+{
+  "source": {
+    "file": "deliverables/concept/miya_from_day1_v5.png",
+    "size": [
+      848,
+      1264
+    ]
+  },
+  "baseline": {
+    "size": [
+      1024,
+      1526
+    ],
+    "detail": 278.04
+  },
+  "master": {
+    "file": "deliverables/concept/v5_master_5k.png",
+    "size": [
+      3392,
+      5056
+    ]
+  },
+  "game": {
+    "file": "deliverables/concept/v5_game_1024x1526.webp",
+    "size": [
+      1024,
+      1526
+    ],
+    "detail": 264.45
+  },
+  "detail_keep": 0.951,
+  "min_detail_keep": 1.05,
+  "backend": "lanczos",
+  "passed": false
+}

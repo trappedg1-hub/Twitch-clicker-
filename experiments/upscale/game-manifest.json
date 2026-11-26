@@ -1,0 +1,454 @@
+{
+  "model": "up4x-latest-conservative.onnx",
+  "model_sha256": "1e79465f6556aa2893c8af3f35d19781341c529fcd7a949b54bb282a8a58b5f7",
+  "plates": [
+    {
+      "name": "heroine_t1_base.webp",
+      "original_sha256": "b03d2092d292f06ec230168241430b5484641ddfb014937800b88610823e4758",
+      "master_sha256": "20fb67304786acf4cc25e209e23963ad5a6edf0af0d6f643a5a895f50c70f701",
+      "game_sha256": "f47de035df29e65ab04c2215b0d269acd3894196433c4672f1c192d051d0fc66",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t1_s0.webp",
+      "original_sha256": "e71d89f04457251c9eb6edd1d188a308b39a5cffe272f0c41e8c91c15dba508c",
+      "master_sha256": "51a472179e0f559aacbd01b046dae316e5fe3073c73ad1fd6d002f4ff171c555",
+      "game_sha256": "abc9089ebb6770634d1d17a19b86aabc999c0306fffa9a551c4d7166d4d229b5",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t1_s1.webp",
+      "original_sha256": "9e7c81d76a4ce8635e4d88ee3dfa53d625a0eea7ecf6d5e4ff6040b3f84774a8",
+      "master_sha256": "96bf5170be8509c844f8c617ce9cd2e24451bd21c9f9eac792c222fc759589cb",
+      "game_sha256": "d21adffdcdc67c5eca4cf7d209e9a53c15477db1c0a53e53c01257f03329e046",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t1_s2.webp",
+      "original_sha256": "da20b78ddbf9beaa1f9596a31e7fd13b793d744857fe3b291a14e888b69a0c54",
+      "master_sha256": "18759dfbb594a6fa78b2127715a5193f9a083b5b237553e775d63e5224345e8a",
+      "game_sha256": "f1d239e17779b2261b754e17be010544c3043485c19f04d0b6dbae881fc15b0f",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t1_s4.webp",
+      "original_sha256": "5b22ca0bfe066452427751527746b2c0fd97d1266e2bc445e9d1435d6a114745",
+      "master_sha256": "e450c6d1a639c1dc3fd3f3167fa517e3e381375971db1a394cc880c4aad7fd59",
+      "game_sha256": "923d7ca2d1f651fc970815b53dd38bfce7399c4430fbe32a85ae0913b247c65d",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t2_s0.webp",
+      "original_sha256": "4e5a3694d6b64b3c45431dd17dd36b4a0edcfec117215c433d02943caf907466",
+      "master_sha256": "9c56072e3e8f11f16f24de83328212579ccd51aa08f1ee84db105449d44339b8",
+      "game_sha256": "4aaf2fd4089a56eb8ba93a8e2b786f8c4aad9cf1fc6320c9a475a07874acb32d",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t2_s1.webp",
+      "original_sha256": "9c54490dea4b6b9d0881fba9393cbf9159a6fae77c95212802fed03d32782b58",
+      "master_sha256": "237810c3813c7fdeec362d8f22d1f2b215c3cf08e7eed6a8fe93a58f5af81e6f",
+      "game_sha256": "9ad843808f7482b12762ca07600e3c41713352f33a36c9c95381582ddc6f0f6b",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t2_s2.webp",
+      "original_sha256": "c3d21d300780d2306791d48e7b189ccafd488f505f5c54f60c27b29302aff89e",
+      "master_sha256": "12314e9c2b39c66110546ec8ba841000c92bdf0561aeb2f449f7163a18d0b61a",
+      "game_sha256": "72ed04fc943582243ba34834a3105556e1388b4483a13ebca2915631d80621ac",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t2_s3.webp",
+      "original_sha256": "39c9ba989054a09bfff0c627c12b3b586462d9079175b3b66882b1d3c3e40f2a",
+      "master_sha256": "4eb18377012d990b93c88d7337fa0fd67fdba456912887dbe6728c3dce1ac7e9",
+      "game_sha256": "f94708a94a9814f010dcf232af7c8f02f29c36169adecdc790552cd279b93921",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t2_s4.webp",
+      "original_sha256": "a37ef4e38765b08f6b9e046a3266efda784dcd69fc114b6ce1d87d3a26746d4c",
+      "master_sha256": "41b364c73eb1d6b2bc4ef050f6f7e00ac5f7beed7e43725eb7aa6de6d0ed77db",
+      "game_sha256": "6654b00bfd1bdd877e2d8cec6eab2986ef14d5011a92b3ba4a3a6f562f13b203",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_flash.webp",
+      "original_sha256": "6a308baa0d224e4c0f7b2832e0903bbffe310ee9a6c19de90bceb76c146cc1b6",
+      "master_sha256": "7259e4257c74af2545c22acdcdbef53d06a84e98cc768d5c5db15a4fb836b530",
+      "game_sha256": "f9c34d0a8f97b37e3f319fe1dfa44cffeac67de8076770180796ac8f71f2bcd3",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_s0.webp",
+      "original_sha256": "3b07759ba55a883ab3f557639a0e0a5e65a0c346aae20a4637c3dddaac504ee9",
+      "master_sha256": "b7cf0c5c97265b359deb9720abb918c52df1cfb9dfe7c400f377b0d99d531252",
+      "game_sha256": "bc2fce59de18fec9724f0f1cbf85717ff5bf08191a07dceaa12add18691ed0f6",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_s1.webp",
+      "original_sha256": "11ab575064ed278d58ab07c848b9656b61656ca38633709d2ffcefe4532c690d",
+      "master_sha256": "e464b26e3e8edad5fe0f8d9d2eb199ff81b34860cae503b2afa53d8d6cd7cc44",
+      "game_sha256": "7fa24f9d9b8f3b951f4ea0ca3c78d01a90f1429e96d0aeaf8afb51e4783d1236",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_s2.webp",
+      "original_sha256": "df939be1faefdbafd289e81c32cb98c25f62fc1c461b57d7fe8a6f08892ebf41",
+      "master_sha256": "17323325179989e0e7547cb1800642ebe52d3153c72a6901fc71e79a96c6f16b",
+      "game_sha256": "876f5e9a33ad8c22e34570bfce18b6f52dddec7c2ff7bc46eed4c5a128808bd1",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_s3.webp",
+      "original_sha256": "6a308baa0d224e4c0f7b2832e0903bbffe310ee9a6c19de90bceb76c146cc1b6",
+      "master_sha256": "7259e4257c74af2545c22acdcdbef53d06a84e98cc768d5c5db15a4fb836b530",
+      "game_sha256": "f9c34d0a8f97b37e3f319fe1dfa44cffeac67de8076770180796ac8f71f2bcd3",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t3_s4.webp",
+      "original_sha256": "d58b2015f8e2761e3326ff46ba6bdc98e4af2b18844517799368008bd5b90df4",
+      "master_sha256": "e4d4d81eb8049d3beb369f74e59dd327f5f42a2cd4e717ca2b33e84a16fbb6bb",
+      "game_sha256": "3b40ffac45e18dc2135895bf1dba44af1a5d690a027105bf555b2c65e0ab60b6",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_flash.webp",
+      "original_sha256": "cd4fc68d60ddd5dda6daf541d39b255b9815b859d13ffa68638a471a1cae4a02",
+      "master_sha256": "d53806dcf70a0a417b8573ca8250a2967afa6757cf89784f7bf221fd31a14e02",
+      "game_sha256": "4546dd5e9c9271c9809623aaea91543c0a5c04ab9cb05fd2416909ef51762bec",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_s0.webp",
+      "original_sha256": "2228e6cb44b5ab7702eaa342787b89e913bcacc8e897537ee77d40a37e52def3",
+      "master_sha256": "84a5de59f89939bec4790d764b5ba70feea596f10eefc6bf031e2485e6ac35c0",
+      "game_sha256": "cbea1bb9e5f5fc806cb374b0b4f44c094a6e211a362727ed480300c5868324f4",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_s1.webp",
+      "original_sha256": "ca233b59b761eded1221fc3d25a9505a01cbf78e5b69bc75c9244e0f2e4d6d29",
+      "master_sha256": "b16452ab147fb3a81c4bfa9299b7cb45ebeed7fde80b5fda51449ebb7c590a17",
+      "game_sha256": "f143ef8798e7ab00d2837971555d6ea3d6f97c0e1ae5742446a71fcef090f9c9",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_s2.webp",
+      "original_sha256": "1eb7643e60c64dc05087b539400ddbfbdff2887edba39ba9dafc4342369c33f7",
+      "master_sha256": "3fb5097306f3c64a03b8df6cc66fb7d54ad4606bbfef461d6ba8680659ae1262",
+      "game_sha256": "c05fd8462938f85ab21a2860ded9c829cc55b4f92bc2116bce4e6ab5594bd142",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_s3.webp",
+      "original_sha256": "cd4fc68d60ddd5dda6daf541d39b255b9815b859d13ffa68638a471a1cae4a02",
+      "master_sha256": "d53806dcf70a0a417b8573ca8250a2967afa6757cf89784f7bf221fd31a14e02",
+      "game_sha256": "4546dd5e9c9271c9809623aaea91543c0a5c04ab9cb05fd2416909ef51762bec",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t4_start_hq.webp",
+      "original_sha256": "66b42e52aaa7977e52d31a03782d428ea27f5ff15da685fc4efeb94ea21cea22",
+      "master_sha256": "eaca7c3c38f9adc6bb9aaf077d2983f6d96d561252819571dd8ddeb0019b8199",
+      "game_sha256": "3a60b85d5b8e046325737eeea26aae8610bef3acfa46c5db8c934e9cc56e6439",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t5_s0.webp",
+      "original_sha256": "bd2c5e477d605c25e3d0d8206c63b45b5b20beec485836c332a9ff66666a5534",
+      "master_sha256": "ba169f3bd27bcf2074ab9e0e6bb4a1f06ccdd95d8b8b2368297399c8d3bf3fae",
+      "game_sha256": "c5f15b8f055f3e659404beffff8986ea8c0f74bda1510c5d388605a3ecef1a09",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t5_s1.webp",
+      "original_sha256": "0ddd9ed3d60c703651a379a2c5845698d5e1f51064f905a4d86d275d1b415733",
+      "master_sha256": "7afc4616f7e12a05bf0769599beb31421556da71339395b1f4a8431332acd5ad",
+      "game_sha256": "e3f7a67c2ce4f9c210c6547850948673084e34ed84381fdba4d435147e124484",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t5_s2.webp",
+      "original_sha256": "deb26a5ad46e1c33cedbc527b5e2ce45680b3c6386b8c948c5a253be07ee18f1",
+      "master_sha256": "67dbae5c81bedf229cdfb9579ec1caf4d3eaed997978792381a46448d34c31b3",
+      "game_sha256": "51d0211beac5a293eed6ca3e8a620d32057d23780bd0f30dfae65764618e9024",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t5_s3.webp",
+      "original_sha256": "8a81f5e9a0cfa77322b96a0fb112cd46c19270f6bea499d9e8475b9a6c379407",
+      "master_sha256": "94fa1090dd07af78b2ff534a6df265e15160c97df053c94c698646643c76789c",
+      "game_sha256": "3cec69f39b5e92bdff19a55b416dfa8cb793dc2799ab3d3df42ef63f1098fbb0",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t5_start_hq2.webp",
+      "original_sha256": "3466bd4c2812783c0578c7da8bc5c8c7ff0b4585812a3e9c14cf71a76cf70748",
+      "master_sha256": "73a39c0ba8e2d3ee4eb37c2e3ce29a4ab8a84f66dde4743dada5038c88c96e87",
+      "game_sha256": "9554f194240d5ce4ee569d5554e2264cda09a479e8a2d69806fe35c49430e563",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t6_s0.webp",
+      "original_sha256": "eb5ecfe2462c352ee867e16f14e0ad52734787285fddfdb1ef3a0ef55f0a3822",
+      "master_sha256": "3edb0965a700890c38b626602190d98327afd8469b6bde211390423cafd0f632",
+      "game_sha256": "766f3dcd24416b48a8007d64fba4f854215002e115da085c7544093fc6be9e03",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t6_s1.webp",
+      "original_sha256": "a92ae6c011f58b0e5cf804d776c4b804a7a2fa5b38210139466576d70662e4aa",
+      "master_sha256": "84e5ba592ac79edc3b63b5a40737e720f9e509fd466ebd77f088bd8ac83767f8",
+      "game_sha256": "b7f9a1ec5f0d6f13de7d90e546a617be2d886d435b33afe3385eed618f519b02",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t6_s2.webp",
+      "original_sha256": "b7b3257b514d9bb62304c5a0a35b9bf4414310fe8f816479048477079255f2e6",
+      "master_sha256": "7d560e6c1c57f202417d9acf2c5e624a0971adaaea5cee025199a15137c208d4",
+      "game_sha256": "ca2ba130508b948b3e8cd41510d64617872f021c5b3fe686269fa25beedb11e7",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t6_s3.webp",
+      "original_sha256": "12909c2bc7aa5f740880fd0fde6eea395d5b7d00b0b4a6b4446141d23b26006c",
+      "master_sha256": "e728c3bd6a2eacfc04b7db55957434bd8d2bc4d1b5f2a27f1b5db3424022f53e",
+      "game_sha256": "4c071b20ea7cbc12c627aeb1f9af6cce0c540c96b08af42eab6185370057d4f8",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    },
+    {
+      "name": "heroine_t6_start_hq.webp",
+      "original_sha256": "0f4928d7dc27e9eb785087c5a99e6f5dc66920b3bc5a781238bf9f43ea3ffc17",
+      "master_sha256": "cb627cad4171c69d3b16901e96845ff89240874f5fc38baaaed1684427764774",
+      "game_sha256": "e38ce0673eb90ec1b6f54d82b6e8ae55ce7d5c94cba645f45514db0f9e657e1f",
+      "master_size": [
+        4096,
+        6104
+      ],
+      "game_size": [
+        1024,
+        1526
+      ]
+    }
+  ]
+}

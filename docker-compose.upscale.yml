@@ -1,0 +1,16 @@
+# Local AI upscaler for the asset pipeline.
+#
+#   docker compose -f docker-compose.upscale.yml up --build
+#   python3 scripts/upscale_5k.py plate.png --backend api \
+#       --api-url http://127.0.0.1:5000/enhance \
+#       --master out/plate_5k.png --game out/plate_1024x1526.webp
+#
+# Backend: image-enhance-api (MIT) — a REST wrapper around Real-ESRGAN (Apache-2.0),
+# model `realesrgan-x4plus-anime` for the heroine, `realesrgan-x4plus` for backgrounds.
+# Runs fully local: no art leaves the machine.
+services:
+  upscale:
+    build: https://github.com/kalprajsolutions/image-enhance-api.git
+    ports:
+      - "5000:5000"
+    restart: unless-stopped

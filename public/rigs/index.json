@@ -1,0 +1,351 @@
+{
+ "t1_s0": {
+  "file": "/rigs/t1_s0.obone",
+  "plate": "/art/heroine_t1_s0.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk",
+   "smile"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t1_base": {
+  "file": "/rigs/t1_base.obone",
+  "plate": "/art/heroine_t1_base.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk",
+   "smile"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t1_s1": {
+  "file": "/rigs/t1_s1.obone",
+  "plate": "/art/heroine_t1_s1.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk",
+   "smile"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t1_s4": {
+  "file": "/rigs/t1_s4.obone",
+  "plate": "/art/heroine_t1_s4.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t1_s5": {
+  "file": "/rigs/t1_s5.obone",
+  "plate": "/art/heroine_t1_s5.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t2_s0": {
+  "file": "/rigs/t2_s0.obone",
+  "plate": "/art/heroine_t2_s0.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t2_s1": {
+  "file": "/rigs/t2_s1.obone",
+  "plate": "/art/heroine_t2_s1.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t2_s2": {
+  "file": "/rigs/t2_s2.obone",
+  "plate": "/art/heroine_t2_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t2_s3": {
+  "file": "/rigs/t2_s3.obone",
+  "plate": "/art/heroine_t2_s3.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t2_s4": {
+  "file": "/rigs/t2_s4.obone",
+  "plate": "/art/heroine_t2_s4.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t3_flash": {
+  "file": "/rigs/t3_flash.obone",
+  "plate": "/art/heroine_t3_flash.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t3_s3": {
+  "file": "/rigs/t3_s3.obone",
+  "plate": "/art/heroine_t3_s3.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t4_start": {
+  "file": "/rigs/t4_start.obone",
+  "plate": "/art/heroine_t4_start.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_s0": {
+  "file": "/rigs/t5_s0.obone",
+  "plate": "/art/heroine_t5_s0.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_s1": {
+  "file": "/rigs/t5_s1.obone",
+  "plate": "/art/heroine_t5_s1.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_s2": {
+  "file": "/rigs/t5_s2.obone",
+  "plate": "/art/heroine_t5_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_start": {
+  "file": "/rigs/t5_start.obone",
+  "plate": "/art/heroine_t5_start.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_start_hq": {
+  "file": "/rigs/t5_start_hq.obone",
+  "plate": "/art/heroine_t5_start_hq.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t5_start_hq2": {
+  "file": "/rigs/t5_start_hq2.obone",
+  "plate": "/art/heroine_t5_start_hq2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
+ "t6_s1": {
+  "file": "/rigs/t6_s1.obone",
+  "plate": "/art/heroine_t6_s1.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
+ "t6_s2": {
+  "file": "/rigs/t6_s2.obone",
+  "plate": "/art/heroine_t6_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
+ "t6_s3": {
+  "file": "/rigs/t6_s3.obone",
+  "plate": "/art/heroine_t6_s3.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ }
+}

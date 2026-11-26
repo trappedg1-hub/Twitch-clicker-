@@ -1,0 +1,26 @@
+{
+  "name": "twitch-streamer-clicker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "npm run dev",
+    "dev": "vite --host 0.0.0.0",
+    "build": "npm test && npm run typecheck && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "upscale": "python3 scripts/upscale_5k.py",
+    "keyplate": "python3 scripts/key_plate.py"
+  },
+  "dependencies": {
+    "@openbone/pixi": "^0.4.12",
+    "pixi.js": "^8.8.1"
+  },
+  "devDependencies": {
+    "@sparticuz/chromium": "^133.0.0",
+    "@types/node": "^22.13.5",
+    "playwright-core": "^1.51.0",
+    "typescript": "~5.7.3",
+    "vite": "^6.2.0"
+  }
+}
