@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
 """Build the first real OpenBone document for Miya (day 1 plate).
 
-What this is: a skeletal rig over the approved 1024x1526 plate — a deformable grid mesh
-weighted to a spine chain, plus breathing / idle-sway / head-turn animations. It replaces
-"one flat texture deformed by a hand-tuned mesh in HeroineRig" with an authored rig that a
-runtime can actually animate, and it is the base we refine into a layered rig later.
+What this is: a skeletal rig over the approved 1024x1526 plate — a grid mesh whose weights are
+**parts, not a fog** (see `weights_for`), plus breathing / idle / nod / turn animations and two
+physics springs. It replaces "one flat texture deformed by a hand-tuned mesh in HeroineRig" with
+an authored rig that a runtime can animate.
+
+The weighting rule is the whole thing. A pixel belongs to one part, the part is rigid, and parts
+meet in narrow joints: the head (face, hair, headphones) is one body, the hair below the jaw hangs
+off it, the torso is rigid between the waist and the shoulders, and the thighs rest on the chair so
+they are bound to `root` and never move. Only the neck (56 px) and the waist (30 px) bend. Measured
+on the real runtime, that turned 547 folded triangles in a head turn into zero and stopped the
+backrest behind her from rocking 8 px with every reaction.
 
 What this is NOT yet: separate eyes, mouth, hair and cloth layers. Those need either a
 See-through decomposition on a GPU or per-layer generations; this document is the skeleton
@@ -101,8 +108,8 @@ PHYSICS = [
         # Tuned against the smear limit, not by taste: past ~18 px of travel the hair pixels
         # stretch away from the hoodie underneath them and the silhouette streaks. A stiffer
         # spring plus a partial `mix` keeps the lag readable without the streaks.
-        "inertia": 0.72, "strength": 95.0, "damping": 4.5, "mass": 1.0,
-        "gravity": 12.0, "wind": 0.0, "mix": 0.72, "fps": 60, "volume": True,
+        "inertia": 0.60, "strength": 165.0, "damping": 8.0, "mass": 1.0,
+        "gravity": 12.0, "wind": 0.0, "mix": 0.45, "fps": 60, "volume": True,
     },
     {
         # Bust: the only part with real travel. It hangs off the chest, so it inherits the torso
@@ -111,8 +118,8 @@ PHYSICS = [
         "name": "bust",
         "bone": "bone_bust",
         "x": 0.55, "y": 0.75, "rotate": 0.45, "scaleX": 0.20,
-        "inertia": 0.86, "strength": 115.0, "damping": 4.2, "mass": 1.0,
-        "gravity": 0.0, "wind": 0.0, "mix": 0.85, "fps": 60, "volume": False,
+        "inertia": 0.72, "strength": 170.0, "damping": 7.0, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.40, "fps": 60, "volume": False,
     },
     {
         # Chest: taut, fast, small travel. Enough to let the torso settle a moment after the
@@ -121,8 +128,8 @@ PHYSICS = [
         "name": "chest",
         "bone": "bone_chest",
         "x": 0.18, "y": 0.22, "rotate": 0.35, "scaleX": 0.0,
-        "inertia": 0.55, "strength": 260.0, "damping": 6.5, "mass": 1.0,
-        "gravity": 0.0, "wind": 0.0, "mix": 0.45, "fps": 60, "volume": False,
+        "inertia": 0.40, "strength": 380.0, "damping": 12.0, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.18, "fps": 60, "volume": False,
     },
 ]        # height falloff of the skin weights, scaled with the face
 
@@ -201,7 +208,11 @@ def hair_field(plate: Path, face_box: list[int] | None, eyes_mid: tuple[float, f
     if face_box:
         fx0, fy0, fx1, fy1 = face_box
         mask &= ~((xx >= fx0) & (xx <= fx1) & (yy >= fy0) & (yy <= fy1))
-    soft = Image.fromarray((mask * 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(22))
+    # 3 px, not 22: this mask now decides WHICH PART a pixel belongs to, and a 44 px-wide
+    # transition band is what turned the hair into a smear — half of every strand followed the
+    # hair bone, half followed the chest, so the edge of the hair curtain was dragged into a
+    # ghost of itself on every head turn.
+    soft = Image.fromarray((mask * 255).astype(np.uint8), "L").filter(ImageFilter.GaussianBlur(8))
     if face_box:
         # The blur bleeds back over the face. A face that sways with the hair tears at the hairline
         # and drags the eye and mouth patches off their plates, so the face band wins.
@@ -215,6 +226,65 @@ def hair_field(plate: Path, face_box: list[int] | None, eyes_mid: tuple[float, f
 
 HAIR_FIELD: Image.Image | None = None
 _HAIR_PIX: np.ndarray | None = None
+
+# --- anatomy, in eye spans ---------------------------------------------------------------
+# Everything below is measured off the calibration plate and expressed in inter-ocular
+# distances, so it follows the eye line onto any art. These are the numbers that turn a smooth
+# "rubber sheet" into articulation: a head that rotates as a head, a neck that bends over 30 px,
+# a torso that is rigid between joints instead of sagging everywhere.
+MX, MY, SPAN = 498.5, 289.0, 97.0     # eye-line midpoint + inter-ocular distance of the plate
+CHIN = 1.20          # chin, below the eye line (t1_s0: eyes 308, jaw 430, span 102)
+NECK_TOP = 0.04      # the neck bend starts a little under the jaw
+NECK_BOTTOM = 1.75   # and is done by here: below this the chest owns the pixel
+HEAD_DX, HEAD_DY = 0.12, -0.03  # centre of the skull+hair+headphone mass, relative to the eyes
+HEAD_RX, HEAD_RY = 2.00, 1.75   # and how far it reaches; a touch proud of the hair (x 340..748)
+BLEND = 0.30         # half-width of a joint band, in spans
+
+
+def smoothstep(e0: float, e1: float, x: float) -> float:
+    if e1 <= e0:
+        return 1.0 if x >= e1 else 0.0
+    t = min(1.0, max(0.0, (x - e0) / (e1 - e0)))
+    return t * t * (3.0 - 2.0 * t)
+
+
+def below(y: float, edge: float, width: float) -> float:
+    """0 above `edge`, 1 below `edge + width` — a joint, not a gradient."""
+    return smoothstep(edge, edge + width, y)
+
+
+TORSO_DX = 0.04      # centre of her neck+torso envelope, relative to the eyes
+TORSO_RX = 1.62      # half-width: 165 px on t1_s0, so x 371..701
+TORSO_TOP = -0.20    # from just under the jaw...
+TORSO_BOTTOM = 5.70  # ...down to her hips, in spans below the eye line
+TORSO_RIM = 0.08     # the last 8 % of the envelope fades out, ~13 px
+
+
+def torso_gate(x: float, y: float) -> float:
+    """Is this pixel her neck/torso — or the chair she is sitting on?
+
+    An ellipse cannot answer that: her shoulders reach x 690 while the backrest's inner edge is
+    at 345, and an ellipse wide enough for one side of her reaches into the chair on the other.
+    A boxy superellipse (|dx|^4 + |dy|^4) is flat enough along her sides to leave the backrest,
+    the armrests and the seat alone, while her own silhouette stays comfortably inside it.
+    """
+    span = SPAN
+    cx = MX + TORSO_DX * span
+    rx = TORSO_RX * span
+    top = MY + TORSO_TOP * span
+    ry = (MY + TORSO_BOTTOM * span - top) / 2.0
+    cy = top + ry
+    dx = abs(x - cx) / rx
+    dy = abs(y - cy) / ry
+    d = (dx ** 4 + dy ** 4) ** 0.25
+    return 1.0 - smoothstep(1.0 - TORSO_RIM, 1.0, d)
+
+
+def head_gate(x: float, y: float) -> float:
+    """How much this pixel belongs to the head+hair mass (the chair is outside it)."""
+    rx, ry = HEAD_RX * SPAN, HEAD_RY * SPAN
+    d = math.hypot((x - (MX + HEAD_DX * SPAN)) / rx, (y - (MY + HEAD_DY * SPAN)) / ry)
+    return 1.0 - smoothstep(0.84, 1.0, d)
 
 
 def hair_factor(x: float, y: float) -> float:
@@ -237,8 +307,9 @@ def deform_mask(x: float, y: float) -> float:
     """How much any bone is allowed to touch this pixel — used by the audit and the docs."""
     return max(influence(name, x, y) for name in INFLUENCE if name != "root")
 
-# Grid resolution of the body mesh. Finer = smoother bend, more vertices to skin.
-COLS, ROWS = 34, 50
+# Grid resolution of the body mesh. A joint band is ~30 px wide, so the grid has to be a few
+# cells narrower than that or the bend lands inside a single row of triangles and creases.
+COLS, ROWS = 56, 84
 
 
 def bone_world(bones: list[tuple[str, float, float, str | None]]) -> dict[str, tuple[float, float]]:
@@ -264,70 +335,95 @@ def bone_world(bones: list[tuple[str, float, float, str | None]]) -> dict[str, t
 
 
 def weights_for(x: float, y: float, world: dict[str, tuple[float, float]]) -> list[dict]:
-    """Two-bone skin weight by height, gated by each bone's influence ellipse.
+    """Skin weights as PARTS, not as a fog — and every term continuous.
 
-    The body leans and breathes, so a vertex belongs to the bones whose height it sits at,
-    with a soft falloff between them. The ellipse gate is what keeps the chair, the desk and
-    the room still: a vertex outside every ellipse keeps only `root`, and `root` never moves.
+    The first version of this function scored every bone by its height and let the top two win,
+    with a 190 px gaussian falloff, and blended the hair on top of that through a 44 px mask. Every
+    vertex therefore moved a little, in a slightly different direction from its neighbour: the
+    picture never articulated, it sagged — and the hair, dragged between the hair bone and the
+    chest, smeared into a ghost of its own edge on every reaction.
+
+    What a character rig does instead: a pixel belongs to ONE part, that part is rigid, and parts
+    meet in narrow joints. The head — face, hair, headphones — is one rigid body. The hair that
+    falls past the jaw hangs off it. The torso is rigid between the waist and the shoulders. Only
+    the neck and the waist bend, and they bend over ~30-45 px.
+
+    Every term below is a smooth ramp. A boolean here ("is this pixel hers?") is a step, and a
+    step in a skin weight folds the mesh — 547 inverted triangles in one head turn, which is what
+    ghosting looks like in geometry.
     """
-    # One scoring rule instead of "height band, then ellipse": a bone competes for a vertex on
-    # how close it is in height AND whether the vertex is inside its influence ellipse. Two
-    # separate rules used to leave holes where the band named a bone that the ellipse rejected,
-    # and those holes dropped to root — the chest stopped deforming in patches.
-    scored = []
-    for name in world:
-        if name == "root":
-            continue
-        _, by = world[name]
-        gate = influence(name, x, y)
-        if gate <= 0.0:
-            continue
-        scored.append((math.exp(-(((y - by) / WEIGHT_SIGMA) ** 2)) * gate, name))
-    scored.sort(reverse=True)
-    top = scored[:2]
-    total = sum(w for w, _ in top) or 1.0
+    span = SPAN
+    chin = MY + CHIN * span
+    hair = hair_factor(x, y)
+    head = head_gate(x, y)
+    her = max(head, hair)                       # the head+hair mass, soft at its edge
 
+    # 1. The head owns everything above her jaw and hands it over across the neck.
+    w_head = her * (1.0 - below(y, chin, 0.45 * span))
+    # 2. Hair that falls past the jaw is still her hair: it rides the head chain on its own bone,
+    #    which is where the physics spring lives.
+    w_hair = hair * below(y, chin - 0.45 * span, 0.85 * span)
+
+    rest = max(0.0, 1.0 - w_head - w_hair)
+    # 3. Under the jaw the neck takes over and then the chest. No booleans: two ramps that cross.
+    #    The neck starts BELOW the jaw: without that ramp the band reached the backrest behind her
+    #    head and dragged 21 px of chair along with every nod.
+    neck_ramp = below(y, chin - 0.35 * span, 0.35 * span)
+    neck_share = neck_ramp * (1.0 - below(y, chin + 0.15 * span, 0.75 * span))
+    own = torso_gate(x, y)          # her body, not the chair
+    w_neck = rest * neck_share * own
+    lower = rest * (1.0 - neck_share) * own
+
+    # 4. The torso ladder, gated so the chair she sits on never moves with her.
+    chest_y, spine_y, hips_y = world["chest"][1], world["spine"][1], world["hips"][1]
+    w = BLEND * span
+    spine_in = below(y, chest_y + 0.45 * (spine_y - chest_y), w)
+    hips_in = below(y, spine_y + 0.45 * (hips_y - spine_y), w)
+    floor_in = below(y, hips_y + 0.35 * (hips_y - spine_y), w)
+    ladder = [
+        ("chest", 1.0 - spine_in),
+        ("spine", spine_in - hips_in),
+        ("hips", hips_in - floor_in),
+        ("root", floor_in),
+    ]
+    parts = [
+        ("head", w_head),
+        ("hair_back", w_hair),
+        ("neck", w_neck),
+    ]
+    for name, share in ladder:
+        parts.append((name, lower * share))
+    # Whatever the envelope rejected is the chair under her: still, forever.
+    parts.append(("root", max(0.0, 1.0 - w_head - w_hair - w_neck - lower)))
+
+    # 5. Bust: a small, soft part in front of the chest with its own spring.
+    if abs(y - world["bust"][1]) < 1.1 * span:
+        bust = influence("bust", x, y)
+        if bust > 0.0:
+            parts = [(n, v * (1.0 - 0.5 * bust)) for n, v in parts]
+            parts.append(("bust", 0.5 * bust * lower))
+    return finish(x, y, world, parts)
+
+
+def finish(x: float, y: float, world: dict[str, tuple[float, float]], parts: list[tuple[str, float]]) -> list[dict]:
+    """Normalise a part list into skin weights, dropping everything that rounds away to nothing."""
+    parts = [(n, w) for n, w in parts if w > 1e-3]
+    if not parts:
+        parts = [("root", 1.0)]
+    total = sum(w for _, w in parts)
     out = []
-    moved = 0.0
-    for w, name in top:
-        gated = w / total
-        if gated < 1e-4:
+    for name, weight in parts:
+        if weight <= 1e-3:
             continue
         bx, by = world[name]
-        moved += gated
         out.append(
             {
                 "bone": f"bone_{name}",  # weights reference bone IDs, not names
                 "x": round(x - bx, 3),
                 "y": round(y - by, 3),
-                "weight": gated,
+                "weight": round(weight / total, 4),
             }
         )
-
-    # Hair is content-driven, not geometry-driven: whatever the plate says is hair goes to the
-    # hair bone, blended softly with the weights above so the silhouette stays continuous.
-    hf = hair_factor(x, y)
-    if hf > 0.004:
-        carried = [{"bone": w["bone"], "x": w["x"], "y": w["y"], "weight": w["weight"] * (1.0 - hf)} for w in out]
-        hb = world["hair_back"]
-        hair = {"bone": "bone_hair_back", "x": round(x - hb[0], 3), "y": round(y - hb[1], 3), "weight": hf}
-        merged: dict[str, dict] = {}
-        for entry in carried + [hair]:
-            if entry["bone"] in merged:
-                merged[entry["bone"]]["weight"] += entry["weight"]
-            else:
-                merged[entry["bone"]] = entry
-        out = list(merged.values())
-        moved = sum(w["weight"] for w in out)
-
-    # Whatever the ellipses did not claim is pinned to root: the chair breathes no more.
-    if moved < 0.9999:
-        rx, ry = world["root"]
-        out.append(
-            {"bone": "bone_root", "x": round(x - rx, 3), "y": round(y - ry, 3), "weight": 1.0 - moved}
-        )
-        moved = 1.0
-
     # Round the weights but keep the sum at exactly 1.0, or the skinned point drifts.
     acc = 0.0
     for i, w in enumerate(out):
@@ -461,10 +557,13 @@ def build() -> dict:
         "name": "sway",
         "duration": 7.0,
         "timelines": [
-            tl("bone_hips", "rotation", ((0, 0), (1.75, 0.8), (3.5, 0), (5.25, -0.8), (7.0, 0))),
-            tl("bone_chest", "rotation", ((0, 0), (1.75, -0.5), (3.5, 0), (5.25, 0.5), (7.0, 0))),
-            tl("bone_head", "rotation", ((0, 0), (1.75, 0.7), (3.5, 0), (5.25, -0.7), (7.0, 0))),
-            tl("bone_hair_back", "rotation", ((0, 0), (1.75, 1.2), (3.5, 0), (5.25, -1.2), (7.0, 0))),
+            tl("bone_hips", "rotation", ((0, 0), (1.75, 0.55), (3.5, 0), (5.25, -0.55), (7.0, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (1.75, -0.35), (3.5, 0), (5.25, 0.35), (7.0, 0))),
+            tl("bone_head", "rotation", ((0, 0), (1.75, 0.55), (3.5, 0), (5.25, -0.55), (7.0, 0))),
+            tl("bone_head", "y", ((0, 0), (1.75, -1.2), (3.5, 0), (5.25, -1.2), (7.0, 0))),
+            # The hair is late by design: it is the same head bone plus a spring, so it settles
+            # a beat after she does.
+            tl("bone_hair_back", "rotation", ((0, 0), (2.1, -0.7), (3.9, 0.2), (5.6, 0.7), (7.0, 0))),
         ],
         "events": [],
     }
@@ -474,31 +573,32 @@ def build() -> dict:
         "name": "turn",
         "duration": 2.4,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.8, 3.5), (1.6, 0), (2.4, -2.0))),
-            tl("bone_chest", "rotation", ((0, 0), (0.8, 1.2), (1.6, 0), (2.4, -0.8))),
+            tl("bone_head", "rotation", ((0, 0), (0.55, 3.4), (1.35, 0.5), (2.4, -1.8)),
+               ease=(0.22, 0.7, 0.3, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.62, 0.8), (1.4, 0.1), (2.4, -0.4))),
+            tl("bone_chest", "rotation", ((0, 0), (0.7, 0.7), (1.5, 0), (2.4, -0.4)),
+               ease=(0.3, 0.2, 0.4, 1)),
+            tl("bone_hair_back", "rotation", ((0, 0), (0.9, -1.2), (1.7, 0.3), (2.4, 0.5))),
         ],
         "events": [],
     }
 
-    # Bone levers are long: the face sits ~580 px above the chest and ~166 px from the head bone,
-    # so one degree on each of the three adds up to ~10 px of travel. That is why the numbers below
-    # look tiny and the reaction reads perfectly.
-    #
-    # A reaction has to read as a beat, not as a wobble. The first cut swung the head ±6° over a
-    # full second — measured, that is 70 px of travel on her face, and because a clicker fires a
-    # reaction every few hundred milliseconds she never settled: on screen it was jelly, and the
-    # hair, chasing a 70 px swing, smeared. One beat, one overshoot, done.
     shake = {
         "id": "anim_shake",
         "name": "shake",
-        "duration": 0.8,
+        "duration": 0.9,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.12, -1.2), (0.3, 0.85), (0.5, -0.4), (0.66, 0.13), (0.8, 0))),
-            tl("bone_neck", "rotation", ((0, 0), (0.12, -0.4), (0.3, 0.28), (0.5, -0.12), (0.8, 0))),
-            tl("bone_chest", "rotation", ((0, 0), (0.15, 0.3), (0.42, -0.2), (0.8, 0))),
-            # A small vertical dip: a reaction has weight, and without it the bust spring has
-            # nothing to overshoot.
-            tl("bone_chest", "y", ((0, 0), (0.12, 2.5), (0.34, -1.0), (0.56, 0.4), (0.8, 0))),
+            # One beat, one overshoot. The head is a rigid body now, so a degree really is a
+            # degree: 2.2° at the crown is 11 px of travel, which reads on a phone; the old rig
+            # needed 6° for the same read because it smeared the motion across her whole body.
+            tl("bone_head", "rotation", ((0, 0), (0.16, 3.2), (0.40, -1.9), (0.64, 0.6), (0.90, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (0.16, 1.0), (0.40, -0.55), (0.90, 0)),
+               ease=(0.25, 0.1, 0.25, 1)),
+            # The chest answers a little later than the head — overlapping action, not a scale.
+            tl("bone_chest", "rotation", ((0, 0), (0.24, 0.5), (0.52, -0.25), (0.90, 0)),
+               ease=(0.3, 0, 0.4, 1)),
+            tl("bone_chest", "y", ((0, 0), (0.16, 3.2), (0.44, -1.2), (0.9, 0))),
+            tl("bone_hips", "rotation", ((0, 0), (0.3, -0.25), (0.9, 0))),
         ],
         "events": [],
     }
@@ -509,11 +609,16 @@ def build() -> dict:
     tap = {
         "id": "anim_tap",
         "name": "tap",
-        "duration": 0.42,
+        "duration": 0.5,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.07, -0.5), (0.19, 0.28), (0.42, 0))),
-            tl("bone_neck", "rotation", ((0, 0), (0.07, -0.18), (0.19, 0.1), (0.42, 0))),
-            tl("bone_chest", "y", ((0, 0), (0.07, -1.6), (0.22, 0.6), (0.42, 0))),
+            tl("bone_head", "rotation", ((0, 0), (0.09, -1.5), (0.24, 0.55), (0.50, 0)),
+               ease=(0.2, 0.6, 0.35, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.09, -0.5), (0.24, 0.2), (0.50, 0))),
+            # A nod is a nod: the chest lifts a hair, the head does the acting.
+            tl("bone_chest", "y", ((0, 0), (0.11, -2.0), (0.30, 0.7), (0.50, 0))),
+            # The far shoulder follows the head by a beat — the one thing that separates a nod
+            # from a slide of the whole picture.
+            tl("bone_bust", "rotation", ((0, 0), (0.16, -0.18), (0.36, 0.06), (0.50, 0))),
         ],
         "events": [],
     }
@@ -649,9 +754,15 @@ def build() -> dict:
             ],
         }
 
+    # Blinks are not a metronome: four of them in eight seconds, unevenly spaced, and one double
+    # blink at the end. A loop that blinks on the beat reads as a machine more than any wobble does.
     blink_beats = [
-        (1.00, None), (1.05, "eyes_closed"), (1.14, None),
-        (2.90, None), (2.95, "eyes_closed"), (3.04, None),
+        (1.02, None), (1.07, "eyes_closed"), (1.16, None),
+        (2.86, None), (2.91, "eyes_closed"), (3.00, None),
+        (4.55, None), (4.60, "eyes_closed"), (4.69, None),
+        (6.14, None), (6.19, "eyes_closed"), (6.26, None),
+        (6.92, None), (6.97, "eyes_closed"), (7.04, None),
+        (7.10, None), (7.15, "eyes_closed"), (7.24, None),
     ]
     talk_beats = [
         (0.00, None), (0.09, "mouth_open"), (0.18, None), (0.27, "mouth_open"),
@@ -660,16 +771,41 @@ def build() -> dict:
     ]
 
     def idle_anim(anim_id: str, name: str, with_talk: bool) -> dict:
-        timelines = [dict(t) for t in breath["timelines"]]
+        """Eight seconds of her sitting there, not eight seconds of a breathing texture.
+
+        Two breaths, a slow drift of the head with the neck a beat behind it, one weight shift in
+        the hips, the hair settling after the head each time, and five deliberately uneven blinks.
+        The amplitudes are small on purpose — a head is a rigid body now, so a degree moves her
+        crown 5 px on a phone, where the old soft-weighted rig needed six degrees to read at all
+        and looked like a rubber doll doing it.
+        """
+        timelines = [
+            # breath, twice, and never on a metronome
+            tl("bone_chest", "y", ((0, 0), (1.5, -3.0), (3.1, 0), (3.9, -0.2),
+                                   (5.4, -3.4), (7.1, 0), (8.0, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (1.5, 0.22), (3.1, 0), (5.4, -0.22),
+                                          (7.1, 0), (8.0, 0))),
+            tl("bone_neck", "y", ((0, 0), (1.6, -1.0), (3.2, 0), (5.5, -1.2), (7.2, 0), (8.0, 0))),
+            tl("bone_bust", "scaleY", ((0, 0), (1.5, 0.022), (3.1, 0), (5.4, 0.025), (7.1, 0), (8.0, 0))),
+            tl("bone_bust", "scaleX", ((0, 0), (1.5, 0.011), (3.1, 0), (5.4, 0.013), (7.1, 0), (8.0, 0))),
+            # she looks around a little, and her neck follows a beat late
+            tl("bone_head", "rotation", ((0, 0), (1.9, 0.85), (3.4, 0.15), (4.8, -0.70),
+                                         (6.2, 0.25), (7.4, 0.55), (8.0, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (2.1, 0.34), (3.6, 0.06), (5.0, -0.28),
+                                         (6.4, 0.10), (7.6, 0.20), (8.0, 0))),
+            tl("bone_hair_back", "rotation", ((0, 0), (2.25, -0.85), (3.8, 0.25), (5.3, 0.70),
+                                              (6.7, -0.30), (8.0, 0))),
+            tl("bone_hips", "rotation", ((0, 0), (2.2, 0.12), (5.6, -0.12), (8.0, 0))),
+        ]
         timelines.append(slot_timeline("slot_eyes", blink_beats))
         if with_talk and has_mouth:
-            # Speech runs in two passes over the same 4 s breath loop: she talks, pauses, talks.
+            # Speech runs in two passes over the same 8 s loop: she talks, pauses, talks.
             # ONE timeline with both passes: the runtime keys a slot attachment once per track, and
             # a second timeline for the same slot is deduplicated away — the mouth then stays shut
             # for the first half of every loop.
-            beats = talk_beats + [(t + 2.0, v) for t, v in talk_beats]
+            beats = talk_beats + [(t + 3.9, v) for t, v in talk_beats]
             timelines.append(slot_timeline("slot_mouth", beats))
-        return {"id": anim_id, "name": name, "duration": 4.0, "timelines": timelines, "events": []}
+        return {"id": anim_id, "name": name, "duration": 8.0, "timelines": timelines, "events": []}
 
     idle = idle_anim("anim_idle", "idle", False)
     idle_talk = idle_anim("anim_idle_talk", "idle_talk", True)
@@ -794,7 +930,7 @@ def place_for(art: str) -> tuple[tuple[float, float], float]:
 
 def main(argv: list[str] | None = None) -> int:
     global PATCHES, BONES, INFLUENCE, WEIGHT_SIGMA, PLATE, ART_KEY, IMG_ID, EYES_ID
-    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX
+    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, MX, MY, SPAN
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--art", default="t1_s0", help="art key, e.g. t6_s1")
@@ -830,6 +966,7 @@ def main(argv: list[str] | None = None) -> int:
     MOUTH_CLOSED_ID = f"img_miya_{ART_KEY}_mouth_closed"
 
     mid, span = place_for(ART_KEY)
+    MX, MY, SPAN = mid[0], mid[1], span
     BONES, INFLUENCE, WEIGHT_SIGMA = derive_skeleton(mid, span, W, H)
 
     entry = json.loads(MANIFEST.read_text())[f"heroine_{ART_KEY}"]

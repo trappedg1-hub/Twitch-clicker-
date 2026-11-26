@@ -343,7 +343,7 @@ export class StreamStage {
       const localPt = this.root.toLocal(globalPt);
       // Every tap is a beat: a 0.4 s nod on the skeleton, small enough to repeat. `LiveHeroine`
       // drops requests that arrive mid-beat, so hammering her animates once, not ten times.
-      this.live?.react('tap', 420);
+      this.live?.react('tap', 480);
       const res = this.onHeroineTap?.(zone);
       if (res) {
         this.spawnTapBurst(localPt.x, localPt.y, res.earned, res.alert, zone);

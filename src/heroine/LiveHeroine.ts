@@ -50,6 +50,14 @@ export class LiveHeroine {
   private reactionUntil = 0;
   /** When the last reaction was asked for — the clicker asks faster than a beat lasts. */
   private lastReactionAt = -Infinity;
+  /**
+   * When she looks around on her own.
+   *
+   * This is the cheapest kind of life there is and the one a still illustration misses most: a
+   * person sitting at a desk does not hold one pose until something happens to her. Every 12-26
+   * seconds, in the gaps between clicks, she turns her head for a beat and settles back.
+   */
+  private nextGlanceAt = 0;
   private destroyed = false;
   /** Animation the panel/state asked for last — the readout in the admin console. */
   private current = 'idle';
@@ -149,6 +157,7 @@ export class LiveHeroine {
       this.view.visible = true;
       bone.play('idle', true);
       this.current = 'idle';
+      this.nextGlanceAt = performance.now() + 9000 + Math.random() * 8000;
       // The panel's tuning survives the art change: a slider must mean the same thing on every plate.
       if (this.defaultTuning) this.applyTuning(this.defaultTuning);
       if (previous) {
@@ -194,7 +203,7 @@ export class LiveHeroine {
    * A clicker asks for this faster than a beat lasts. Restarting the animation on every request
    * re-seeds the physics springs from scratch, so a nod becomes a permanent wobble; a request that
    * arrives while the same beat is still playing is therefore dropped, not restarted. `tap` is the
-   * clicker's own pulse (a 0.4 s nod), `shake` belongs to donations.
+   * clicker's own pulse (a 0.5 s nod), `shake` belongs to donations (0.9 s).
    */
   public react(kind: LiveReaction = 'shake', ms = 1100): void {
     const bone = this.bone;
@@ -253,6 +262,17 @@ export class LiveHeroine {
         this.talkUntil = 0;
         bone.play('idle', true);
         this.current = 'idle';
+      }
+      // Nothing is happening to her: she looks around by herself. Only in a real gap — never on
+      // top of a click, a donation or a line of chat.
+      if (
+        this.current === 'idle' &&
+        !this.reactionUntil &&
+        !this.talkUntil &&
+        now >= this.nextGlanceAt
+      ) {
+        this.nextGlanceAt = now + 12000 + Math.random() * 14000;
+        this.react('turn', 2400);
       }
     });
   }

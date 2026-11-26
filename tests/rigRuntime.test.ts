@@ -61,8 +61,10 @@ test('idle is a breath, not a wobble', () => {
       }
     }
     // A calm breath plus the hair and bust springs: single digits. Anything near 20 px is the doll
-    // wobble that shipped once.
-    assert.ok(body <= 6, `${art}: idle moves her body ${body.toFixed(1)} px (limit 6)`);
+    // wobble that shipped once. Idle now ALSO drifts her head (a rigid head that looks around) and
+    // that is the one part allowed to travel: see `rigLife.test.ts`, which checks articulation —
+    // the head moves, the torso does not — instead of capping everything at one number.
+    assert.ok(body <= 16, `${art}: idle moves her body ${body.toFixed(1)} px (limit 16)`);
     assert.ok(floor <= 0.6, `${art}: idle moves the desk/floor ${floor.toFixed(2)} px (limit 0.6)`);
   }
 });
@@ -130,7 +132,9 @@ test('face patches are meshes with an upright picture, centred on the real eyes 
       );
     };
 
-    check('eyes_closed', 'eyes_closed', 1.1, 'idle');
+    // Measured on `blink`, which moves no bones: the patch has to sit on her eyes in the rest
+    // pose. (Idle turns her head now, so a patch measured there is a patch measured mid-nod.)
+    check('eyes_closed', 'eyes_closed', 0.06, 'blink');
     if (manifest.patches!.mouth_open) check('mouth_open', 'mouth_open', 0.15, 'idle_talk');
   }
 });
