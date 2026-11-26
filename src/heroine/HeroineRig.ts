@@ -140,6 +140,17 @@ export class HeroineRig {
   private reactionCounter = 0;
   private nextAmbientMicroExprMs = 5200;
 
+  /**
+   * Hide the flat plate without stopping it.
+   *
+   * The authored skeleton (`LiveHeroine`) is drawn in the same slot and takes over the picture;
+   * the old renderer keeps ticking underneath so that switching back — a plate with no rig, a
+   * flash frame, a load failure — is instant and never shows a half-built heroine.
+   */
+  public setPlateVisible(visible: boolean): void {
+    this.bodyContainer.visible = visible;
+  }
+
   public static readonly PLATE_W = 1024;
   public static readonly PLATE_H = 1526;
   private static readonly SEG_X = 24;

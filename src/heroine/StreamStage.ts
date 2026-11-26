@@ -15,6 +15,7 @@ import type {
 } from '../domain/types.ts';
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
+import { LiveHeroine } from './LiveHeroine.ts';
 
 interface FloatingParticle {
   node: Container;
@@ -55,6 +56,8 @@ export class StreamStage {
 
   public app!: Application;
   public rig!: HeroineRig;
+  /** The authored skeleton, when the plate on screen has one. Always behind `rig.view`'s plate. */
+  public live!: LiveHeroine;
 
   private readonly root = new Container();
   private bgSprite!: Sprite;
@@ -260,13 +263,38 @@ export class StreamStage {
       day5Stages: day5StagesTex,
       day6Stages: villageLadder.stages,
     });
-    const heroScale = 724 / HeroineRig.PLATE_H;
+    // The heroine is the product: she takes the full stage height with a hair of margin.
+    // 724/768 was 94% of the frame; this is 98.4%, and the 6px offset keeps her head off the edge.
+    const heroScale = (StreamStage.VIRTUAL_H - 12) / HeroineRig.PLATE_H;
     this.rig.view.scale.set(heroScale);
     this.rig.view.position.set(
       (StreamStage.VIRTUAL_W - HeroineRig.PLATE_W * heroScale) * 0.5,
-      18,
+      6,
     );
     this.root.addChild(this.rig.view);
+
+    // The authored skeleton lives INSIDE `rig.view` so it inherits her placement, her scale and
+    // her z-order for free — the desk still cuts across her, the chair shadow still sits behind.
+    // Plate pixels, unit scale: the rig document is authored on the 1024x1526 canvas.
+    this.live = new LiveHeroine();
+    this.rig.view.addChild(this.live.view);
+    void this.syncLiveHeroine();
+
+    // HUD safe zone: `?hudsafe=1` outlines the exact screen column the character owns, so a
+    // hud element that reaches into her silhouette is obvious in one glance. Debug only.
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("hudsafe")) {
+      const zone = new Graphics();
+      zone
+        .rect(
+          this.rig.view.position.x,
+          this.rig.view.position.y,
+          HeroineRig.PLATE_W * heroScale,
+          HeroineRig.PLATE_H * heroScale,
+        )
+        .stroke({ color: 0x2bff9e, width: 2, alpha: 0.9 });
+      this.root.addChild(zone);
+    }
+
     // Day 2 plates frame her head differently - glue the patches on before the first render.
     this.rig.setFaceAnchorFor(this.getActivePlateName());
 
@@ -276,6 +304,9 @@ export class StreamStage {
     this.fgDeskSprite.height = StreamStage.VIRTUAL_H + 12;
     this.fgDeskSprite.position.set(-14, -2);
     this.root.addChild(this.fgDeskSprite);
+    // The desk stays in FRONT of the plate on purpose: she sits at the computer, so the desktop
+    // edge in the near field is what sells the depth of the shot. The "nothing covers her" rule
+    // applies to the HUD layer, not to the room she is sitting in.
 
     // Layer 2b: Desk Microphone (Tier 1..10) — appears on the wooden desk once purchased!
     this.micTextures = [micT1Tex, micT2Tex, micT3Tex, micT4Tex, micT5Tex, micT6Tex, micT7Tex, micT8Tex, micT9Tex, micT10Tex];
@@ -431,15 +462,53 @@ export class StreamStage {
    * The rig picks the flash plate for the live day, so a day with no flash art simply returns false.
    */
   public triggerGhostBoo(durationMs = 520): boolean {
-    return this.rig?.triggerGhostBoo(durationMs) ?? false;
+    const played = this.rig?.triggerGhostBoo(durationMs) ?? false;
+    if (played) {
+      // The flash is a flat plate crossfade inside the old renderer: hand the screen back to it
+      // for the length of the flash, then return to the skeleton.
+      this.live.hide();
+      this.rig?.setPlateVisible(true);
+      window.setTimeout(() => void this.syncLiveHeroine(), durationMs + 120);
+    }
+    return played;
   }
 
   public setWardrobeDay(day: 1 | 2 | 3 | 4 | 5 | 6): void {
     this.rig?.setWardrobeDay(day);
     this.rig?.setFaceAnchorFor(this.getActivePlateName());
+    void this.syncLiveHeroine();
+  }
+
+  /**
+   * Point the live skeleton at whatever plate the rig is showing.
+   *
+   * 22 of the 41 plates have a rig; the other 19 are small or cropped faces where a blink is one
+   * or two pixels and a seam is more likely than a life sign, so they keep the flat plate on
+   * purpose. Either way this never throws: a missing rig is a normal outcome.
+   */
+  public async syncLiveHeroine(): Promise<void> {
+    const plate = this.getActivePlateName();
+    const art = plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
+    if (!art) return;
+    const ok = await this.live.show(art);
+    this.rig?.setPlateVisible(!ok);
+  }
+
+  /** One-shot secondary motion on the live skeleton, if one is up. */
+  public playLiveReaction(kind: 'shake' | 'turn' | 'sway' = 'shake'): void {
+    this.live.react(kind);
+  }
+
+  /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
+  public playLiveTalk(ms = 2600): void {
+    this.live.talk(ms);
   }
 
   public spawnReactionCallout(tagText: string, isFever = false, sideSeed = 0): void {
+    // She answers the chat: talk with the mouth, and a small head turn the hair has to catch up
+    // with. Both are no-ops when the plate on screen has no rig.
+    this.live?.talk(2400);
+    this.live?.react('shake', 1100);
     // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
     if (this.activeCalloutParticle) {
       const idx = this.particles.indexOf(this.activeCalloutParticle);
@@ -540,6 +609,7 @@ export class StreamStage {
       this.spawnSubGoalBanner(bannerLabel);
     }
     if (didChange) {
+      void this.syncLiveHeroine();
       this.app?.render();
     }
   }
@@ -678,6 +748,7 @@ export class StreamStage {
     this.elapsedSec += dt;
 
     this.rig.update(safeDt);
+    this.live.update(performance.now());
 
     // Subtle 3D webcam parallax between room back wall, heroine, and foreground desk!
     this.bgSprite.x = -12 - this.pointerNormX * 5.5;

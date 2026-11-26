@@ -8,9 +8,12 @@
     "dev": "vite --host 0.0.0.0",
     "build": "npm test && npm run typecheck && vite build",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "upscale": "python3 scripts/upscale_5k.py",
+    "keyplate": "python3 scripts/key_plate.py"
   },
   "dependencies": {
+    "@openbone/pixi": "^0.4.12",
     "pixi.js": "^8.8.1"
   },
   "devDependencies": {

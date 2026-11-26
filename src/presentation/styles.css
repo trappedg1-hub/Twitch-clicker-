@@ -321,9 +321,9 @@ body,
 /* Frameless OBS Stream Chat Overlay (no boxy rectangles, pure floating text + Twitch emotes!) */
 .obs-chat-overlay {
   position: absolute;
-  right: 18px;
-  bottom: 64px;
-  width: min(290px, 24vw);
+  right: 16px;
+  bottom: 56px;
+  width: min(300px, 22vw);
   height: min(300px, 46%);
   pointer-events: none;
   z-index: 8;
@@ -426,14 +426,22 @@ body,
   vertical-align: -5px;
 }
 
-/* Readable Miya subtitle along the Wooden Desk Plank (wraps 2-3 lines, soft veil, auto-fades!) */
+/* HUD SAFE-ZONE RULE
+ * The heroine is the product, so no interface layer may sit on top of her silhouette.
+ * The plate is centred and fills the stage height, which leaves two side gutters; every
+ * persistent HUD element lives in a gutter. Anything that must span the width (finale card,
+ * tab drawer) is a modal state that pauses the stream instead of covering her live.
+ * The desk strip in the near field is NOT HUD: she sits at the computer, so that occlusion
+ * is the depth of the shot and stays.
+ */
 .speech-subtitle {
   position: absolute;
-  bottom: 7px;
-  left: 50%;
-  transform: translateX(-50%);
-  max-width: min(760px, 72vw);
-  text-align: center;
+  bottom: 12px;
+  left: 14px;
+  right: auto;
+  transform: none;
+  max-width: min(420px, 27vw);
+  text-align: left;
   pointer-events: none;
   z-index: 9;
   font-size: 13.5px;
@@ -458,7 +466,7 @@ body,
 }
 
 .speech-subtitle.pop {
-  transform: translateX(-50%) translateY(-2px);
+  transform: translateY(-2px);
 }
 
 .sub-name {
@@ -1685,9 +1693,9 @@ body.drawer-open .obs-chat-overlay {
   .obs-chat-overlay {
     left: auto;
     right: 8px;
-    bottom: 100px;
-    width: min(230px, 58vw);
-    height: min(104px, 28%);
+    bottom: 96px;
+    width: min(210px, 44vw);
+    height: min(96px, 24%);
   }
 
   .chat-msg {
@@ -1702,8 +1710,10 @@ body.drawer-open .obs-chat-overlay {
   }
 
   .speech-subtitle {
-    bottom: 5px;
-    max-width: 92vw;
+    left: 10px;
+    right: 10px;
+    bottom: 6px;
+    max-width: none;
     font-size: 11.5px;
     white-space: normal;
     padding: 5px 10px;

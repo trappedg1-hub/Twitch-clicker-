@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenBone rig lab — smoke test</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: #0b0b0d;
+        color: #e8e8ee;
+        font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 20px 60px; }
+      h1 { font-size: 20px; margin: 0 0 6px; }
+      .sub { color: #8b8b9a; margin: 0 0 20px; }
+      #stage {
+        position: relative;
+        aspect-ratio: 16 / 9;
+        background: #131318;
+        border: 1px solid #24242e;
+        border-radius: 14px;
+        overflow: hidden;
+        display: grid;
+        place-items: center;
+      }
+      #stage canvas { display: block; max-width: 100%; max-height: 100%; }
+      #status {
+        position: absolute;
+        left: 12px;
+        bottom: 12px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.62);
+        color: #9ff0b6;
+        font: 12px/1.4 ui-monospace, monospace;
+        max-width: 90%;
+        white-space: pre-wrap;
+      }
+      .row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+      button {
+        background: #1d1d26;
+        color: #e8e8ee;
+        border: 1px solid #2c2c3a;
+        border-radius: 10px;
+        padding: 9px 14px;
+        font: inherit;
+        cursor: pointer;
+      }
+      button:hover { border-color: #ff3b9a; }
+      #log {
+        margin-top: 18px;
+        padding: 12px 14px;
+        background: #101015;
+        border: 1px solid #22222c;
+        border-radius: 12px;
+        font: 12px/1.6 ui-monospace, monospace;
+        color: #8f8fa3;
+        max-height: 160px;
+        overflow: auto;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>OpenBone × PixiJS 8 — smoke test</h1>
+      <p class="sub">
+        Настоящий риг Мии: утверждённый плейт дня 1, сетка 26×38, 9 костей, веса по
+        позвоночнику, три анимации. Кнопка в углу — апстрим-пример OpenBone как проверка рантайма.
+      </p>
+      <div id="stage"><div id="status">загрузка…</div></div>
+      <div class="row">
+        <button id="btn-miya-breath">Мия · дыхание</button>
+        <button id="btn-miya-sway">Мия · покачивание</button>
+        <button id="btn-miya-turn">Мия · поворот головы</button>
+        <button id="btn-miya-blink">Мия · мигнуть</button>
+        <button id="btn-miya-talk">Мия · говорит</button>
+        <button id="btn-miya-smile">Мия · улыбка</button>
+      </div>
+      <div class="row">
+        <button id="btn-hover">setInput hover</button>
+        <button id="btn-press">fire press</button>
+        <button id="btn-update">manual update(dt)</button>
+      </div>
+      <div id="log"></div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

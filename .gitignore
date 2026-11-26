@@ -12,3 +12,11 @@ __pycache__/
 
 # Plate masters stay local; the app ships the webp layer only.
 public/art/*.png
+
+# Generated review material: large, and rebuilt on demand by the scripts in scripts/.
+deliverables/concept/face_kit/gen/
+deliverables/concept/face_kit/*.gif
+experiments/rig-lab/*.obone
+# Review sheets and render previews: the workspace keeps them, git does not need 100 MB of PNGs.
+deliverables/concept/**/*.png
+deliverables/concept/**/*.webp
