@@ -76,6 +76,13 @@ export class LiveHeroine {
       });
       if (this.destroyed) return false;
       const bone = await OpenBone.from(asset, { autoUpdate: true, interactive: false });
+      // OpenBone documents are authored y-UP: the runtime keeps an inner container at scale.y = -1
+      // to flip their skeleton space into Pixi's y-down one. These rigs were authored y-DOWN, in
+      // the same pixel space as the plate (x, y from the top-left corner), because that is the
+      // space the face-kit patches, the mesh weights and the Python preview all use. Neutralising
+      // the flip makes doc space and container space identical, so the skeleton lands on the plate
+      // pixel for pixel instead of standing on its head.
+      bone.view.scale.y = 1;
       const previous = this.bone;
       this.asset = asset;
       this.bone = bone;
