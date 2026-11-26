@@ -435,16 +435,23 @@ def build() -> dict:
         ]
         return {"target": "bone", "id": bone, "property": prop, "keys": keys}
 
+    # Breathing is a RISE, not an inflate. Scaling the chest by 3 % scales everything above it
+    # about the chest's origin: her head — 400 px up the chain — travelled 24 px per breath, which
+    # on a phone reads as a jelly wobble, not as breathing. A 1.5 px lift of the chest plus a
+    # barely-there bust swell gives the same impression at a fifth of the amplitude, and the
+    # measurement in `tests/rig.test.ts` keeps it there.
     breath = {
         "id": "anim_breath",
         "name": "breath",
         "duration": 4.0,
         "timelines": [
-            tl("bone_chest", "scaleY", ((0, 0), (1.6, 0.028), (3.2, 0), (4.0, 0))),
-            tl("bone_chest", "scaleX", ((0, 0), (1.6, 0.016), (3.2, 0), (4.0, 0))),
-            tl("bone_neck", "y", ((0, 0), (1.6, -1.8), (3.2, 0), (4.0, 0))),
-            tl("bone_head", "y", ((0, 0), (1.6, -1.2), (3.2, 0), (4.0, 0))),
-            tl("bone_spine", "scaleX", ((0, 0), (1.6, 0.006), (3.2, 0), (4.0, 0))),
+            tl("bone_chest", "y", ((0, 0), (1.6, -1.5), (3.2, 0), (4.0, 0))),
+            tl("bone_neck", "y", ((0, 0), (1.6, -0.6), (3.2, 0), (4.0, 0))),
+            tl("bone_head", "y", ((0, 0), (1.6, -0.4), (3.2, 0), (4.0, 0))),
+            # The bust is a leaf bone: scaling it swells the chest without moving the head.
+            tl("bone_bust", "scaleY", ((0, 0), (1.6, 0.014), (3.2, 0), (4.0, 0))),
+            tl("bone_bust", "scaleX", ((0, 0), (1.6, 0.008), (3.2, 0), (4.0, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (1.6, 0.14), (3.2, 0), (4.0, 0))),
         ],
         "events": [],
     }
@@ -494,23 +501,41 @@ def build() -> dict:
     # Region origin is its centre in bone-local space, so the offset is (plate centre - head bone).
     head_x, head_y = world["head"]
 
-    def patch(image_id: str, spec: dict) -> dict:
+    def patch(name: str, image_id: str, spec: dict) -> dict:
+        """A face patch as a weighted quad, not a region.
+
+        A region places its four corners in bone-local BONE-LOCAL y-UP space — corner 0 sits at
+        (x - w/2, y + h/2) — so on a y-down document the runtime would paste the picture in upside
+        down: closed eyes over her eyebrows, a mouth under her chin. A mesh brings its own UVs, in
+        the same convention as the body mesh (v = 0 on the top row, i.e. at the smaller y), so what
+        the preview shows is what the renderer draws — and `tests/rig.test.ts` can check it by
+        number instead of by eye.
+        """
+        w, h = float(spec["w"]), float(spec["h"])
+        cx = spec["cx"] - head_x
+        cy = spec["cy"] - head_y
+        hw, hh = w / 2.0, h / 2.0
+        # Top-left, top-right, bottom-right, bottom-left — y grows DOWN, like the plate.
+        corners = [(cx - hw, cy - hh), (cx + hw, cy - hh), (cx + hw, cy + hh), (cx - hw, cy + hh)]
         return {
-            "type": "region",
+            "type": "mesh",
+            "name": name,
             "image": image_id,
-            "x": round(spec["cx"] - head_x, 3),
-            "y": round(spec["cy"] - head_y, 3),
-            "rotation": 0,
-            "scaleX": 1,
-            "scaleY": 1,
-            "width": spec["w"],
-            "height": spec["h"],
+            "uvs": [0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0],
+            "triangles": [0, 1, 2, 0, 2, 3],
+            "vertices": [round(v, 3) for corner in corners for v in corner],
+            "weights": [
+                [{"bone": "bone_head", "x": round(x, 3), "y": round(y, 3), "weight": 1.0}]
+                for x, y in corners
+            ],
+            "hull": 0,
             "color": "#ffffff",
+            "grid": {"cols": 1, "rows": 1},
         }
 
-    eyes_closed = patch(EYES_ID, PATCHES["eyes_closed"])
+    eyes_closed = patch("eyes_closed", EYES_ID, PATCHES["eyes_closed"])
     has_mouth = "mouth_open" in PATCHES
-    mouth_open = patch(MOUTH_OPEN_ID, PATCHES["mouth_open"]) if has_mouth else None
+    mouth_open = patch("mouth_open", MOUTH_OPEN_ID, PATCHES["mouth_open"]) if has_mouth else None
     has_closed_mouth = has_mouth and "mouth_closed" in PATCHES
     closed_image = []
     mouth_attachments = {"mouth_open": mouth_open} if has_mouth else {}
@@ -524,7 +549,9 @@ def build() -> dict:
                 "height": PATCHES["mouth_closed"]["h"],
             },
         ]
-        mouth_attachments["mouth_closed"] = patch(MOUTH_CLOSED_ID, PATCHES["mouth_closed"])
+        mouth_attachments["mouth_closed"] = patch(
+            "mouth_closed", MOUTH_CLOSED_ID, PATCHES["mouth_closed"]
+        )
 
     # Blink: the closed-eye patch is switched on for ~90 ms. Slot attachment keys are stepped by
     # definition — the runtime switches at the key, it does not blend.
@@ -617,8 +644,11 @@ def build() -> dict:
         timelines.append(slot_timeline("slot_eyes", blink_beats))
         if with_talk and has_mouth:
             # Speech runs in two passes over the same 4 s breath loop: she talks, pauses, talks.
-            timelines.append(slot_timeline("slot_mouth", talk_beats, 0.0))
-            timelines.append(slot_timeline("slot_mouth", talk_beats, 2.00))
+            # ONE timeline with both passes: the runtime keys a slot attachment once per track, and
+            # a second timeline for the same slot is deduplicated away — the mouth then stays shut
+            # for the first half of every loop.
+            beats = talk_beats + [(t + 2.0, v) for t, v in talk_beats]
+            timelines.append(slot_timeline("slot_mouth", beats))
         return {"id": anim_id, "name": name, "duration": 4.0, "timelines": timelines, "events": []}
 
     idle = idle_anim("anim_idle", "idle", False)

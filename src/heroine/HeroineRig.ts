@@ -131,6 +131,8 @@ export class HeroineRig {
   private faceBox: FaceAnchor = CANONICAL_FACE;
   /** Day 3: while a costume layer covers her face, the blush/blink/emotion patches stay off. */
   private facePatchesHidden = false;
+  /** False while the authored skeleton owns the picture — see `setPlateVisible`. */
+  private plateVisible = true;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -151,10 +153,22 @@ export class HeroineRig {
     // Only the PICTURE goes away. `hitLayer` lives in the same container and carries the tap
     // zones — hiding the container would make the whole clicker stop responding to taps on her,
     // which is the one thing this screen must do.
+    this.plateVisible = visible;
     this.mesh.visible = visible;
     this.boldRestSprite.visible = visible;
     this.emotionSprite.visible = visible;
     this.blinkSprite.visible = visible;
+    if (!visible) {
+      // `visible` is not enough on its own: this class keeps writing these three every frame —
+      // the procedural blink fires on its own countdown, the blush follows boldness — and
+      // `applyPosePatchGeometry` sets `boldRestSprite.visible = true` again on a plate swap. A
+      // pasted blush or a plate-era blink drawn over the authored skeleton is exactly the "red
+      // square" and the "blinking over her eyebrows" a player sees. So the flag is checked in
+      // the writers, not just here.
+      this.boldRestSprite.alpha = 0;
+      this.emotionSprite.alpha = 0;
+      this.blinkSprite.alpha = 0;
+    }
   }
 
   public static readonly PLATE_W = 1024;
@@ -284,7 +298,7 @@ export class HeroineRig {
     apply(this.emotionSprite, this.emotionTextures[this.activeEmotion]);
     apply(this.blinkSprite, this.uprightBlinkTex);
     apply(this.boldRestSprite, this.emotionTextures.bold);
-    this.boldRestSprite.visible = true;
+    this.boldRestSprite.visible = this.plateVisible;
   }
 
   /**
@@ -563,7 +577,9 @@ export class HeroineRig {
       this.boldnessLevel >= 68
         ? Math.min(0.96, (this.boldnessLevel - 68) / 26)
         : 0;
-    const patchGate = this.facePatchesHidden ? 0 : 1;
+    // The live skeleton draws its own blink and its own blush. Anything this class paints on her
+    // face would land on top of it at a plate-era position, so the gate is closed for both reasons.
+    const patchGate = this.facePatchesHidden || !this.plateVisible ? 0 : 1;
     this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha) * patchGate;
     this.emotionSprite.alpha = emoAlpha * patchGate;
     this.blinkSprite.alpha =
