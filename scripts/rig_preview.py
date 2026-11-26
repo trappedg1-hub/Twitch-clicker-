@@ -136,7 +136,8 @@ def main() -> int:
     args = ap.parse_args()
 
     data = json.loads(Path(args.frames_json).read_text())
-    data["doc"] = json.loads((ROOT / "public" / "rigs" / f"{data['art']}.obone").read_text())
+    doc_path = data.get("docPath") or str(ROOT / "public" / "rigs" / f"{data['art']}.obone")
+    data["doc"] = json.loads(Path(doc_path).read_text())
     for frame in data["frames"]:
         frame["doc"] = data["doc"]
         frame["width"], frame["height"] = data["width"], data["height"]

@@ -301,12 +301,19 @@ node_modules/.bin/vite --config experiments/rig-lab/vite.config.js   # порт 
 
 ## Что отдано на приёмку
 
+Круг 3 (жёсткие части). Стенд в браузере заказчика не открывается, поэтому приёмка — файлами:
+
 | Файл | Что показывает |
 |---|---|
-| `deliverables/concept/rig_breath.webp` | дыхание, 24 кадра, 620 px |
-| `deliverables/concept/rig_sway.webp` | покачивание корпуса, 24 кадра |
-| `deliverables/concept/rig_turn.webp` | поворот головы с корпусом, 16 кадров |
-| `deliverables/concept/rig_storyboard.png` | раскадровка + зум грудной клетки + карта движения (она двигается, кресло нет) |
+| `deliverables/rig_v2/compare_idle.webp` | было / стало, покой 8 с, синхронно |
+| `deliverables/rig_v2/compare_tap.webp` | было / стало, тап |
+| `deliverables/rig_v2/before_after_face.png` | раскадровка по лицу: черты больше не размазываются |
+| `deliverables/rig_v2/before_after_tap.png` | раскадровка в полный рост |
+| `deliverables/rig_v2/idle.webp` | новый риг, 8 с цикла: вдохи, дрейф головы, 5 неровных морганий |
+| `deliverables/rig_v2/tap.webp`, `donation.webp` | реакции на клик и донат |
+
+Собирается одной командой: `experiments/render_proof.sh` + `scripts/rig_deliverable.py`
+(`animate`, `sheet`, `compare`). Подробности и таблица цифр — `deliverables/rig_v2/README.md`.
 
 ## Веса: части, а не туман
 
@@ -343,14 +350,13 @@ node_modules/.bin/vite --config experiments/rig-lab/vite.config.js   # порт 
 
 ## Что дальше
 
-1. **Слои лица** (следующий шаг по выбору заказчика): веки, глаза, рот как отдельные слои на
-   своих костях. Сейчас лицо приклеено к телу и не мигает.
-2. **Физика** (тоже выбран заказчиком): `skeleton.physics` в OpenBone умеет пружины —
-   `inertia`, `strength`, `damping`, `mass`, `gravity`. Нужна цепочка костей волос и груди плюс
-   симуляция в офлайн-превью, иначе изменение нечем проверить.
-3. Перенос в игру: `HeroineRig` → адаптер OpenBone, сохранив API (`setEmotion`, `tapAt`,
-   `setStage`), чтобы не ломать 69 тестов.
-4. Сжатие документа: 561 КБ JSON → `.obonb`.
+1. **Слои с настоящим перекрытием**: разрезать плейт на «волосы / голова / корпус / кресло».
+   Единственный способ убрать полосу на кромке волос (см. ниже) и дать лицу слои век и рта без
+   face-kit.
+2. **`.obonb`** вместо JSON: `t1_s0` — 9690 вершин, 0.74 МБ JSON против ≈1.55 МБ на
+   `rounded+indent`; 22 арта уже 13.4 МБ, и это грузится на телефон.
+3. Перенос остальных 21 арта на тот же вес — сделано (`--all`), но арты с пропом у рта
+   (`talk`) официально без анимации рта.
 
 ## Ограничение, которое стоит держать в голове
 

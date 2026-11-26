@@ -5,7 +5,10 @@ import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
 
 const [, , art = 't1_s0', anim = 'tap', seconds = '1.0', fps = '60'] = process.argv;
-const doc = JSON.parse(readFileSync(new URL(`../public/rigs/${art}.obone`, import.meta.url), 'utf8'));
+const docPath = process.argv[6];
+const doc = JSON.parse(
+  readFileSync(docPath ?? new URL(`../public/rigs/${art}.obone`, import.meta.url), 'utf8'),
+);
 const instance = new OpenBoneInstance(doc);
 instance.play(anim, false);
 
@@ -23,4 +26,6 @@ for (let f = 0; f < count; f++) {
   }));
   frames.push({ t: f * dt, items });
 }
-process.stdout.write(JSON.stringify({ art, anim, frames, width: doc.width, height: doc.height }));
+process.stdout.write(
+  JSON.stringify({ art, anim, frames, width: doc.width, height: doc.height, docPath: docPath ?? null }),
+);
