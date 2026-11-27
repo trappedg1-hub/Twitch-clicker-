@@ -43,13 +43,17 @@ from PIL import Image, ImageDraw
 # strands next to the eyes, so `t4_s0` — whose patch is fine — scores 125, while a generation that
 # shifted the whole face by six pixels can score 11. It is kept as a printed number, not a gate.
 #
-# `skin` is the gate: the same region, but only pixels that are skin on the plate (luma > 95), so
-# hair and lash jitter does not drown the signal. Calibration on everything that ships today
-# (23 raws): 3.8-16.5. A faithful closed-eye edit of `transparent_s0`: 10.4. Generations that
-# re-rendered her instead of closing her eyes: 22.3 / 46.2 / 76.5. Hence 18.
+# `skin` is the gate: the same region, but only pixels that are skin on the plate, picked by colour
+# and not only by brightness. On day 3 the fringe hangs right over the eyes and those strands are
+# pale and bright, so a "luma > 95" mask counted hair as skin: an honest closed-eye edit of `t3_s2`
+# scored 22.9 that way and 6.0 here. Skin = warm (R - B > 30) and not dark (luma > 90).
+# Calibration on every raw that ships (30): 3.6-14.6. Generations that re-rendered her instead of
+# closing her eyes: 22.3 / 46.2 / 76.5 under the old mask, 20-35 under this one.
+# `transparent_s3` sits at 20.4 and stays a recorded exception: its closed lid crosses the ring.
 ACCEPT = 5.5
 SKIN_ACCEPT = 18.0
-SKIN_LUMA = 95
+SKIN_LUMA = 90
+SKIN_WARMTH = 30
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -66,6 +70,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--accept", type=float, default=ACCEPT, help="band drift, printed; not the gate")
     ap.add_argument("--skin-accept", type=float, default=SKIN_ACCEPT, help="gate: drift on skin pixels")
     ap.add_argument("--skin-luma", type=int, default=SKIN_LUMA, help="plate luma above which a pixel counts as skin")
+    ap.add_argument("--skin-warmth", type=int, default=SKIN_WARMTH, help="plate R-B above which a pixel counts as skin")
     ap.add_argument("--scale-lo", type=float, default=0.94, help="low end of the scale search")
     ap.add_argument("--scale-hi", type=float, default=1.06, help="high end of the scale search")
     # +-4 coarse steps of 3 px were enough for the day-1 plates. A 3/4 face generated from a wider
@@ -177,7 +182,12 @@ def main(argv: list[str] | None = None) -> int:
 
     # The gate: what changed on her skin, not on the hair next to it.
     full = mask_for((plate.size[1], plate.size[0]), eyes, args.grow, args.band, 1.0)
-    skin_mask = full & (np.asarray(plate.convert("L"), np.float32) > args.skin_luma)
+    plate_rgb = np.asarray(plate, np.float32)
+    skin_mask = (
+        full
+        & (np.asarray(plate.convert("L"), np.float32) > args.skin_luma)
+        & ((plate_rgb[..., 0] - plate_rgb[..., 2]) > args.skin_warmth)
+    )
     if skin_mask.any():
         skin = score_of(
             np.asarray(plate.convert("L"), np.float32),

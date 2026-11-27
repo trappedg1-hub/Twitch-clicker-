@@ -206,6 +206,21 @@
   "hasMouth": true,
   "bones": 10
  },
+ "t3_s2": {
+  "file": "/rigs/t3_s2.obone",
+  "plate": "/art/heroine_t3_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
  "t3_s3": {
   "file": "/rigs/t3_s3.obone",
   "plate": "/art/heroine_t3_s3.webp",
@@ -221,6 +236,21 @@
    "talk"
   ],
   "hasMouth": true,
+  "bones": 10
+ },
+ "t3_s4": {
+  "file": "/rigs/t3_s4.obone",
+  "plate": "/art/heroine_t3_s4.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
   "bones": 10
  },
  "t4_start": {
