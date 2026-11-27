@@ -1,4 +1,5 @@
 import { Container } from 'pixi.js';
+import { isMissingDocumentError } from './rigFailures.ts';
 import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
 import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
@@ -47,6 +48,18 @@ export class LiveHeroine {
   private art: string | null = null;
   private loading: Promise<boolean> | null = null;
   private pendingArt: string | null = null;
+  /**
+   * Arts whose document is not in the build.
+   *
+   * This is NOT a fault: the four `skip` plates and every plate that never got a rig are on screen
+   * during a normal playthrough, and asking for their `.obone` is a 404 dressed as a JSON parse
+   * error. Those used to go through `fail()`, which is a one-way door — so the first `skip` plate
+   * on day 3 turned the heroine flat for the rest of the run, and the stage remembered that on the
+   * next load too. Keeping the answer here costs one Set and the rig survives the evening.
+   */
+  private readonly missing = new Set<string>();
+  /** Also tolerate a document that parsed but threw while being built (a broken rig, not a gap). */
+  private readonly broken = new Set<string>();
   private talkUntil = 0;
   private reactionUntil = 0;
   /** When the last reaction was asked for — the clicker asks faster than a beat lasts. */
@@ -119,6 +132,7 @@ export class LiveHeroine {
    */
   public async show(art: string): Promise<boolean> {
     if (this.destroyed || this.fault) return false;
+    if (this.missing.has(art) || this.broken.has(art)) return false;
     if (this.art === art && this.bone) {
       this.view.visible = true;
       return true;
@@ -175,7 +189,14 @@ export class LiveHeroine {
       }
       return true;
     } catch (error) {
-      this.fail('загрузка', error);
+      // Which of the two this is: the request never became a document (no rig for this art), or the
+      // runtime refused a document that does exist. Either way the flat plate stays; only the
+      // second one is worth a console line, and neither may take the whole night's rig down.
+      const message = error instanceof Error ? error.message : String(error);
+      const absent = isMissingDocumentError(error);
+      if (absent) this.missing.add(art);
+      else this.broken.add(art);
+      if (!absent) console.warn(`[live-heroine] ${art}: document did not build, keeping the plate —`, message);
       return false;
     }
   }

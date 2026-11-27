@@ -170,7 +170,7 @@ export async function bootstrapApp(): Promise<void> {
   // slow phone — Pixi's ticker stops rescheduling itself and the player gets a black canvas with the
   // HUD still on top of it. Nobody can read a console on a phone, so this page heals itself: drop
   // the rig, restart the loop, repaint, and say why on screen.
-  const RIG_OFF_KEY = 'mt_rig_off_v1';
+  const RIG_OFF_KEY = 'mt_rig_off_v2';
   const readFlag = (key: string): string | null => {
     try {
       return localStorage.getItem(key);
@@ -258,7 +258,12 @@ export async function bootstrapApp(): Promise<void> {
   void fetch('/rigs/index.json')
     .then((r) => (r.ok ? r.json() : null))
     .then((json: unknown) => {
-      if (json && typeof json === 'object') riggedArts = new Set(Object.keys(json as object));
+      if (json && typeof json === 'object') {
+        riggedArts = new Set(Object.keys(json as object));
+        // Hand the list to the stage as well, so a plate without a rig never even asks for one.
+        stage.riggedArts = riggedArts;
+        void stage.syncLiveHeroine();
+      }
     })
     .catch(() => undefined);
 

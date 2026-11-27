@@ -524,12 +524,22 @@ export class StreamStage {
     const plate = this.getActivePlateName();
     const art = plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
     if (!art) return;
+    // Ask the published index before the network: an art without a rig is a normal plate, not an
+    // error, and skipping it keeps the console (and the dev server's SPA fallback) quiet.
+    if (this.riggedArts && !this.riggedArts.has(art)) {
+      this.live.hide();
+      this.rig?.setPlateVisible(true);
+      return;
+    }
     const ok = await this.live.show(art);
     this.rig?.setPlateVisible(!ok);
   }
 
   /** Whether plates may be replaced by their rigs. Off = the flat art, exactly as before the rig. */
   public liveEnabled = true;
+
+  /** Art keys that ship a rig, from `/rigs/index.json`. Null until the index answers. */
+  public riggedArts: Set<string> | null = null;
 
   /** Fired when the skeleton gave up after a throw, with the reason. */
   public onLiveFault: ((reason: string) => void) | null = null;
