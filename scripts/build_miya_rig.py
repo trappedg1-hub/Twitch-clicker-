@@ -642,22 +642,34 @@ def build() -> dict:
         "events": [],
     }
 
-    # Tap: the clicker's own pulse — one short nod, small enough to repeat ten times a second
-    # without ever looking like a seizure. Different from `shake` on purpose: a donation should
-    # feel bigger than a click.
+    # Tap: the clicker's own pulse. It has to READ on a phone, and the old one did not: 1.5° of
+    # head is 11 px of silhouette on the plate, which the stage draws at roughly 0.4 — four pixels
+    # of nod. That is what "она не двигается при тапе" means in practice.
+    #
+    # The amplitude was cut back originally because the soft weight field smeared every degree into
+    # a ghost. The head is a rigid body now: the fold count stays at zero and the face stretches
+    # 0.05 %, so the honest limit is much higher. 2.6° of head plus 0.9° of neck is 21 px of crown
+    # — the same read as the deepest glance in the idle loop, and still well under `turn`.
+    #
+    # Shape: down, a small lift past neutral, a settle. One beat, no ringing — the clicker fires
+    # several times a second and the runtime drops requests that arrive mid-beat.
     tap = {
         "id": "anim_tap",
         "name": "tap",
         "duration": 0.5,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.09, -1.5), (0.24, 0.55), (0.50, 0)),
+            tl("bone_head", "rotation",
+               ((0, 0), (0.09, -3.0), (0.24, 1.2), (0.34, -0.5), (0.50, 0)),
                ease=(0.2, 0.6, 0.35, 1)),
-            tl("bone_neck", "rotation", ((0, 0), (0.09, -0.5), (0.24, 0.2), (0.50, 0))),
-            # A nod is a nod: the chest lifts a hair, the head does the acting.
-            tl("bone_chest", "y", ((0, 0), (0.11, -2.0), (0.30, 0.7), (0.50, 0))),
-            # The far shoulder follows the head by a beat — the one thing that separates a nod
-            # from a slide of the whole picture.
-            tl("bone_bust", "rotation", ((0, 0), (0.16, -0.18), (0.36, 0.06), (0.50, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (0.09, -3.0), (0.25, 1.1), (0.34, -0.4), (0.50, 0))),
+            # The chest takes the hit before the head finishes travelling: a nod that starts at the
+            # neck alone reads as a hinged puppet.
+            tl("bone_chest", "y", ((0, 0), (0.12, -4.5), (0.30, 1.2), (0.50, 0)),
+               ease=(0.25, 0.2, 0.4, 1)),
+            tl("bone_chest", "rotation", ((0, 0), (0.14, 0.28), (0.32, -0.10), (0.50, 0))),
+            # The far shoulder follows by a beat — the thing that separates a nod from a slide.
+            tl("bone_bust", "rotation", ((0, 0), (0.17, -0.40), (0.36, 0.15), (0.50, 0))),
+            tl("bone_hair_back", "rotation", ((0, 0), (0.20, 2.0), (0.38, -0.55), (0.50, 0))),
         ],
         "events": [],
     }

@@ -242,7 +242,12 @@ export class LiveHeroine {
     if (kind === 'tap' ? this.reactionUntil > now : now - this.lastReactionAt < 160) return;
     const animation = this.animations.includes(kind) ? kind : 'shake';
     this.guard('реакция', () => {
-      bone.play(animation, false);
+      // The runtime cross-fades every `play` by `defaultMix`, which is 0.2 s. Against a 0.5 s nod
+      // that is 40 % of the beat spent arriving, and the fade is what made a given tap read as
+      // 17 px on one beat of the idle loop and 24 on another: the pose was still on its way when
+      // the nod had already turned around. 80 ms is long enough to hide the switch under the
+      // hoodie and short enough that the dip lands where it was authored.
+      bone.instance.animationState.setAnimation(0, animation, false, kind === 'tap' ? 0.06 : 0.16);
       this.current = animation;
     });
     this.reactionUntil = now + ms;

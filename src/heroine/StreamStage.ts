@@ -344,8 +344,11 @@ export class StreamStage {
 
     this.rig.onZoneTap = (zone, globalPt) => {
       const localPt = this.root.toLocal(globalPt);
-      // Every tap is a beat: a 0.4 s nod on the skeleton, small enough to repeat. `LiveHeroine`
-      // drops requests that arrive mid-beat, so hammering her animates once, not ten times.
+      // Every tap is a beat: a 0.5 s nod on the skeleton. `LiveHeroine` drops requests that arrive
+      // mid-beat, so hammering her animates once, not ten times — which is what makes a nod this
+      // size affordable. It has to be this size: the stage draws the 1526 px plate at ~0.14 on a
+      // phone, so a 12 px nod is a 1.7 px nod, and that is exactly what «она не двигается при
+      // тапе» was. See `docs/rig-pilot.md` for the measurements.
       this.live?.react('tap', 480);
       const res = this.onHeroineTap?.(zone);
       if (res) {

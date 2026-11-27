@@ -212,10 +212,11 @@ test('articulation, not amplitude: the head acts, the torso sits', () => {
   };
 
   const tap = travel('tap');
-  // A nod has to be visible on a phone (~2 px of screen) and the hoodie must stay put while it
-  // happens — that is what separates an articulated head from a deforming picture.
-  assert.ok(tap.head >= 2.5 && tap.head <= 13, `tap moves the head ${tap.head.toFixed(1)} px`);
-  assert.ok(tap.chest <= 3, `tap drags the chest ${tap.chest.toFixed(1)} px`);
+  // The hoodie stays put while the head nods — that is what separates an articulated head from a
+  // deforming picture. This is the *ratio*, not the size: how much of the nod the player actually
+  // sees is the next test's business, because the loop underneath the click moves too.
+  assert.ok(tap.head >= 12 && tap.head <= 40, `tap moves the head ${tap.head.toFixed(1)} px`);
+  assert.ok(tap.chest <= 8, `tap drags the chest ${tap.chest.toFixed(1)} px`);
   assert.ok(tap.head > tap.chest * 1.8, 'the tap is a body warp rather than a nod');
 
   const shake = travel('shake');
@@ -225,6 +226,68 @@ test('articulation, not amplitude: the head acts, the torso sits', () => {
   const idle = travel('idle');
   assert.ok(idle.head >= 4 && idle.head <= 24, `idle moves the head ${idle.head.toFixed(1)} px`);
   assert.ok(idle.chest <= 8, `idle drags the chest ${idle.chest.toFixed(1)} px`);
+});
+
+test('a tap is a nod the player sees on every beat of the idle loop', () => {
+  // Two things made the tap invisible while every other test passed.
+  //
+  // 1. `tap`'s keys are absolute, so what the player sees is the distance from where the 20 s idle
+  //    loop happened to be when the click landed, not the distance from the rest pose. The same
+  //    beat read 11 px on the worst phase of the loop and 23 on the best — the clicker fires
+  //    several times a second, so "sometimes visible" is "does not move".
+  // 2. The runtime cross-fades every `play` by `defaultMix`, 0.2 s. Against a 0.5 s nod that is
+  //    40 % of the beat spent arriving: the pose was still on its way when the nod turned around.
+  //    `LiveHeroine.react` now passes 0.08 s, and the *worst beat* is what this test pins.
+  //
+  // Speed is the other half: a reaction has to arrive inside ~0.12 s, because a nod the player can
+  // watch rise is the idle drift, not an answer to a click.
+  const scan = (art: string, step: number) => {
+    const rig = open(art);
+    const loop = rig.doc.animations.find((a: { name: string }) => a.name === 'idle').duration;
+    let worst = Infinity;
+    let best = 0;
+    let latest = 0;
+    for (let phase = 0; phase < loop; phase += step) {
+      const run = open(art);
+      run.instance.play('idle', true);
+      for (let f = 0; f < Math.round(phase * 60); f++) run.instance.advance(1 / 60);
+      const base = run.vertices();
+      run.instance.animationState.setAnimation(0, 'tap', false, 0.06);
+      let peak = 0;
+      const series: number[] = [];
+      for (let f = 1; f <= 30; f++) {
+        run.instance.advance(1 / 60);
+        const v = run.vertices();
+        let now = 0;
+        for (let i = 0; i < v.length; i += 2) {
+          const d = Math.hypot(v[i]! - base[i]!, v[i + 1]! - base[i + 1]!);
+          if (d > now) now = d;
+        }
+        series.push(now);
+        peak = Math.max(peak, now);
+      }
+      // When the reaction is *felt*: the first frame she has visibly moved (12 px of plate).
+      const felt = series.findIndex((d) => d >= 12);
+      worst = Math.min(worst, peak);
+      best = Math.max(best, peak);
+      latest = Math.max(latest, (felt < 0 ? 30 : felt + 1) / 60);
+    }
+    return { worst, best, latest };
+  };
+
+  // One art over its whole loop, two more sampled — the tap is authored by one builder for all of
+  // them, so the spread is about lever length, not about behaviour.
+  for (const [art, step] of [
+    ['t1_s0', 1],
+    ['t2_s0', 3],
+    ['t5_s0', 3],
+  ] as [string, number][]) {
+    const { worst, best, latest } = scan(art, step);
+    // 15 px of plate is ~2 px on a 390 px phone (the stage draws the 1526 px plate at ~0.14).
+    assert.ok(worst >= 15, `${art}: on its worst beat the tap moves her ${worst.toFixed(1)} px`);
+    assert.ok(best <= 60, `${art}: on its best beat the tap moves her ${best.toFixed(1)} px — jelly`);
+    assert.ok(latest <= 0.12, `${art}: the nod only arrives at ${latest.toFixed(2)} s — the player feels a delay`);
+  }
 });
 
 test('she blinks like a person: often enough, never on the beat', () => {

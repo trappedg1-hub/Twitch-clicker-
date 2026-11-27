@@ -225,11 +225,23 @@ test('a tap is a nod, a donation is a beat — and neither keeps wobbling', () =
 
     // Bone levers are long, so these are not "big" numbers in degrees — they are pixels on a
     // 1526 px canvas. The first shake shipped at 70 px over a full second and read as jelly.
+    //
+    // This measure starts the beat from the rest pose with the library's 0.2 s cross-fade, so it
+    // under-reads what the player sees; `rigLife`'s worst-beat test is the visibility guard. Here
+    // the question is only whether the beat exists and whether hammering her piles it up.
     const tap = amplitude('tap');
-    assert.ok(tap <= 12, `${art}: tap moves her ${tap.toFixed(1)} px (limit 12)`);
+    assert.ok(tap >= 8, `${art}: tap barely moves her — ${tap.toFixed(1)} px`);
+    assert.ok(tap <= 60, `${art}: tap moves her ${tap.toFixed(1)} px (jelly)`);
     // A clicker fires faster than a beat lasts: the retriggered reaction must not pile up.
+    // The game itself never restarts a beat: `LiveHeroine.react` drops a tap for 480 ms after one
+    // has started. This is the ceiling for the case it cannot stop — a page that calls `play`
+    // directly — and it is deliberately a little above the single hit, because the restarted
+    // beat lands on top of the idle's own swing rather than replacing it.
     const tapped = amplitude('tap', 100);
-    assert.ok(tapped <= 12, `${art}: tap retriggered every 100 ms reaches ${tapped.toFixed(1)} px`);
+    assert.ok(
+      tapped <= 30,
+      `${art}: tap retriggered every 100 ms reaches ${tapped.toFixed(1)} px (against ${tap.toFixed(1)})`,
+    );
 
     const shake = amplitude('shake');
     assert.ok(shake <= 32, `${art}: shake moves her ${shake.toFixed(1)} px (limit 32)`);
