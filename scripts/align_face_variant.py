@@ -66,6 +66,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--accept", type=float, default=ACCEPT, help="band drift, printed; not the gate")
     ap.add_argument("--skin-accept", type=float, default=SKIN_ACCEPT, help="gate: drift on skin pixels")
     ap.add_argument("--skin-luma", type=int, default=SKIN_LUMA, help="plate luma above which a pixel counts as skin")
+    ap.add_argument("--scale-lo", type=float, default=0.94, help="low end of the scale search")
+    ap.add_argument("--scale-hi", type=float, default=1.06, help="high end of the scale search")
+    # +-4 coarse steps of 3 px were enough for the day-1 plates. A 3/4 face generated from a wider
+    # crop came back shifted by ~12 px, which is exactly the edge of that search: it reported
+    # "shift +0,+0" and scored the misalignment as a redraw. The window is a knob, not a verdict.
+    ap.add_argument("--shift", type=int, default=12, help="max shift searched, plate pixels")
     return ap.parse_args(argv)
 
 
@@ -139,9 +145,10 @@ def main(argv: list[str] | None = None) -> int:
 
     best = (float("inf"), 1.0, 0.0, 0.0)
     raw_small = raw_full.convert("L").resize((pw, ph), Image.LANCZOS)
-    for s in np.arange(0.94, 1.061, 0.01):
-        for dx in range(-4, 5):
-            for dy in range(-4, 5):
+    reach = max(1, round(args.shift / step))
+    for s in np.arange(args.scale_lo, args.scale_hi + 1e-9, 0.01):
+        for dx in range(-reach, reach + 1):
+            for dy in range(-reach, reach + 1):
                 moved = raw_small.transform(
                     (pw, ph),
                     Image.AFFINE,

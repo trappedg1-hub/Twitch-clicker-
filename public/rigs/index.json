@@ -401,5 +401,50 @@
   ],
   "hasMouth": false,
   "bones": 10
+ },
+ "transparent_s1": {
+  "file": "/rigs/transparent_s1.obone",
+  "plate": "/art/heroine_transparent_s1.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
+ "transparent_s2": {
+  "file": "/rigs/transparent_s2.obone",
+  "plate": "/art/heroine_transparent_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
+ "transparent_s3": {
+  "file": "/rigs/transparent_s3.obone",
+  "plate": "/art/heroine_transparent_s3.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
  }
 }
