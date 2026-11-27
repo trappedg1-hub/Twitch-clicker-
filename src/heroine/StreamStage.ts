@@ -16,6 +16,8 @@ import type {
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 import { LiveHeroine, type QuirkKind } from './LiveHeroine.ts';
+import { pickBeat, type BeatName } from './reactionDirector.ts';
+import { pickAttention, type AttentionKind } from './attention.ts';
 import { aimFromPointer } from './gaze.ts';
 
 interface FloatingParticle {
@@ -345,30 +347,49 @@ export class StreamStage {
 
     this.rig.onZoneTap = (zone, globalPt) => {
       const localPt = this.root.toLocal(globalPt);
-      // Every tap is a beat: a 0.5 s nod on the skeleton. `LiveHeroine` drops requests that arrive
-      // mid-beat, so hammering her animates once, not ten times — which is what makes a nod this
-      // size affordable. It has to be this size: the stage draws the 1526 px plate at ~0.14 on a
-      // phone, so a 12 px nod is a 1.7 px nod, and that is exactly what «она не двигается при
-      // тапе» was. See `docs/rig-pilot.md` for the measurements.
-      // Feet are ticklish. A tap on the socks curls her toes (`tickle`, authored only on the plates
-      // that have socks in frame) instead of nodding — the nod is the clicker's pulse everywhere
-      // else. A tap on her face gets the tongue, when the tongue art exists, because that is what
-      // a player does to a face like that: they poke it and see what she does.
-      if (zone === 'feet' && this.live?.hasAnimation('tickle')) {
-        this.live.react('tickle', 1000);
-      } else if (zone === 'head' && this.live?.hasAnimation('tease') && Math.random() < 0.35) {
-        this.live.react('tease', 1600);
-      } else if (zone === 'chest' && this.live?.hasAnimation('gasp')) {
-        // A tap on the chest is answered where it landed: a held breath, chin up, and the two bust
-        // springs doing the rest on their own because the chest moved under them.
-        this.live.react('gasp', 850);
-      } else {
-        this.live?.react('tap', 480);
-      }
+      this.answerTapZone(zone, localPt.x, localPt.y);
+    };
+    this.wirePointer(hostEl);
+  }
+
+  /**
+   * A tap on her body, answered. The one function every path goes through — the pointer, the QA
+   * harness, and anything else that ever wants to tap her — so the director cannot be bypassed.
+   */
+  public answerTapZone(zone: TapZoneId, localX: number, localY: number): void {
+    // Her answer is chosen by the director, not by a chain of `if`s here: the same tap on the same
+    // cheek lands differently at boldness 20 and boldness 80, and a player who hammers her gets
+    // shaken rather than nodded at. See `reactionDirector.ts` for the table and the tests.
+    const streak = this.tapStreak(performance.now());
+    const mood = this.reactionInput?.() ?? { boldness: 40, hype: 0 };
+    const beat = pickBeat({
+      zone,
+      boldness: mood.boldness,
+      hype: mood.hype,
+      streak,
+      available: this.live?.animationSet() ?? new Set<string>(),
+      random: Math.random,
+    });
+    this.live?.react(beat.anim, beat.ms);
+    this.lastBeatAt = performance.now();
+    // What the director *chose*, which is not the same as what is playing: a tap that arrives
+    // mid-beat is dropped by the rig, so the clip name would report the previous answer.
+    this.lastTapBeat = beat.anim;
+    this.lastTapDebug = { zone, beat: beat.anim, streak, available: (this.live?.animationSet() ?? new Set()).size };
       const res = this.onHeroineTap?.(zone);
-      if (res) {
-        this.spawnTapBurst(localPt.x, localPt.y, res.earned, res.alert, zone);
-      }
+    if (res) {
+      this.spawnTapBurst(localX, localY, res.earned, res.alert, zone);
+    }
+  }
+
+  private wirePointer(hostEl: HTMLElement): void {
+    this.rig.onZoneHover = (zone) => {
+      // The pointer resting on her is a form of attention, and she answers it a second and a half
+      // later — see `attention.ts`. Leaving her body resets the dwell, so passing over her on the
+      // way to the shop never counts as a stare.
+      this.hoverZone = zone;
+      if (!zone) this.hoverSince = 0;
+      else if (this.hoverSince === 0) this.hoverSince = performance.now();
     };
 
     const trackPointer = (e: PointerEvent) => {
@@ -568,8 +589,54 @@ export class StreamStage {
     );
   }
 
+  /** QA: is the pointer resting on her body, and since when. */
+  public getHoverDebug(): { zone: string | null; since: number } {
+    return { zone: this.hoverZone, since: this.hoverSince };
+  }
+
+  /** QA: which clip the live skeleton is on, and what the plate carries. */
+  public getLiveDebug(): { current: string; animations: string[] } | null {
+    return this.live?.debugState() ?? null;
+  }
+
   /** Her own beats — the ones she does when the player is not doing anything. */
   public onLiveQuirk?: (kind: QuirkKind) => void;
+
+  /**
+   * What the director is allowed to know about her mood. The stage does not own the game state, so
+   * the game feeds it in; without it every tap is answered as if she were a stranger.
+   */
+  public reactionInput?: () => { boldness: number; hype: number };
+
+  /** Tap timestamps, for the "you are hammering her" rule. Kept short on purpose. */
+  private tapTimes: number[] = [];
+
+  /** Pointer is resting on her body: when it started, and which zone. */
+  private hoverZone: string | null = null;
+  private hoverSince = 0;
+  /** The beat the director chose for the last tap — QA reads this, the game does not. */
+  public lastTapBeat: BeatName | null = null;
+  public lastTapDebug: { zone: string; beat: string; streak: number; available: number } | null = null;
+  /** QA: frames served, and the last exception the tick swallowed (null while healthy). */
+  public tickError: string | null = null;
+  public frameCount = 0;
+
+  public attentionDebug: { hoverMs: number; picks: number; last: string | null; reason: string; frames?: number; now?: number; error?: string } = { hoverMs: 0, picks: 0, last: null, reason: '' };
+
+  /** When she last did an attention beat of her own, and when any beat last started. */
+  private lastAttentionAt = -1e9;
+  private lastBeatAt = -1e9;
+
+  /** Her own beat fired because of the player's attention, for the chat to react to. */
+  public onAttention?: (kind: AttentionKind) => void;
+
+  private tapStreak(now: number): number {
+    this.tapTimes.push(now);
+    // 1.2 s is a little longer than the longest beat it can interrupt, so the counter resets when
+    // the player slows down instead of carrying a stale burst into the next tap.
+    while (this.tapTimes.length > 0 && now - this.tapTimes[0]! > 1200) this.tapTimes.shift();
+    return this.tapTimes.length;
+  }
 
   /** One-shot secondary motion on the live skeleton, if one is up. */
   public playLiveReaction(kind: 'shake' | 'turn' | 'sway' = 'shake'): void {
@@ -583,16 +650,62 @@ export class StreamStage {
    * that answers every donation with the same 0.9 s shake is a machine. The second call is guarded:
    * if the plate or the rig changed in between, it is simply dropped.
    */
+  /**
+   * Attention, once a frame. Two things only: how long the cursor has been on her, and how long
+   * since anything happened at all. Everything else is a table in `attention.ts`.
+   */
+  private pumpAttention(now: number): void {
+    this.attentionDebug = { ...this.attentionDebug, frames: (this.attentionDebug.frames ?? 0) + 1, now };
+    const live = this.live;
+    if (!live) return;
+    // Mid-beat is not a state to interrupt: the request would be dropped anyway, but it would also
+    // reset the dwell timer and she would never get round to reacting.
+    if (live.debugState().current !== 'idle' && live.debugState().current !== 'idle_talk') return;
+    const mood = this.reactionInput?.() ?? { boldness: 40, hype: 0 };
+    const lastTap = this.tapTimes.length > 0 ? this.tapTimes[this.tapTimes.length - 1]! : -1e9;
+    const pick = pickAttention({
+      hoverMs: this.hoverZone && this.hoverSince > 0 ? now - this.hoverSince : 0,
+      msSinceTap: now - lastTap,
+      msSinceAttention: now - this.lastAttentionAt,
+      msSinceBeat: now - this.lastBeatAt,
+      boldness: mood.boldness,
+      available: live.animationSet(),
+      random: Math.random,
+    });
+    this.attentionDebug = { ...this.attentionDebug, hoverMs: now - Math.max(this.hoverSince, now - 1e6), reason: pick ? pick.anim : 'none' };
+    if (!pick) return;
+    this.attentionDebug = { ...this.attentionDebug, picks: this.attentionDebug.picks + 1, last: pick.anim };
+    this.lastAttentionAt = now;
+    this.lastBeatAt = now;
+    live.react(pick.anim, pick.ms);
+    this.onAttention?.(pick.kind);
+  }
+
   public playLiveDonation(): void {
     const live = this.live;
     if (!live) return;
     if (live.hasAnimation('gasp')) live.react('gasp', 850);
     else live.react('shake', 900);
-    if (live.hasAnimation('giggle')) {
-      window.setTimeout(() => {
-        if (this.live === live) live.react('giggle', 1150);
-      }, 900);
-    }
+    // The follow-up is the part that knows who she is by now. Money landing on a shy streamer is a
+    // gasp; the same money on a bold one buys a lean toward the camera, and a giggle everywhere
+    // else. Same event, different woman — that is the whole point of the director.
+    const bold = (this.reactionInput?.().boldness ?? 0) >= 55;
+    const follow = bold && live.hasAnimation('lean_in') ? 'lean_in' : live.hasAnimation('giggle') ? 'giggle' : null;
+    if (!follow) return;
+    window.setTimeout(() => {
+      if (this.live === live) live.react(follow, follow === 'lean_in' ? 2000 : 1150);
+    }, 900);
+  }
+
+  /**
+   * A sub goal closed: the new outfit is on the plate and she briefly *presents* it. The arch is the
+   * only beat in the rig that shows off the silhouette on purpose, so it is the one a milestone gets
+   * — a nod would be the game saying "well done" instead of her saying "look".
+   */
+  public playLiveMilestone(): void {
+    const live = this.live;
+    if (!live) return;
+    live.react(live.hasAnimation('arch') ? 'arch' : 'giggle', 1700);
   }
 
   /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
@@ -841,7 +954,24 @@ export class StreamStage {
     }
   }
 
+  /**
+   * The ticker's one listener, and the only place an exception is allowed to be caught and *kept*.
+   *
+   * A Pixi ticker has no supervision: a listener that throws stops the ticker rescheduling itself,
+   * and the app keeps rendering a frozen canvas with a live HUD on top. That is the worst failure
+   * mode this stage has, and it is invisible in a console that the player never opens — so the
+   * error is stored where QA can read it (`tickError`) instead of vanishing into a broken frame.
+   */
   private tick(dtMs: number): void {
+    this.frameCount = (this.frameCount ?? 0) + 1;
+    try {
+      this.frame(dtMs);
+    } catch (error) {
+      this.tickError = String((error as Error)?.stack ?? error).slice(0, 400);
+    }
+  }
+
+  private frame(dtMs: number): void {
     const safeDt = Math.min(60, Math.max(0, dtMs));
     const dt = safeDt / 1000;
     this.elapsedSec += dt;
@@ -857,7 +987,20 @@ export class StreamStage {
     } else {
       this.live.releaseGaze();
     }
-    this.live.update(performance.now());
+    const nowMs = performance.now();
+    // Her pace: chat hype plus how far along she is with the player. Set before the update so the
+    // breath that is advancing this frame already carries it.
+    this.live.setEnergy(Math.max(this.hypeLevel / 100, (this.reactionInput?.().boldness ?? 0) / 140));
+    this.live.update(nowMs);
+    // Attention is the one part of the tick that reaches into the chat and the sound engine through
+    // a callback the game owns, so it is guarded on its own: a chat line that throws must cost one
+    // beat, not the whole stage. (An uncaught throw inside a Pixi ticker listener stops that ticker
+    // rescheduling — a black canvas with the HUD still on top of it.)
+    try {
+      this.pumpAttention(nowMs);
+    } catch (error) {
+      this.attentionDebug = { ...this.attentionDebug, error: String((error as Error)?.message ?? error) };
+    }
 
     // One invariant instead of a dozen call sites: while the skeleton is on screen the flat plate
     // underneath is hidden. Every path that can raise the plate — a flash beat, a stage change, a

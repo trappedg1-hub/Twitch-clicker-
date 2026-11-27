@@ -1114,7 +1114,10 @@ export function createMilestoneChatMessage(title: string): ChatMessage {
  * true on every plate of every day, so nothing here can contradict a wardrobe the player is looking
  * at. They also never claim a garment moved, which is the rule the whole chat obeys.
  */
-const SELF_QUIRK_LINES: Record<QuirkKind, string[]> = {
+/** Quirk lines. `staring` and `bored` are not rig quirks: they are attention beats (attention.ts). */
+type QuirkLineKind = QuirkKind | 'staring' | 'bored';
+
+const SELF_QUIRK_LINES: Record<QuirkLineKind, string[]> = {
   giggle: [
     'она засмеялась САМА, никто ничего не написал, чат, вы это слышали :LUL:',
     'смеётся над чем-то в своей голове. аниме-девочка в естественной среде обитания :peepoShy:',
@@ -1139,10 +1142,21 @@ const SELF_QUIRK_LINES: Record<QuirkKind, string[]> = {
     'оглянулась. кто-то вошёл в комнату? :peepoShy:',
     'смотрит в сторону, будто там что-то есть. заговор :LUL:',
   ],
+  staring: [
+    'она посмотрела ПРЯМО В КАМЕРУ. я не двигаю мышкой, я не дышу :peepoShy:',
+    'кажется, она заметила, что мы на неё пялимся. и ей это нравится :AWOOGA:',
+    'контакт глазами. я проиграл этот раунд :Nosebleed:',
+    'она поймала мой курсор. я пойман. всё :Pog:',
+  ],
+  bored: [
+    'она потянулась так, что я забыл, зачем пришёл. аплодирую :Nosebleed:',
+    'никто не кликает, и она решила, что можно расслабиться. лучший момент стрима :peepoShy:',
+    'она скучает и делает это красиво. чат, мы плохие зрители :LUL:',
+  ],
 };
 
 export function createSelfQuirkMessage(
-  kind: QuirkKind,
+  kind: QuirkLineKind,
   seed = seqCounter,
   streamDay = 1,
 ): ChatMessage {

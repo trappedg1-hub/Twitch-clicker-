@@ -18,11 +18,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 16,
-  "bytes": 353176
+  "bytes": 357909
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -42,11 +46,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 342296
+  "bytes": 347025
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -66,11 +74,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 344440
+  "bytes": 349169
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -89,11 +101,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 341487
+  "bytes": 346064
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -112,11 +128,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 343096
+  "bytes": 347673
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -134,11 +154,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 348809
+  "bytes": 353001
  },
  "t2_s0": {
   "file": "/rigs/t2_s0.obonb",
@@ -157,11 +181,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 336625
+  "bytes": 340817
  },
  "t2_s1": {
   "file": "/rigs/t2_s1.obonb",
@@ -180,11 +208,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 335293
+  "bytes": 339485
  },
  "t2_s2": {
   "file": "/rigs/t2_s2.obonb",
@@ -202,11 +234,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 341357
+  "bytes": 345549
  },
  "t2_s3": {
   "file": "/rigs/t2_s3.obonb",
@@ -224,11 +260,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 343368
+  "bytes": 347560
  },
  "t2_s4": {
   "file": "/rigs/t2_s4.obonb",
@@ -246,11 +286,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 334542
+  "bytes": 338720
  },
  "t3_flash": {
   "file": "/rigs/t3_flash.obonb",
@@ -268,11 +312,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 350732
+  "bytes": 354924
  },
  "t3_s1": {
   "file": "/rigs/t3_s1.obonb",
@@ -290,11 +338,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 331089
+  "bytes": 335267
  },
  "t3_s2": {
   "file": "/rigs/t3_s2.obonb",
@@ -310,11 +362,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 328768
+  "bytes": 332895
  },
  "t3_s3": {
   "file": "/rigs/t3_s3.obonb",
@@ -332,11 +388,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 350714
+  "bytes": 354906
  },
  "t3_s4": {
   "file": "/rigs/t3_s4.obonb",
@@ -352,11 +412,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 325668
+  "bytes": 329795
  },
  "t4_flash": {
   "file": "/rigs/t4_flash.obonb",
@@ -374,11 +438,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 333800
+  "bytes": 337978
  },
  "t4_s2": {
   "file": "/rigs/t4_s2.obonb",
@@ -394,11 +462,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 319755
+  "bytes": 323882
  },
  "t4_s3": {
   "file": "/rigs/t4_s3.obonb",
@@ -416,11 +488,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 333782
+  "bytes": 337960
  },
  "t4_start": {
   "file": "/rigs/t4_start.obonb",
@@ -438,11 +514,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 326306
+  "bytes": 330484
  },
  "t4_start_hq": {
   "file": "/rigs/t4_start_hq.obonb",
@@ -460,11 +540,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 326790
+  "bytes": 330968
  },
  "t5_s0": {
   "file": "/rigs/t5_s0.obonb",
@@ -482,11 +566,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 325104
+  "bytes": 329282
  },
  "t5_s1": {
   "file": "/rigs/t5_s1.obonb",
@@ -504,11 +592,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 338430
+  "bytes": 342622
  },
  "t5_s2": {
   "file": "/rigs/t5_s2.obonb",
@@ -526,11 +618,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 332068
+  "bytes": 336260
  },
  "t5_start": {
   "file": "/rigs/t5_start.obonb",
@@ -548,11 +644,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 327676
+  "bytes": 331854
  },
  "t5_start_hq": {
   "file": "/rigs/t5_start_hq.obonb",
@@ -570,11 +670,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 325452
+  "bytes": 329630
  },
  "t5_start_hq2": {
   "file": "/rigs/t5_start_hq2.obonb",
@@ -592,11 +696,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 326627
+  "bytes": 330805
  },
  "t6_s0": {
   "file": "/rigs/t6_s0.obonb",
@@ -612,11 +720,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 323317
+  "bytes": 327444
  },
  "t6_s1": {
   "file": "/rigs/t6_s1.obonb",
@@ -632,11 +744,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 326111
+  "bytes": 330238
  },
  "t6_s2": {
   "file": "/rigs/t6_s2.obonb",
@@ -652,11 +768,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 324401
+  "bytes": 328528
  },
  "t6_s3": {
   "file": "/rigs/t6_s3.obonb",
@@ -672,11 +792,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 325647
+  "bytes": 329774
  },
  "t6_start_hq": {
   "file": "/rigs/t6_start_hq.obonb",
@@ -694,11 +818,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 332256
+  "bytes": 336434
  },
  "transparent_s0": {
   "file": "/rigs/transparent_s0.obonb",
@@ -714,11 +842,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 331004
+  "bytes": 335128
  },
  "transparent_s1": {
   "file": "/rigs/transparent_s1.obonb",
@@ -734,11 +866,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 331170
+  "bytes": 335294
  },
  "transparent_s2": {
   "file": "/rigs/transparent_s2.obonb",
@@ -754,11 +890,15 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 329431
+  "bytes": 333555
  },
  "transparent_s3": {
   "file": "/rigs/transparent_s3.obonb",
@@ -774,10 +914,14 @@
    "gasp",
    "giggle",
    "lean_in",
-   "hair_flip"
+   "hair_flip",
+   "arch",
+   "shy_tuck",
+   "shiver",
+   "settle"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 323395
+  "bytes": 327519
  }
 }

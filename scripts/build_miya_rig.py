@@ -121,8 +121,8 @@ PHYSICS = [
         # Tuned against the smear limit, not by taste: past ~18 px of travel the hair pixels
         # stretch away from the hoodie underneath them and the silhouette streaks. A stiffer
         # spring plus a partial `mix` keeps the lag readable without the streaks.
-        "inertia": 0.60, "strength": 165.0, "damping": 8.0, "mass": 1.0,
-        "gravity": 12.0, "wind": 0.0, "mix": 0.45, "fps": 60, "volume": True,
+        "inertia": 0.46, "strength": 165.0, "damping": 17.5, "mass": 1.0,
+        "gravity": 12.0, "wind": 0.0, "mix": 0.50, "fps": 60, "volume": True,
     },
     {
         # Her left breast. The two sides are deliberately not identical: a body that carries two
@@ -132,9 +132,9 @@ PHYSICS = [
         "id": "phys_bust_left",
         "name": "bust_left",
         "bone": "bone_bust_left",
-        "x": 0.55, "y": 0.75, "rotate": 0.85, "scaleX": 0.20,
-        "inertia": 0.78, "strength": 132.0, "damping": 5.8, "mass": 1.0,
-        "gravity": 0.0, "wind": 0.0, "mix": 0.66, "fps": 60, "volume": False,
+        "x": 0.44, "y": 0.62, "rotate": 0.60, "scaleX": 0.10,
+        "inertia": 0.58, "strength": 132.0, "damping": 11.5, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.56, "fps": 60, "volume": False,
     },
     {
         # Her right. Tauter and better damped: it settles first on a tap and carries the smaller
@@ -144,9 +144,9 @@ PHYSICS = [
         "id": "phys_bust_right",
         "name": "bust_right",
         "bone": "bone_bust_right",
-        "x": 0.55, "y": 0.75, "rotate": 0.70, "scaleX": 0.20,
-        "inertia": 0.72, "strength": 152.0, "damping": 7.2, "mass": 1.0,
-        "gravity": 0.0, "wind": 0.0, "mix": 0.56, "fps": 60, "volume": False,
+        "x": 0.40, "y": 0.56, "rotate": 0.52, "scaleX": 0.08,
+        "inertia": 0.54, "strength": 152.0, "damping": 13.6, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.48, "fps": 60, "volume": False,
     },
     {
         # Chest: taut, fast, small travel. Enough to let the torso settle a moment after the
@@ -155,7 +155,7 @@ PHYSICS = [
         "name": "chest",
         "bone": "bone_chest",
         "x": 0.18, "y": 0.22, "rotate": 0.35, "scaleX": 0.0,
-        "inertia": 0.40, "strength": 380.0, "damping": 12.0, "mass": 1.0,
+        "inertia": 0.40, "strength": 380.0, "damping": 30.0, "mass": 1.0,
         "gravity": 0.0, "wind": 0.0, "mix": 0.18, "fps": 60, "volume": False,
     },
 ]        # height falloff of the skin weights, scaled with the face
@@ -1069,9 +1069,9 @@ def build() -> dict:
         "duration": 0.5,
         "timelines": [
             tl("bone_head", "rotation",
-               ((0, 0), (0.09, -3.0), (0.24, 1.2), (0.34, -0.5), (0.50, 0)),
+               ((0, 0), (0.09, -3.1), (0.27, 0.26), (0.50, 0)),
                ease=(0.2, 0.6, 0.35, 1)),
-            tl("bone_neck", "rotation", ((0, 0), (0.09, -3.0), (0.25, 1.1), (0.34, -0.4), (0.50, 0))),
+            tl("bone_neck", "rotation", ((0, 0), (0.09, -3.0), (0.28, 0.24), (0.50, 0))),
             # The chest takes the hit before the head finishes travelling: a nod that starts at the
             # neck alone reads as a hinged puppet.
             tl("bone_chest", "y", ((0, 0), (0.12, -4.5), (0.30, 1.2), (0.50, 0)),
@@ -1324,6 +1324,103 @@ def build() -> dict:
                 ],
             },
         ] if has_closed_mouth else []),
+        "events": [],
+    }
+
+    # Arch: she stretches her back and pushes her chest up. The one beat in the set that is
+    # deliberately *seen* rather than merely noticed, and the reason it is authored on the chest and
+    # the neck rather than on the whole body: the arms are `root`-weighted, so anything that moves
+    # the torso without them is a shear at the armpit. A degree and a bit of chest rotation plus a
+    # chin lift reads as the stretch; anything more is a rubber hoodie.
+    arch = {
+        "id": "anim_arch",
+        "name": "arch",
+        "duration": 1.7,
+        "timelines": [
+            tl("bone_chest", "rotation", ((0, 0), (0.42, 0.8), (1.05, 0.68), (1.45, -0.12), (1.70, 0)), ease=(0.3, 0.15, 0.4, 1)),
+            tl("bone_chest", "y", ((0, 0), (0.44, -1.1), (1.05, -0.9), (1.50, 0.25), (1.70, 0)), ease=(0.3, 0.15, 0.4, 1)),
+            # The neck carries 0.6° and no more: the neck is a *narrow* region whose silhouette is
+            # bounded by `root`, so it is the cheapest place in this rig to buy an edge. The chin
+            # lift lives on the head, where the motion is spread over the skull.
+            tl("bone_neck", "rotation", ((0, 0), (0.46, 0.6), (1.10, 0.45), (1.52, 0)), ease=(0.3, 0.2, 0.4, 1)),
+            tl("bone_head", "rotation", ((0, 0), (0.48, 2.4), (1.15, 1.9), (1.55, 0)), ease=(0.3, 0.2, 0.45, 1)),
+            tl("bone_hair_back", "rotation", ((0, 0), (0.50, -1.1), (1.10, 1.6), (1.70, 0)), ease=(0.3, 0.2, 0.4, 1)),
+            *bust_pair("rotation", ((0, 0), (0.46, 1.3), (0.92, -0.7), (1.30, 0.3), (1.70, 0)), lag=0.08, scale=0.88),
+            eyes([(0.00, None), (0.30, "eyes_closed"), (0.86, None)]),
+        ] + ([
+            {
+                "target": "slot",
+                "id": "slot_mouth",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.34, "value": "mouth_open", "curve": "stepped"},
+                    {"time": 0.66, "value": None, "curve": "stepped"},
+                ],
+            },
+        ] if has_mouth else []),
+        "events": [],
+    }
+
+    # Shy tuck: chin down, into her own shoulder, hair falling forward. This is the beat that makes
+    # boldness legible: the same tap on the same spot, at low boldness, gets this instead of the
+    # tongue. It is also the only new beat with no chest motion at all — a shy retreat is a head
+    # movement, and keeping the torso still keeps it unmistakably a retreat.
+    shy_tuck = {
+        "id": "anim_shy_tuck",
+        "name": "shy_tuck",
+        "duration": 1.5,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.30, -2.1), (0.95, -1.7), (1.32, 0.3), (1.50, 0)), ease=(0.25, 0.1, 0.4, 1)),
+            tl("bone_head", "y", ((0, 0), (0.32, 1.4), (0.98, 1.1), (1.35, -0.2), (1.50, 0)), ease=(0.25, 0.1, 0.4, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.34, -0.8), (1.00, -0.6), (1.40, 0))),
+            tl("bone_hair_back", "rotation", ((0, 0), (0.30, 1.4), (0.95, 2.1), (1.50, 0)), ease=(0.3, 0.2, 0.45, 1)),
+            *bust_pair("rotation", ((0, 0), (0.34, -0.7), (0.90, 0.2), (1.40, 0)), lag=0.09, scale=0.7),
+            eyes([(0.00, None), (0.26, "eyes_closed"), (0.62, None), (0.80, "eyes_closed"), (1.02, None)]),
+        ] + ([
+            {
+                "target": "slot",
+                "id": "slot_mouth",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.22, "value": "mouth_closed", "curve": "stepped"},
+                    {"time": 1.10, "value": None, "curve": "stepped"},
+                ],
+            },
+        ] if has_closed_mouth else []),
+        "events": [],
+    }
+
+    # Shiver: five quick shakes, tight and fast, the way a body answers a cold finger on a foot.
+    # Small on purpose — the amplitude here is under half a degree, and the read comes from the
+    # frequency, not the size, which is also why it costs almost nothing in the edge budget.
+    shiver = {
+        "id": "anim_shiver",
+        "name": "shiver",
+        "duration": 0.62,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.07, -0.42), (0.14, 0.38), (0.22, -0.34), (0.30, 0.28), (0.40, -0.18), (0.52, 0.08), (0.62, 0)), ease=(0.3, 0, 0.6, 1)),
+            tl("bone_chest", "y", ((0, 0), (0.07, -0.55), (0.15, 0.2), (0.23, -0.45), (0.32, 0.15), (0.42, -0.25), (0.54, 0)), ease=(0.4, 0, 0.6, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.08, -0.22), (0.17, 0.18), (0.26, -0.14), (0.38, 0.08), (0.62, 0))),
+            *bust_pair("rotation", ((0, 0), (0.09, -0.6), (0.18, 0.5), (0.27, -0.4), (0.38, 0.2), (0.55, 0)), lag=0.03, scale=0.9),
+            eyes([(0.00, None), (0.10, "eyes_closed"), (0.44, None)]),
+        ],
+        "events": [],
+    }
+
+    # Settle: she shifts her weight in the chair. Two slow beats of the chest, the head countering,
+    # the bust lagging behind both — the beat that says the chair has a body in it.
+    settle = {
+        "id": "anim_settle",
+        "name": "settle",
+        "duration": 1.25,
+        "timelines": [
+            tl("bone_chest", "rotation", ((0, 0), (0.28, 0.55), (0.70, -0.32), (1.05, 0.12), (1.25, 0)), ease=(0.35, 0.1, 0.4, 1)),
+            tl("bone_head", "rotation", ((0, 0), (0.32, -0.45), (0.76, 0.30), (1.08, -0.10), (1.25, 0)), ease=(0.35, 0.1, 0.4, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.30, -0.18), (0.74, 0.12), (1.25, 0))),
+            *bust_pair("rotation", ((0, 0), (0.34, -0.6), (0.78, 0.45), (1.10, -0.15), (1.25, 0)), lag=0.10, scale=0.75),
+        ],
         "events": [],
     }
 
@@ -1683,7 +1780,7 @@ def build() -> dict:
         + ([smile] if has_closed_mouth else [])
         + ([tease] if tease else [])
         + ([tickle] if tickle else [])
-        + [gasp, giggle, lean_in, hair_flip],
+        + [gasp, giggle, lean_in, hair_flip, arch, shy_tuck, shiver, settle],
         "stateMachines": [
             {
                 "id": "sm_miya",

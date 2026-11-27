@@ -217,6 +217,12 @@ export class HeroineRig {
     value: 0,
   };
 
+  /**
+   * Pointer is resting on her body (or has left it). Sent from the same hit zones that take the
+   * taps, so "on her" means the same thing to the gaze, the cursor and the click.
+   */
+  public onZoneHover?: (zone: TapZoneId | null) => void;
+
   public onZoneTap?: (
     zone: TapZoneId,
     globalPoint: { x: number; y: number },
@@ -341,6 +347,18 @@ export class HeroineRig {
     return this.facePatchesHidden;
   }
 
+  /**
+   * QA: the centre of a hit zone in canvas pixels. The zones are the same rectangles the player's
+   * finger hits, so a script that moves a real mouse to this point is testing the real hit test —
+   * which is the only way to prove that "cursor resting on her" fires where a player would try it.
+   */
+  public zoneCenterScreen(zone: TapZoneId): { x: number; y: number } | null {
+    const g = this.hitLayer.children.find((c) => c.label === zone);
+    if (!g) return null;
+    const b = g.getBounds();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }
+
   /** QA/debug: the patch box currently in use (plate pixels). */
   public getFaceAnchorDebug(): FaceAnchor {
     return { ...this.faceBox };
@@ -357,11 +375,25 @@ export class HeroineRig {
       { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
     ];
 
+    // Zones overlap slightly at their seams; count them instead of trusting a single `pointerout`,
+    // or crossing the shoulder line would read as "left her body" for one frame.
+    const hovered = new Set<TapZoneId>();
+    const markHover = (id: TapZoneId, on: boolean) => {
+      const was = hovered.size > 0;
+      if (on) hovered.add(id);
+      else hovered.delete(id);
+      const now = hovered.size > 0;
+      if (now !== was) this.onZoneHover?.(now ? (zones.find((z) => hovered.has(z.id))?.id ?? null) : null);
+    };
+
     for (const z of zones) {
       const g = new Graphics();
       g.rect(z.x, z.y, z.w, z.h).fill({ color: 0xffffff, alpha: 0.001 });
+      g.label = z.id;
       g.eventMode = 'static';
       g.cursor = 'pointer';
+      g.on('pointerover', () => markHover(z.id, true));
+      g.on('pointerout', () => markHover(z.id, false));
       g.on('pointerdown', (ev: FederatedPointerEvent) => {
         ev.stopPropagation();
         this.triggerTapReaction(z.id);

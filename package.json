@@ -15,7 +15,8 @@
     "qa:rigs": "node scripts/qa_rig_days.mjs",
     "qa:smear": "node scripts/mesh_smear.mjs",
     "qa:audit": "node scripts/rig_audit.mjs",
-    "qa:mobile": "node scripts/qa_mobile.mjs"
+    "qa:mobile": "node scripts/qa_mobile.mjs",
+    "qa:motion": "python3 scripts/build_miya_rig.py --art t1_s0 --out /tmp/miya_motion.obone && python3 scripts/motion_audit.py /tmp/miya_motion.obone"
   },
   "dependencies": {
     "@openbone/pixi": "^0.4.12",

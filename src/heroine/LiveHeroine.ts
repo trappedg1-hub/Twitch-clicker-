@@ -5,6 +5,7 @@ import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
 import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
 import { sfx } from '../audio/sfx.ts';
+import { IDLE_BEATS } from './reactionDirector.ts';
 
 /**
  * The authored rig, played in the game.
@@ -39,7 +40,11 @@ export type LiveReaction =
   | 'gasp'
   | 'giggle'
   | 'lean_in'
-  | 'hair_flip';
+  | 'hair_flip'
+  | 'arch'
+  | 'shy_tuck'
+  | 'shiver'
+  | 'settle';
 
 /**
  * What she does when nothing is happening to her.
@@ -55,7 +60,10 @@ export type LiveReaction =
  */
 export type QuirkKind = 'turn' | 'hair_flip' | 'lean_in' | 'giggle' | 'tease';
 
-export const IDLE_QUIRKS: LiveReaction[] = ['turn', 'hair_flip', 'lean_in', 'giggle', 'turn', 'tease'];
+// The vocabulary itself lives in the director, so a beat cannot be added to the idle pool without
+// also being a beat the tap table can reach. `turn` is listed twice: looking around is the most
+// natural thing for a person at a desk to do, and it is the only quirk every plate is guaranteed.
+export const IDLE_QUIRKS: LiveReaction[] = [...IDLE_BEATS, 'turn'];
 
 export interface RigStats {
   bones: number;
@@ -116,6 +124,9 @@ export class LiveHeroine {
   private current = 'idle';
   /** Own clock, seconds of the last `update()` — the rig is not on Pixi's ticker. */
   private lastUpdateMs = 0;
+  private energy = 0;
+  /** How long the beat that started last is meant to last — the tap's interruption rule needs it. */
+  private beatMs = 0;
   /** Set when the skeleton threw; the class then stays out of the way for the rest of the page. */
   private fault: string | null = null;
   /**
@@ -317,9 +328,17 @@ export class LiveHeroine {
     if (!bone || this.fault) return;
     const now = performance.now();
     this.lastInteractionAt = now;
-    // A tap is the common case and must never restart a beat that is still playing; a donation is
-    // rare and should always be felt, so it only yields to a reaction from the last 160 ms.
-    if (kind === 'tap' ? this.reactionUntil > now : now - this.lastReactionAt < 160) return;
+    // A tap is the common case and must never restart a short beat that is still playing; a
+    // donation is rare and should always be felt, so it only yields to a reaction from the last
+    // 160 ms.
+    //
+    // A *long* beat is the exception. The director answers a tap on her legs with a lean-in (2.6 s)
+    // and a tap on her bare shoulder with a stretch (1.7 s); dropping every tap for the whole of
+    // that is two and a half seconds of a dead clicker. So a long beat yields to a new tap once it
+    // has shown 45 % of itself — the player sees the answer start, and the click still lands.
+    const long = this.beatMs > 700;
+    const busy = long ? now - this.lastReactionAt < this.beatMs * 0.45 : this.reactionUntil > now;
+    if (kind === 'tap' ? busy : now - this.lastReactionAt < 160) return;
     const animation = this.animations.includes(kind) ? kind : 'shake';
     this.guard('реакция', () => {
       // The runtime cross-fades every `play` by `defaultMix`, which is 0.2 s. Against a 0.5 s nod
@@ -332,9 +351,35 @@ export class LiveHeroine {
     });
     this.reactionUntil = now + ms;
     this.lastReactionAt = now;
+    this.beatMs = ms;
+  }
+
+  /**
+   * How wound up she is, 0..1 — chat hype and her own boldness both feed it.
+   *
+   * The only thing this changes is the *speed* of the looping bed (breathing, sway, talk), never a
+   * one-shot beat: a beat played fast reads as a bug, a breath played fast reads as a person who is
+   * excited. 0.94→1.20 is a fifth of a second off a four-second breath, which is exactly the
+   * difference between a calm stream and a hot one, and it costs one number per frame.
+   */
+  public setEnergy(level: number): void {
+    this.energy = Math.min(1, Math.max(0, Number.isFinite(level) ? level : 0));
   }
 
   /** Does this document carry the animation? Some beats only exist where the art does. */
+  /**
+   * What is actually playing, for QA. The clip name is the only honest answer to "did that tap reach
+   * her": a callout, a sound and a chat line can all fire while the skeleton sits in `idle`.
+   */
+  public debugState(): { current: string; animations: string[] } {
+    return { current: this.current, animations: this.animations };
+  }
+
+  /** The whole vocabulary of this document, for the director's availability filter. */
+  public animationSet(): ReadonlySet<string> {
+    return new Set(this.animations);
+  }
+
   public hasAnimation(name: string): boolean {
     return this.animations.includes(name);
   }
@@ -369,6 +414,12 @@ export class LiveHeroine {
       // that explodes — the hair would fly off her head on the first frame after the tab wakes up.
       const dt = previous ? Math.min(0.1, Math.max(0, (now - previous) / 1000)) : 1 / 60;
       bone.update(dt);
+      // The bed breathes at her pace, not the author's. Looping track only: `current` is idle or
+      // idle_talk while nothing else is playing, and a one-shot beat is never retimed.
+      const bed = bone.instance.animationState.tracks[0];
+      if (bed && (this.current === 'idle' || this.current === 'idle_talk')) {
+        bed.speed = 0.94 + this.energy * 0.26;
+      }
       // Live gaze, after the animation has written its absolute pose: the offset is additive for
       // this frame only, and the next `bone.update` rebuilds the pose from the timelines, so it can
       // never accumulate. `applyGaze` rebuilds the world matrices itself — without that call the

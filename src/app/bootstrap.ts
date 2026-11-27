@@ -109,6 +109,12 @@ declare global {
       isWearingDay2Outfit: () => boolean;
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
+      zoneCenter: (zone: TapZoneId) => { x: number; y: number } | null;
+      lastTapBeat: () => string | null;
+      lastTapDebug: () => { zone: string; beat: string; streak: number; available: number } | null;
+      hoverDebug: () => { zone: string | null; since: number };
+      attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
+      tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
       giftSubs: (count: number) => boolean;
@@ -350,6 +356,7 @@ export async function bootstrapApp(): Promise<void> {
     if (unlockedStages.length === 0) return;
     lastCelebrationMs = performance.now();
     sfx.milestone();
+    stage.playLiveMilestone();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
     announce(latest.removedItemLabel, true, latest.stage);
@@ -380,6 +387,13 @@ export async function bootstrapApp(): Promise<void> {
     stage.spawnReactionCallout(tag, isFever, seed);
   };
 
+  // What the director knows about her mood. `boldness` is the same number the rig's blush uses, so
+  // the body and the face cannot disagree about how far along she is.
+  stage.reactionInput = () => ({
+    boldness: computeStats(state).boldness,
+    hype: state.hype,
+  });
+
   // She entertains herself and the chat notices — but only sometimes, and only when the room is
   // already talking: a chat that comments on every single head turn is a chat full of bots.
   let lastQuirkChatMs = -Infinity;
@@ -388,6 +402,16 @@ export async function bootstrapApp(): Promise<void> {
     if (now - lastQuirkChatMs < 18000) return;
     if (announceMuted) return;
     if (Math.random() > 0.45) return;
+    lastQuirkChatMs = now;
+    ui.pushChatMessage(createSelfQuirkMessage(kind, state.totalTaps + Math.floor(now / 1000), state.streamDay));
+  };
+
+  // She noticed the player staring, or noticed nobody is here. Either way the chat has something
+  // to say — this is the cheapest fan-service in the game and the one that never stops working.
+  stage.onAttention = (kind) => {
+    if (announceMuted) return;
+    const now = performance.now();
+    if (now - lastQuirkChatMs < 15000) return;
     lastQuirkChatMs = now;
     ui.pushChatMessage(createSelfQuirkMessage(kind, state.totalTaps + Math.floor(now / 1000), state.streamDay));
   };
@@ -986,7 +1010,10 @@ export async function bootstrapApp(): Promise<void> {
   const saveRigTuning = (): void => writeFlag(RIG_TUNING_KEY, JSON.stringify(rigTuning));
 
   /** Animations that are a beat, not a loop — the console should not leave her mid-shake. */
-  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp', 'giggle', 'lean_in', 'hair_flip']);
+  const ONESHOT = new Set([
+  'shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp',
+  'giggle', 'lean_in', 'hair_flip', 'arch', 'shy_tuck', 'shiver', 'settle',
+]);
 
   const rigApi: AdminRigApi = {
     snapshot: () => {
@@ -1142,10 +1169,11 @@ export async function bootstrapApp(): Promise<void> {
       stage.rig.update(95);
       stage.app.render();
     },
+    // The admin console's version of a tap goes through the same door as the pointer's: a debug
+    // button that answers differently from the game is a debug button that lies.
     tapZone: (zone) => {
       stage.rig.triggerTapReaction(zone);
-      const res = stage.onHeroineTap?.(zone);
-      if (res) stage.spawnTapBurst(688, 340, res.earned, res.alert, zone);
+      stage.answerTapZone(zone, 688, 340);
     },
     setSaveSuppressed: (on) => {
       adminSaveSuppressed = on;
@@ -1226,13 +1254,18 @@ export async function bootstrapApp(): Promise<void> {
               : DAY1_FAREWELL_LINES.length,
       isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
+      // The same path a real click takes — director, reaction, burst — so QA can assert on what
+      // she actually plays instead of on a parallel implementation that only QA uses.
       tapZone: (zone: TapZoneId) => {
         stage.rig.triggerTapReaction(zone);
-        const res = stage.onHeroineTap?.(zone);
-        if (res) {
-          stage.spawnTapBurst(688, 340, res.earned, res.alert, zone);
-        }
+        stage.answerTapZone(zone, 688, 340);
       },
+      zoneCenter: (zone: TapZoneId) => stage.rig.zoneCenterScreen(zone),
+      lastTapBeat: () => stage.lastTapBeat,
+      lastTapDebug: () => stage.lastTapDebug,
+      hoverDebug: () => stage.getHoverDebug(),
+      attentionDebug: () => stage.attentionDebug,
+      tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {
         state = {
           ...state,
