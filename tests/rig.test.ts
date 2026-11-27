@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -41,6 +42,35 @@ test('index lists the arts that have a face kit', () => {
 });
 
 const rig = (art: string) => index[art]!;
+
+test('two arts that ship the same plate ship the same face kit', () => {
+  // `heroine_t4_flash.webp` and `heroine_t4_s3.webp` are byte-identical files, and the manifest
+  // still carried two different eye box sets for them: t4_s3's sat 10-15 px higher, so its drift
+  // number measured eyebrows rather than skin. On identical pixels both cannot be right, and there
+  // is no way to notice that by looking at one art at a time — so the suite compares the files.
+  const manifest = JSON.parse(
+    readFileSync(join(import.meta.dirname, '..', 'public', 'art', 'face_kit', 'manifest.json'), 'utf8'),
+  ) as Record<string, { eyes?: number[][]; mouth?: number[]; face?: number[] }>;
+  const art = join(import.meta.dirname, '..', 'public', 'art');
+  const byBytes = new Map<string, string[]>();
+  for (const key of Object.keys(manifest)) {
+    const name = key.replace('heroine_', '');
+    const file = join(art, `heroine_${name}.webp`);
+    if (!existsSync(file)) continue;
+    const hash = createHash('sha1').update(readFileSync(file)).digest('hex');
+    byBytes.set(hash, [...(byBytes.get(hash) ?? []), name]);
+  }
+  for (const names of byBytes.values()) {
+    if (names.length < 2) continue;
+    const entries = names.map((name) => manifest[`heroine_${name}`]!);
+    const first = entries[0]!;
+    const rest = entries.slice(1);
+    for (const other of rest) {
+      assert.deepEqual(other.eyes, first.eyes, `${names.join(' / ')}: eye boxes differ on one plate`);
+      assert.deepEqual(other.mouth, first.mouth, `${names.join(' / ')}: mouth box differs on one plate`);
+    }
+  }
+});
 
 test('art with food at the mouth never animates the mouth', () => {
   for (const art of ['t6_s1', 't6_s2', 't6_s3']) {
