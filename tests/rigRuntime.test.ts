@@ -44,8 +44,34 @@ function open(art: string) {
 
 test('idle is a breath, not a wobble', () => {
   for (const art of ARTS) {
-    const { instance, vertices } = open(art);
+    const { doc, instance, vertices } = open(art);
     const setup = Float32Array.from(vertices());
+    // Her head and the hair hanging off it are excluded here on purpose. That mass is one rigid
+    // body that looks around, and its travel is the whole point of `rigLife.test.ts` ("the head
+    // acts, the torso sits"). Capping it with the torso is exactly what forced the old soft rig
+    // to smear a 6-degree wobble through the whole picture before it read at all. What this test
+    // still owns is everything below the neck: shoulders, bust, hips, thighs on the chair.
+    //
+    // "Head" is decided by anatomy, not by a weight threshold: everything above the neck joint,
+    // plus whatever is mostly bone_hair_back — the strand mass that falls past the jaw. A
+    // threshold on the head share would shift with the mesh, and the hair edge (85 % head, 15 %
+    // root) would keep leaking into "body" as an 18 px wobble that is not there.
+    const bones = doc.skeleton.bones as { name: string; y: number }[];
+    const neckY = bones.find((b) => b.name === 'neck')?.y ?? 0;
+    const mesh = doc.skeleton.skins[0].attachments.slot_body.miya_body as {
+      weights: { bone: string; weight: number }[][];
+    };
+    const HEADS = new Set(['bone_head', 'bone_hair_back']);
+    const headOnly = new Set(
+      mesh.weights
+        .map((w, i) => {
+          const share = w.reduce((sum, part) => sum + (HEADS.has(part.bone) ? part.weight : 0), 0);
+          const y = setup[i * 2 + 1]!;
+          return y < neckY || share > 0.5 ? i : -1;
+        })
+        .filter((i) => i >= 0),
+    );
+    let head = 0;
     instance.play('idle', true);
     let body = 0;
     let floor = 0;
@@ -57,6 +83,7 @@ test('idle is a breath, not a wobble', () => {
         const dy = v[i + 1]! - setup[i + 1]!;
         const d = Math.hypot(dx, dy);
         if (setup[i + 1]! > 1400) floor = Math.max(floor, d);
+        else if (headOnly.has(i / 2)) head = Math.max(head, d);
         else body = Math.max(body, d);
       }
     }
@@ -65,6 +92,9 @@ test('idle is a breath, not a wobble', () => {
     // that is the one part allowed to travel: see `rigLife.test.ts`, which checks articulation —
     // the head moves, the torso does not — instead of capping everything at one number.
     assert.ok(body <= 16, `${art}: idle moves her body ${body.toFixed(1)} px (limit 16)`);
+    // The head is allowed to travel — but not without limit: a 20 s idle whose deepest glance
+    // throws her crown 40 px is a headbang, not a look around.
+    assert.ok(head <= 30, `${art}: idle throws her head ${head.toFixed(1)} px (limit 30)`);
     assert.ok(floor <= 0.6, `${art}: idle moves the desk/floor ${floor.toFixed(2)} px (limit 0.6)`);
   }
 });
@@ -135,7 +165,11 @@ test('face patches are meshes with an upright picture, centred on the real eyes 
     // Measured on `blink`, which moves no bones: the patch has to sit on her eyes in the rest
     // pose. (Idle turns her head now, so a patch measured there is a patch measured mid-nod.)
     check('eyes_closed', 'eyes_closed', 0.06, 'blink');
-    if (manifest.patches!.mouth_open) check('mouth_open', 'mouth_open', 0.15, 'idle_talk');
+    // The mouth is measured on `talk`, not on `idle_talk`: `idle_talk` is the twenty-second sitting
+    // loop now, and at 0.15 s her head is already a hundredth of a degree into a glance — enough
+    // that the patch is no longer axis-aligned and "the top-left corner is the top edge" fails by
+    // 0.06 px. `talk` moves no bones at all, so there the check means what it says.
+    if (manifest.patches!.mouth_open) check('mouth_open', 'mouth_open', 0.15, 'talk');
   }
 });
 

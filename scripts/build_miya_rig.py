@@ -432,6 +432,22 @@ def finish(x: float, y: float, world: dict[str, tuple[float, float]], parts: lis
         else:
             w["weight"] = round(w["weight"], 4)
             acc += w["weight"]
+    # A share that rounds to zero is not a part, it is a bone that does nothing but is still
+    # listed. That is how a head vertex ended up carrying `root: 0.0` and stopped being
+    # recognisable as "on the head" to every tool that looks for a single-bone vertex — the
+    # runtime was right, the document was untidy. Drop them, hand the share to the biggest bone.
+    ghost = sum(w["weight"] for w in out if w["weight"] <= 0.0005)
+    if ghost > 0.0:
+        out = [w for w in out if w["weight"] > 0.0005]
+        if not out:
+            out = [{"bone": "bone_root", "x": 0.0, "y": 0.0, "weight": 1.0}]
+        else:
+            biggest = max(out, key=lambda w: w["weight"])
+            biggest["weight"] = round(biggest["weight"] + ghost, 4)
+            total = sum(w["weight"] for w in out)
+            for w in out:
+                w["weight"] = round(w["weight"] / total, 4)
+            out[-1]["weight"] = round(1.0 - sum(w["weight"] for w in out[:-1]), 4)
     return out
 
 
@@ -568,17 +584,40 @@ def build() -> dict:
         "events": [],
     }
 
+    # Turn: a glance, not a swivel. Three things make it read as a person looking around
+    # instead of a picture being rotated about her chin:
+    #   1. **anticipation** — a fifth of a degree the other way before she goes, and a breath in;
+    #   2. **a blink first** — nobody starts a big head move with their eyes wide open;
+    #   3. **it comes home** — she looks away, sweeps back past neutral, and lands on zero, so
+    #      returning to `idle` at the end is a cut nobody can see (it used to end at -1.8° and
+    #      snap back when the game switched animations).
     turn = {
         "id": "anim_turn",
         "name": "turn",
         "duration": 2.4,
         "timelines": [
-            tl("bone_head", "rotation", ((0, 0), (0.55, 3.4), (1.35, 0.5), (2.4, -1.8)),
+            tl("bone_head", "rotation",
+               ((0, 0), (0.14, -0.30), (0.52, 3.35), (1.30, 0.55), (1.95, -2.05), (2.40, 0)),
                ease=(0.22, 0.7, 0.3, 1)),
-            tl("bone_neck", "rotation", ((0, 0), (0.62, 0.8), (1.4, 0.1), (2.4, -0.4))),
-            tl("bone_chest", "rotation", ((0, 0), (0.7, 0.7), (1.5, 0), (2.4, -0.4)),
+            tl("bone_neck", "rotation",
+               ((0, 0), (0.18, -0.09), (0.62, 0.95), (1.45, 0.12), (2.10, -0.55), (2.40, 0))),
+            tl("bone_chest", "rotation",
+               ((0, 0), (0.55, 0.65), (1.50, 0.02), (2.15, -0.40), (2.40, 0)),
                ease=(0.3, 0.2, 0.4, 1)),
-            tl("bone_hair_back", "rotation", ((0, 0), (0.9, -1.2), (1.7, 0.3), (2.4, 0.5))),
+            tl("bone_chest", "y", ((0, 0), (0.22, -1.4), (1.10, 0), (2.20, 0.6), (2.40, 0))),
+            tl("bone_hair_back", "rotation", ((0, 0), (0.85, -1.25), (1.75, 0.35), (2.40, 0))),
+            {
+                "target": "slot",
+                "id": "slot_eyes",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.09, "value": "eyes_closed", "curve": "stepped"},
+                    {"time": 0.18, "value": None, "curve": "stepped"},
+                    {"time": 1.62, "value": "eyes_closed", "curve": "stepped"},
+                    {"time": 1.71, "value": None, "curve": "stepped"},
+                ],
+            },
         ],
         "events": [],
     }
@@ -754,58 +793,133 @@ def build() -> dict:
             ],
         }
 
-    # Blinks are not a metronome: four of them in eight seconds, unevenly spaced, and one double
-    # blink at the end. A loop that blinks on the beat reads as a machine more than any wobble does.
-    blink_beats = [
-        (1.02, None), (1.07, "eyes_closed"), (1.16, None),
-        (2.86, None), (2.91, "eyes_closed"), (3.00, None),
-        (4.55, None), (4.60, "eyes_closed"), (4.69, None),
-        (6.14, None), (6.19, "eyes_closed"), (6.26, None),
-        (6.92, None), (6.97, "eyes_closed"), (7.04, None),
-        (7.10, None), (7.15, "eyes_closed"), (7.24, None),
+    # ---- the idle clock --------------------------------------------------------------
+    # Twenty seconds, not eight. Eight was long enough to look alive and short enough to expose
+    # itself: by the second loop the eye has learned the breath rhythm and the four blink
+    # positions, and from then on she is a GIF. Twenty seconds with a jittered breath, four
+    # glances of different depth and fifteen uneven eyelids reads as "sitting there" for far
+    # longer than it is — and it costs the runtime exactly the same, it is still one looping track.
+    IDLE_LEN = 20.0
+
+    def shifted(pairs, scale: float, lag: float):
+        """Copy a gesture onto another bone: delayed, scaled, closed on neutral.
+
+        Overlapping action as arithmetic. The neck carries 30 % of what the head does, 0.2 s
+        later; the chest 11 %; the hair answers the other way. Every copy starts and ends at
+        zero, so the loop closes without a seam.
+        """
+        out = [(0.0, 0.0)]
+        for t, v in pairs:
+            if t <= 0.0:
+                continue
+            out.append((round(min(t + lag, IDLE_LEN), 3), round(v * scale, 3)))
+        if out[-1][1] != 0.0:
+            out.append((IDLE_LEN, 0.0))
+        return out
+
+    # A breath every four seconds, five of them, no two the same depth: a person at rest is not
+    # a sine wave — the second breath is shallower than the first, the fourth is a sigh.
+    chest_y = [
+        (0.00, 0.0), (1.55, -3.1), (3.05, 0.0), (3.65, 0.18),
+        (5.40, -2.6), (7.20, 0.0), (7.75, 0.14),
+        (9.30, -3.4), (11.15, 0.0),
+        (13.60, -2.8), (15.30, 0.0), (15.85, 0.16),
+        (17.40, -3.2), (19.15, 0.0), (IDLE_LEN, 0.0),
     ]
+    chest_rot = [
+        (0.00, 0.0), (1.75, 0.22), (3.25, 0.0), (5.60, -0.20), (7.40, 0.0),
+        (9.50, 0.24), (11.35, 0.0), (13.80, -0.18), (15.50, 0.0),
+        (17.60, 0.22), (19.35, 0.0), (IDLE_LEN, 0.0),
+    ]
+
+    # Where she looks, in degrees of head rotation (positive is her left). Four glances, none the
+    # same depth; the third goes one way and then the other, which reads as thinking. Each starts
+    # with a micro-move the other way and overshoots on the way home — nothing in a body arrives
+    # at rest without passing it.
+    # Authored 15 % hotter than shipped: a glance of 2.0° moves her crown 21 px on the plate
+    # (~10 px on a phone), which is the smallest that still reads, and leaves headroom under the
+    # "that is a wobble, not a glance" ceiling the life test enforces.
+    head_rot = [(t, round(v * 0.85, 3)) for t, v in [
+        (0.00, 0.0),
+        (1.05, -0.18), (1.55, 2.05), (2.65, 1.75), (3.55, -0.15), (4.15, 0.0),
+        (6.35, 0.12), (7.05, -2.40), (8.25, -2.05), (9.35, 0.20), (9.95, 0.0),
+        (11.55, 0.20), (12.35, 1.45), (13.15, 1.15), (13.95, -1.15), (14.85, -0.95),
+        (15.85, 0.15), (16.45, 0.0),
+        (17.65, -1.65), (18.75, -1.35), (19.50, 0.0),
+    ]]
+    head_y = [
+        (0.00, 0.0), (1.35, -0.50), (1.85, -0.55), (3.40, 0.0),
+        (7.10, -0.45), (9.20, 0.0), (12.30, -0.40), (15.60, 0.0),
+        (17.70, -0.50), (19.60, 0.0), (IDLE_LEN, 0.0),
+    ]
+    hips_rot = [
+        (0.00, 0.0), (2.40, 0.12), (6.00, -0.10), (10.50, 0.14),
+        (15.00, -0.12), (19.00, 0.05), (IDLE_LEN, 0.0),
+    ]
+
+    # Eyelids: fifteen closures, gaps from 0.12 s to 2.35 s, two doubles and five that land right
+    # before a glance — a person blinks before they turn their head, not during.
+    blink_spans = [
+        (1.15, 1.24), (2.42, 2.51), (4.05, 4.14), (6.30, 6.39), (7.52, 7.61),
+        (9.05, 9.13), (9.17, 9.26),
+        (11.40, 11.49), (12.02, 12.11), (13.44, 13.53), (14.95, 15.04),
+        (16.60, 16.69), (17.62, 17.71), (19.05, 19.14), (19.19, 19.28),
+    ]
+    blink_beats = [(0.0, None)]
+    for opened, closed in blink_spans:
+        blink_beats += [(opened, "eyes_closed"), (closed, None)]
+
+    # Speech is a series of bursts with pauses, spread across the whole loop — not two passes over
+    # its first third. A chat line arrives at any moment, and the mouth has to be moving then.
     talk_beats = [
         (0.00, None), (0.09, "mouth_open"), (0.18, None), (0.27, "mouth_open"),
         (0.33, None), (0.42, "mouth_open"), (0.52, "mouth_open"),
         (0.61, None), (0.70, "mouth_open"), (0.80, None),
     ]
+    talk_starts = [0.15, 2.95, 5.75, 8.55, 11.35, 14.15, 16.95]
 
     def idle_anim(anim_id: str, name: str, with_talk: bool) -> dict:
-        """Eight seconds of her sitting there, not eight seconds of a breathing texture.
+        """Twenty seconds of her sitting there, not twenty seconds of a breathing texture.
 
-        Two breaths, a slow drift of the head with the neck a beat behind it, one weight shift in
-        the hips, the hair settling after the head each time, and five deliberately uneven blinks.
-        The amplitudes are small on purpose — a head is a rigid body now, so a degree moves her
-        crown 5 px on a phone, where the old soft-weighted rig needed six degrees to read at all
-        and looked like a rubber doll doing it.
+        Five breaths of different depth, four glances with the neck 0.2 s behind the head, two
+        weight shifts in the hips, the hair settling after her every time, and fifteen uneven
+        blinks. The amplitudes stay small on purpose — the head is a rigid body now, so one degree
+        moves her crown about 5 px on a phone, where the old soft-weighted rig needed six degrees
+        to read at all and looked like a rubber doll doing it.
         """
         timelines = [
-            # breath, twice, and never on a metronome
-            tl("bone_chest", "y", ((0, 0), (1.5, -3.0), (3.1, 0), (3.9, -0.2),
-                                   (5.4, -3.4), (7.1, 0), (8.0, 0))),
-            tl("bone_chest", "rotation", ((0, 0), (1.5, 0.22), (3.1, 0), (5.4, -0.22),
-                                          (7.1, 0), (8.0, 0))),
-            tl("bone_neck", "y", ((0, 0), (1.6, -1.0), (3.2, 0), (5.5, -1.2), (7.2, 0), (8.0, 0))),
-            tl("bone_bust", "scaleY", ((0, 0), (1.5, 0.022), (3.1, 0), (5.4, 0.025), (7.1, 0), (8.0, 0))),
-            tl("bone_bust", "scaleX", ((0, 0), (1.5, 0.011), (3.1, 0), (5.4, 0.013), (7.1, 0), (8.0, 0))),
-            # she looks around a little, and her neck follows a beat late
-            tl("bone_head", "rotation", ((0, 0), (1.9, 0.85), (3.4, 0.15), (4.8, -0.70),
-                                         (6.2, 0.25), (7.4, 0.55), (8.0, 0))),
-            tl("bone_neck", "rotation", ((0, 0), (2.1, 0.34), (3.6, 0.06), (5.0, -0.28),
-                                         (6.4, 0.10), (7.6, 0.20), (8.0, 0))),
-            tl("bone_hair_back", "rotation", ((0, 0), (2.25, -0.85), (3.8, 0.25), (5.3, 0.70),
-                                              (6.7, -0.30), (8.0, 0))),
-            tl("bone_hips", "rotation", ((0, 0), (2.2, 0.12), (5.6, -0.12), (8.0, 0))),
+            tl("bone_chest", "y", chest_y),
+            tl("bone_chest", "rotation", chest_rot),
+            tl("bone_neck", "y", shifted(chest_y, 0.32, 0.10)),
+            tl("bone_bust", "scaleY", shifted(chest_y, -0.0072, 0.08)),
+            tl("bone_bust", "scaleX", shifted(chest_y, -0.0036, 0.08)),
+            tl("bone_head", "rotation", head_rot),
+            tl("bone_head", "y", head_y),
+            tl("bone_neck", "rotation", shifted(head_rot, 0.30, 0.20)),
+            # The torso leans into the glance. It lives on the spine, not the chest, because the
+            # chest already carries the breath on that property and a second track for the same
+            # bone+property is deduplicated away — the lean would silently disappear.
+            tl("bone_spine", "rotation", shifted(head_rot, 0.11, 0.30)),
+            tl("bone_hair_back", "rotation", shifted(head_rot, -0.42, 0.26)),
+            tl("bone_bust", "rotation", shifted(head_rot, 0.06, 0.34)),
+            tl("bone_hips", "rotation", hips_rot),
         ]
         timelines.append(slot_timeline("slot_eyes", blink_beats))
         if with_talk and has_mouth:
-            # Speech runs in two passes over the same 8 s loop: she talks, pauses, talks.
-            # ONE timeline with both passes: the runtime keys a slot attachment once per track, and
-            # a second timeline for the same slot is deduplicated away — the mouth then stays shut
-            # for the first half of every loop.
-            beats = talk_beats + [(t + 3.9, v) for t, v in talk_beats]
+            # ONE timeline for the whole loop: the runtime keys a slot attachment once per track,
+            # and a second timeline for the same slot is deduplicated away — the mouth then stays
+            # shut for the rest of every loop.
+            beats = []
+            for start in talk_starts:
+                beats += [(round(start + t, 3), v) for t, v in talk_beats]
             timelines.append(slot_timeline("slot_mouth", beats))
-        return {"id": anim_id, "name": name, "duration": 8.0, "timelines": timelines, "events": []}
+        return {
+            "id": anim_id,
+            "name": name,
+            "duration": IDLE_LEN,
+            "timelines": timelines,
+            "events": [],
+        }
 
     idle = idle_anim("anim_idle", "idle", False)
     idle_talk = idle_anim("anim_idle_talk", "idle_talk", True)

@@ -181,7 +181,11 @@ export class LiveHeroine {
     this.view.position.set(x, y);
   }
 
-  /** She talks for a while: two passes over the mouth pattern inside the 4 s idle loop. */
+  /**
+   * She talks for a while. The mouth pattern is baked into `idle_talk` as a burst every 2.8 s
+   * across the whole twenty-second loop, so any 2.6 s of it contains speech — a chat line can
+   * arrive at any moment and the mouth has to be moving then, not only near the loop's start.
+   */
   public talk(ms = 2600): void {
     const bone = this.bone;
     if (!bone || this.fault) return;

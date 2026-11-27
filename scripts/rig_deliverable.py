@@ -60,11 +60,22 @@ def animate(folder: Path, out: Path, fps: int, width: int | None) -> None:
     print(f"{out}: {len(images)} frames, {out.stat().st_size / 1024:.0f} KB")
 
 
-def sheet(rows: list[tuple[str, Path, int]], out: Path, scale: float = 1.0) -> None:
+def at_seconds(folder: Path, seconds: list[float], src_fps: float) -> list[Path]:
+    """Exact frames by time — a storyboard of the moments that matter, not an even grid."""
+    files = frames(folder)
+    if not files:
+        raise SystemExit(f"no frames in {folder}")
+    picks = []
+    for t in seconds:
+        index = min(len(files) - 1, max(0, round(t * src_fps)))
+        picks.append(files[index])
+    return picks
+
+
+def sheet(rows: list[tuple[str, Path, list[Path]]], out: Path, scale: float = 1.0) -> None:
     """A labelled before/after contact sheet, one row per variant."""
     grid: list[tuple[str, list[Image.Image]]] = []
-    for label, folder, pick in rows:
-        chosen = pick_files(folder, pick)
+    for label, folder, chosen in rows:
         row = []
         for path in chosen:
             im = Image.open(path).convert("RGB")
@@ -148,6 +159,8 @@ def main() -> int:
     ap.add_argument("--label-a", default="было")
     ap.add_argument("--label-b", default="стало")
     ap.add_argument("--frames", type=int, default=24)
+    ap.add_argument("--at", default=None, help="comma-separated seconds for an exact storyboard")
+    ap.add_argument("--src-fps", type=float, default=8.0)
     args = ap.parse_args()
 
     if args.kind == "compare":
@@ -164,8 +177,14 @@ def main() -> int:
     elif args.kind == "animate":
         animate(Path(args.folder[0]), Path(args.out), args.fps, args.width or None)
     else:
-        rows = list(zip(args.label or [], map(Path, args.folder or [])))
-        sheet([(label, folder, args.pick) for label, folder in rows], Path(args.out), args.scale)
+        labels = args.label or []
+        folders = [Path(f) for f in (args.folder or [])]
+        at = [float(t) for t in args.at.split(",")] if args.at else []
+        rows = []
+        for label, folder in zip(labels, folders):
+            chosen = at_seconds(folder, at, args.src_fps) if at else pick_files(folder, args.pick)
+            rows.append((label, folder, chosen))
+        sheet(rows, Path(args.out), args.scale)
     return 0
 
 
