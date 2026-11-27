@@ -20,8 +20,18 @@ const index = JSON.parse(readFileSync(join(RIGS, 'index.json'), 'utf8')) as Reco
 >;
 
 test('index lists the arts that have a face kit', () => {
-  const arts = Object.keys(index);
-  assert.equal(arts.length, 22, `expected 22 published rigs, got ${arts.length} (${arts.join(', ')})`);
+  // The count comes from the face kit, not from a number in this file: every art with an
+  // `eyes_closed` patch has to be publishable, and nothing else may claim to be. A literal here
+  // means a newly rigged art fails the suite instead of shipping — which is exactly backwards.
+  const manifest = JSON.parse(
+    readFileSync(join(import.meta.dirname, '..', 'public', 'art', 'face_kit', 'manifest.json'), 'utf8'),
+  ) as Record<string, { patches?: Record<string, unknown> }>;
+  const expected = Object.entries(manifest)
+    .filter(([, entry]) => 'eyes_closed' in (entry.patches ?? {}))
+    .map(([key]) => key.replace('heroine_', ''))
+    .sort();
+  const arts = Object.keys(index).sort();
+  assert.deepEqual(arts, expected, `published rigs differ from the arts with a face kit`);
   for (const [art, entry] of Object.entries(index)) {
     assert.ok(existsSync(join(RIGS, `${art}.obone`)), `${art}: ${entry.file} is missing`);
     assert.ok(entry.animations.includes('idle'), `${art}: no idle animation`);

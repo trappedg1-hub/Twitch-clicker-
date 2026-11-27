@@ -53,6 +53,23 @@
   "hasMouth": true,
   "bones": 10
  },
+ "t1_s2": {
+  "file": "/rigs/t1_s2.obone",
+  "plate": "/art/heroine_t1_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink",
+   "idle_talk",
+   "talk"
+  ],
+  "hasMouth": true,
+  "bones": 10
+ },
  "t1_s4": {
   "file": "/rigs/t1_s4.obone",
   "plate": "/art/heroine_t1_s4.webp",
