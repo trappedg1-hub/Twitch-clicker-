@@ -253,6 +253,21 @@
   "hasMouth": false,
   "bones": 10
  },
+ "t4_flash": {
+  "file": "/rigs/t4_flash.obone",
+  "plate": "/art/heroine_t4_flash.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
  "t4_s2": {
   "file": "/rigs/t4_s2.obone",
   "plate": "/art/heroine_t4_s2.webp",
