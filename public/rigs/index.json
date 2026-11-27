@@ -1,6 +1,6 @@
 {
  "t1_s0": {
-  "file": "/rigs/t1_s0.obone",
+  "file": "/rigs/t1_s0.obonb",
   "plate": "/art/heroine_t1_s0.webp",
   "animations": [
    "idle",
@@ -15,10 +15,11 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 319461
  },
  "t1_base": {
-  "file": "/rigs/t1_base.obone",
+  "file": "/rigs/t1_base.obonb",
   "plate": "/art/heroine_t1_base.webp",
   "animations": [
    "idle",
@@ -33,10 +34,11 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 317495
  },
  "t1_s1": {
-  "file": "/rigs/t1_s1.obone",
+  "file": "/rigs/t1_s1.obonb",
   "plate": "/art/heroine_t1_s1.webp",
   "animations": [
    "idle",
@@ -51,10 +53,11 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 319354
  },
  "t1_s2": {
-  "file": "/rigs/t1_s2.obone",
+  "file": "/rigs/t1_s2.obonb",
   "plate": "/art/heroine_t1_s2.webp",
   "animations": [
    "idle",
@@ -68,10 +71,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 316353
  },
  "t1_s4": {
-  "file": "/rigs/t1_s4.obone",
+  "file": "/rigs/t1_s4.obonb",
   "plate": "/art/heroine_t1_s4.webp",
   "animations": [
    "idle",
@@ -85,10 +89,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 318551
  },
  "t1_s5": {
-  "file": "/rigs/t1_s5.obone",
+  "file": "/rigs/t1_s5.obonb",
   "plate": "/art/heroine_t1_s5.webp",
   "animations": [
    "idle",
@@ -102,10 +107,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 318083
  },
  "t2_s0": {
-  "file": "/rigs/t2_s0.obone",
+  "file": "/rigs/t2_s0.obonb",
   "plate": "/art/heroine_t2_s0.webp",
   "animations": [
    "idle",
@@ -119,10 +125,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 317854
  },
  "t2_s1": {
-  "file": "/rigs/t2_s1.obone",
+  "file": "/rigs/t2_s1.obonb",
   "plate": "/art/heroine_t2_s1.webp",
   "animations": [
    "idle",
@@ -136,10 +143,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 316642
  },
  "t2_s2": {
-  "file": "/rigs/t2_s2.obone",
+  "file": "/rigs/t2_s2.obonb",
   "plate": "/art/heroine_t2_s2.webp",
   "animations": [
    "idle",
@@ -153,10 +161,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 317396
  },
  "t2_s3": {
-  "file": "/rigs/t2_s3.obone",
+  "file": "/rigs/t2_s3.obonb",
   "plate": "/art/heroine_t2_s3.webp",
   "animations": [
    "idle",
@@ -170,10 +179,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 319625
  },
  "t2_s4": {
-  "file": "/rigs/t2_s4.obone",
+  "file": "/rigs/t2_s4.obonb",
   "plate": "/art/heroine_t2_s4.webp",
   "animations": [
    "idle",
@@ -187,10 +197,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 318169
  },
  "t3_flash": {
-  "file": "/rigs/t3_flash.obone",
+  "file": "/rigs/t3_flash.obonb",
   "plate": "/art/heroine_t3_flash.webp",
   "animations": [
    "idle",
@@ -204,10 +215,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313200
  },
  "t3_s1": {
-  "file": "/rigs/t3_s1.obone",
+  "file": "/rigs/t3_s1.obonb",
   "plate": "/art/heroine_t3_s1.webp",
   "animations": [
    "idle",
@@ -221,10 +233,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 312320
  },
  "t3_s2": {
-  "file": "/rigs/t3_s2.obone",
+  "file": "/rigs/t3_s2.obonb",
   "plate": "/art/heroine_t3_s2.webp",
   "animations": [
    "idle",
@@ -236,10 +249,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 309961
  },
  "t3_s3": {
-  "file": "/rigs/t3_s3.obone",
+  "file": "/rigs/t3_s3.obonb",
   "plate": "/art/heroine_t3_s3.webp",
   "animations": [
    "idle",
@@ -253,10 +267,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313182
  },
  "t3_s4": {
-  "file": "/rigs/t3_s4.obone",
+  "file": "/rigs/t3_s4.obonb",
   "plate": "/art/heroine_t3_s4.webp",
   "animations": [
    "idle",
@@ -268,10 +283,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 309203
  },
  "t4_flash": {
-  "file": "/rigs/t4_flash.obone",
+  "file": "/rigs/t4_flash.obonb",
   "plate": "/art/heroine_t4_flash.webp",
   "animations": [
    "idle",
@@ -285,10 +301,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 315826
  },
  "t4_s2": {
-  "file": "/rigs/t4_s2.obone",
+  "file": "/rigs/t4_s2.obonb",
   "plate": "/art/heroine_t4_s2.webp",
   "animations": [
    "idle",
@@ -300,10 +317,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 300902
  },
  "t4_s3": {
-  "file": "/rigs/t4_s3.obone",
+  "file": "/rigs/t4_s3.obonb",
   "plate": "/art/heroine_t4_s3.webp",
   "animations": [
    "idle",
@@ -317,10 +335,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 315808
  },
  "t4_start": {
-  "file": "/rigs/t4_start.obone",
+  "file": "/rigs/t4_start.obonb",
   "plate": "/art/heroine_t4_start.webp",
   "animations": [
    "idle",
@@ -334,10 +353,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313325
  },
  "t4_start_hq": {
-  "file": "/rigs/t4_start_hq.obone",
+  "file": "/rigs/t4_start_hq.obonb",
   "plate": "/art/heroine_t4_start_hq.webp",
   "animations": [
    "idle",
@@ -351,10 +371,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313263
  },
  "t5_s0": {
-  "file": "/rigs/t5_s0.obone",
+  "file": "/rigs/t5_s0.obonb",
   "plate": "/art/heroine_t5_s0.webp",
   "animations": [
    "idle",
@@ -368,10 +389,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 312047
  },
  "t5_s1": {
-  "file": "/rigs/t5_s1.obone",
+  "file": "/rigs/t5_s1.obonb",
   "plate": "/art/heroine_t5_s1.webp",
   "animations": [
    "idle",
@@ -385,10 +407,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 318347
  },
  "t5_s2": {
-  "file": "/rigs/t5_s2.obone",
+  "file": "/rigs/t5_s2.obonb",
   "plate": "/art/heroine_t5_s2.webp",
   "animations": [
    "idle",
@@ -402,10 +425,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313083
  },
  "t5_start": {
-  "file": "/rigs/t5_start.obone",
+  "file": "/rigs/t5_start.obonb",
   "plate": "/art/heroine_t5_start.webp",
   "animations": [
    "idle",
@@ -419,10 +443,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 313063
  },
  "t5_start_hq": {
-  "file": "/rigs/t5_start_hq.obone",
+  "file": "/rigs/t5_start_hq.obonb",
   "plate": "/art/heroine_t5_start_hq.webp",
   "animations": [
    "idle",
@@ -436,10 +461,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 311242
  },
  "t5_start_hq2": {
-  "file": "/rigs/t5_start_hq2.obone",
+  "file": "/rigs/t5_start_hq2.obonb",
   "plate": "/art/heroine_t5_start_hq2.webp",
   "animations": [
    "idle",
@@ -453,10 +479,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 312094
  },
  "t6_s0": {
-  "file": "/rigs/t6_s0.obone",
+  "file": "/rigs/t6_s0.obonb",
   "plate": "/art/heroine_t6_s0.webp",
   "animations": [
    "idle",
@@ -468,10 +495,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 306651
  },
  "t6_s1": {
-  "file": "/rigs/t6_s1.obone",
+  "file": "/rigs/t6_s1.obonb",
   "plate": "/art/heroine_t6_s1.webp",
   "animations": [
    "idle",
@@ -483,10 +511,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 308031
  },
  "t6_s2": {
-  "file": "/rigs/t6_s2.obone",
+  "file": "/rigs/t6_s2.obonb",
   "plate": "/art/heroine_t6_s2.webp",
   "animations": [
    "idle",
@@ -498,10 +527,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 307955
  },
  "t6_s3": {
-  "file": "/rigs/t6_s3.obone",
+  "file": "/rigs/t6_s3.obonb",
   "plate": "/art/heroine_t6_s3.webp",
   "animations": [
    "idle",
@@ -513,10 +543,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 308260
  },
  "t6_start_hq": {
-  "file": "/rigs/t6_start_hq.obone",
+  "file": "/rigs/t6_start_hq.obonb",
   "plate": "/art/heroine_t6_start_hq.webp",
   "animations": [
    "idle",
@@ -530,10 +561,11 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10
+  "bones": 10,
+  "bytes": 314300
  },
  "transparent_s0": {
-  "file": "/rigs/transparent_s0.obone",
+  "file": "/rigs/transparent_s0.obonb",
   "plate": "/art/heroine_transparent_s0.webp",
   "animations": [
    "idle",
@@ -545,10 +577,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 319540
  },
  "transparent_s1": {
-  "file": "/rigs/transparent_s1.obone",
+  "file": "/rigs/transparent_s1.obonb",
   "plate": "/art/heroine_transparent_s1.webp",
   "animations": [
    "idle",
@@ -560,10 +593,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 319353
  },
  "transparent_s2": {
-  "file": "/rigs/transparent_s2.obone",
+  "file": "/rigs/transparent_s2.obonb",
   "plate": "/art/heroine_transparent_s2.webp",
   "animations": [
    "idle",
@@ -575,10 +609,11 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 317163
  },
  "transparent_s3": {
-  "file": "/rigs/transparent_s3.obone",
+  "file": "/rigs/transparent_s3.obonb",
   "plate": "/art/heroine_transparent_s3.webp",
   "animations": [
    "idle",
@@ -590,6 +625,7 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10
+  "bones": 10,
+  "bytes": 311275
  }
 }

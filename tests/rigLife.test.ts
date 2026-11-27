@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 import { OpenBoneInstance } from '@openbone/runtime';
 
 /**
@@ -49,7 +50,7 @@ interface Open {
 }
 
 function open(art: string): Open {
-  const doc = JSON.parse(readFileSync(join(RIGS, `${art}.obone`), 'utf8'));
+  const doc = readRigDoc(join(RIGS, `${art}.obonb`));
   const instance = new OpenBoneInstance(doc);
   const body = instance.skeleton.slots.find((s: any) => s.data.id === 'slot_body')!;
   const attachment = instance.skeleton.getAttachment(body)!;
@@ -292,7 +293,7 @@ test('a tap is a nod the player sees on every beat of the idle loop', () => {
 
 test('she blinks like a person: often enough, never on the beat', () => {
   for (const art of ARTS) {
-    const doc = JSON.parse(readFileSync(join(RIGS, `${art}.obone`), 'utf8'));
+    const doc = readRigDoc(join(RIGS, `${art}.obonb`));
     const idle = doc.animations.find((a: any) => a.name === 'idle');
     const eyes = idle.timelines.find((t: any) => t.target === 'slot' && t.id === 'slot_eyes');
     assert.ok(eyes, `${art}: idle has no eyelid track — she never blinks`);

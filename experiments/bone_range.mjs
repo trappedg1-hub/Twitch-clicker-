@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
-const doc = JSON.parse(readFileSync('public/rigs/t1_s0.obone', 'utf8'));
+import { readRigDoc } from '../scripts/rig_doc.mjs';
+const doc = readRigDoc('public/rigs/t1_s0.obonb');
 for (const anim of ['idle','sway','turn','shake','tap']) {
   const inst = new OpenBoneInstance(doc);
   inst.play(anim, false);

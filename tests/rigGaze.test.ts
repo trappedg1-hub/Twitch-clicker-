@@ -13,15 +13,15 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 import { OpenBoneInstance } from '@openbone/runtime';
 import { aimFromPointer, applyGaze, gazeDegrees, GazeSpring, GAZE_LIMITS } from '../src/heroine/gaze.ts';
 
 const RIGS = join(import.meta.dirname, '..', 'public', 'rigs');
 
 function open(art: string) {
-  const doc = JSON.parse(readFileSync(join(RIGS, `${art}.obone`), 'utf8'));
+  const doc = readRigDoc(join(RIGS, `${art}.obonb`));
   const instance = new OpenBoneInstance(doc);
   const slot = instance.skeleton.slots.find((s) => s.data.id === 'slot_body')!;
   const vertices = () =>

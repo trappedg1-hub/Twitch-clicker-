@@ -11,7 +11,7 @@ import { isMissingDocumentError } from '../src/heroine/rigFailures.ts';
 test('a document that is not there is a gap, not a fault', () => {
   for (const message of [
     'Not Found',
-    '404 /rigs/t3_s0.obone',
+    '404 /rigs/t3_s0.obonb',
     'Unexpected token \'<\', "<!doctype "... is not valid JSON',
     'Failed to fetch',
     'TypeError: NetworkError when attempting to fetch resource.',

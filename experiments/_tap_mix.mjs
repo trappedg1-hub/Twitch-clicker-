@@ -2,11 +2,12 @@
 // spends 40 % of its life arriving — measure what the player actually sees for a few mix times.
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 
-const raw = JSON.parse(readFileSync('public/rigs/t1_s0.obone', 'utf8'));
+const raw = readRigDoc('public/rigs/t1_s0.obonb');
 const MIX = Number(process.argv[2] ?? 0.2);
 const ART = process.argv[3] ?? 't1_s0';
-const docRaw = ART === 't1_s0' ? raw : JSON.parse(readFileSync(`public/rigs/${ART}.obone`, 'utf8'));
+const docRaw = ART === 't1_s0' ? raw : readRigDoc(`public/rigs/${ART}.obonb`);
 
 function peak(phase) {
   const inst = new OpenBoneInstance(JSON.parse(JSON.stringify(docRaw)));

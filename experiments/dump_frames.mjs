@@ -10,16 +10,14 @@
 // reaction cross-faded in on top of it.
 //   --after=1.2         how long she has been idling before the reaction
 //   --mix=0.08          the cross-fade the runtime uses (0.2 is the library default and eats the nod)
-import { readFileSync } from 'node:fs';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 import { OpenBoneInstance } from '@openbone/runtime';
 import { applyGaze, aimFromPointer, gazeDegrees, GazeSpring } from '../src/heroine/gaze.ts';
 
 const [, , art = 't1_s0', anim = 'tap', seconds = '1.0', fps = '60'] = process.argv;
-// argv[6] is the optional .obone override — unless it is a flag (`--sweep=6`).
+// argv[6] is the optional document override (.obonb or .obone) — unless it is a flag (`--sweep=6`).
 const docPath = process.argv[6] && !process.argv[6].startsWith('--') ? process.argv[6] : undefined;
-const doc = JSON.parse(
-  readFileSync(docPath ?? new URL(`../public/rigs/${art}.obone`, import.meta.url), 'utf8'),
-);
+const doc = readRigDoc(docPath ?? new URL(`../public/rigs/${art}.obonb`, import.meta.url));
 const instance = new OpenBoneInstance(doc);
 
 const flag = (name) => {
@@ -70,5 +68,14 @@ for (let f = 0; f < count; f++) {
   frames.push({ t: f * dt, items });
 }
 process.stdout.write(
-  JSON.stringify({ art, anim, frames, width: doc.width, height: doc.height, docPath: docPath ?? null }),
+  JSON.stringify({
+    art,
+    anim,
+    frames,
+    width: doc.width,
+    height: doc.height,
+    // `rig_preview.py` only needs the image table; the document itself is binary now.
+    images: doc.images,
+    docPath: docPath ?? null,
+  }),
 );

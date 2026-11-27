@@ -136,8 +136,13 @@ def main() -> int:
     args = ap.parse_args()
 
     data = json.loads(Path(args.frames_json).read_text())
-    doc_path = data.get("docPath") or str(ROOT / "public" / "rigs" / f"{data['art']}.obone")
-    data["doc"] = json.loads(Path(doc_path).read_text())
+    # The dumper embeds the image table because the published document is binary (`.obonb`).
+    # A JSON document is still accepted for the lab's pretty-printed `.obone` dumps.
+    if "images" in data:
+        data["doc"] = {"images": data["images"]}
+    else:
+        doc_path = data.get("docPath") or str(ROOT / "public" / "rigs" / f"{data['art']}.obone")
+        data["doc"] = json.loads(Path(doc_path).read_text())
     for frame in data["frames"]:
         frame["doc"] = data["doc"]
         frame["width"], frame["height"] = data["width"], data["height"]

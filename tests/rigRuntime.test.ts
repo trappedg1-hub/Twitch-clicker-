@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 import { OpenBoneInstance } from '@openbone/runtime';
 
 /**
@@ -34,7 +35,7 @@ const ARTS = Object.keys(
 );
 
 function open(art: string) {
-  const doc = JSON.parse(readFileSync(join(RIGS, `${art}.obone`), 'utf8'));
+  const doc = readRigDoc(join(RIGS, `${art}.obonb`));
   const instance = new OpenBoneInstance(doc);
   const body = instance.skeleton.slots.find((s) => s.data.id === 'slot_body')!;
   const vertices = () =>

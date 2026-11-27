@@ -1,7 +1,7 @@
 /**
  * Two failures that look alike in a catch block and must be treated differently.
  *
- * `show(art)` asks `/rigs/<art>.obone` for a document. Most plates have one; the four `skip` plates
+ * `show(art)` asks `/rigs/<art>.obonb` for a document. Most plates have one; the four `skip` plates
  * and every art that never got a rig do not, and that is normal — the flat plate is the intended
  * picture there. But a missing document throws the same way a corrupt one does, and the old code
  * sent both through `fail()`, which is a one-way door: the first `skip` plate on day 3 (the scare

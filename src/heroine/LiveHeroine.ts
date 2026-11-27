@@ -1,5 +1,6 @@
 import { Container } from 'pixi.js';
 import { isMissingDocumentError } from './rigFailures.ts';
+import { canTalk, idleAfterReaction } from './talkPolicy.ts';
 import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
 import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
@@ -52,7 +53,7 @@ export class LiveHeroine {
    * Arts whose document is not in the build.
    *
    * This is NOT a fault: the four `skip` plates and every plate that never got a rig are on screen
-   * during a normal playthrough, and asking for their `.obone` is a 404 dressed as a JSON parse
+   * during a normal playthrough, and asking for their `.obonb` is a 404 dressed as a JSON parse
    * error. Those used to go through `fail()`, which is a one-way door — so the first `skip` plate
    * on day 3 turned the heroine flat for the rest of the run, and the stage remembered that on the
    * next load too. Keeping the answer here costs one Set and the rig survives the evening.
@@ -153,7 +154,7 @@ export class LiveHeroine {
 
   private async load(art: string): Promise<boolean> {
     try {
-      const asset = await loadOpenBone(`/rigs/${art}.obone`, {
+      const asset = await loadOpenBone(`/rigs/${art}.obonb`, {
         // Document image paths are already site-absolute ("/art/heroine_t1_s0.webp").
         resolveImageUrl: (src: string) => src,
       });
@@ -234,12 +235,14 @@ export class LiveHeroine {
   public talk(ms = 2600): void {
     const bone = this.bone;
     if (!bone || this.fault) return;
+    // No mouth in this document means no deadline either: leaving `talkUntil` set on a mouthless
+    // plate made the next reaction exit play an animation that is not there (see `talkPolicy.ts`).
+    if (!canTalk(this.animations)) return;
     const now = performance.now();
     this.talkUntil = Math.max(this.talkUntil, now + ms);
     // Already talking, or mid-reaction: extend the deadline and leave the picture alone. Replaying
     // the mouth pattern from its first key on every chat line is a stutter, not speech.
     if (this.current === 'idle_talk' || this.reactionUntil > now) return;
-    if (!this.animations.includes('idle_talk')) return;
     this.guard('речь', () => {
       bone.play('idle_talk', true);
       this.current = 'idle_talk';
@@ -315,7 +318,7 @@ export class LiveHeroine {
       if (!this.gaze.settled) applyGaze(bone.skeleton, gazeDegrees(gaze));
       if (this.reactionUntil && now >= this.reactionUntil) {
         this.reactionUntil = 0;
-        const next = this.talkUntil > now ? 'idle_talk' : 'idle';
+        const next = idleAfterReaction(this.animations, this.talkUntil > now);
         bone.play(next, true);
         this.current = next;
         return;

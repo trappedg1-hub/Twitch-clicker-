@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
-const doc = JSON.parse(readFileSync('public/rigs/t1_s0.obone', 'utf8'));
+import { readRigDoc } from '../scripts/rig_doc.mjs';
+const doc = readRigDoc('public/rigs/t1_s0.obonb');
 const mesh = doc.skeleton.skins[0].attachments.slot_body.miya_body;
 const inst = new OpenBoneInstance(doc);
 const body = inst.skeleton.slots.find((s) => s.data.id === 'slot_body');

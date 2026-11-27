@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
 
 const dir = 'public/rigs';
-const arts = readdirSync(dir).filter((f) => f.endsWith('.obone')).map((f) => f.replace('.obone', ''));
+const arts = readdirSync(dir).filter((f) => f.endsWith('.obonb')).map((f) => f.replace('.obonb', ''));
 
 function peakFor(doc, phase) {
   const inst = new OpenBoneInstance(doc);
@@ -28,7 +28,7 @@ function peakFor(doc, phase) {
 
 const rows = [];
 for (const art of arts) {
-  const doc = JSON.parse(readFileSync(`${dir}/${art}.obone`, 'utf8'));
+  const doc = readRigDoc(`${dir}/${art}.obonb`);
   const peaks = [];
   const loop = doc.animations.find((a) => a.name === 'idle').duration;
   for (let p = 0; p < loop; p += 0.5) peaks.push(peakFor(doc, p));

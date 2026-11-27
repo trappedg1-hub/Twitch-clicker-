@@ -1,8 +1,9 @@
 // The chair is not hers: measure how far chair pixels travel while she animates.
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 const art = process.argv[2] ?? 't1_s0';
-const doc = JSON.parse(readFileSync(`public/rigs/${art}.obone`, 'utf8'));
+const doc = readRigDoc(`public/rigs/${art}.obonb`);
 const inst = new OpenBoneInstance(doc);
 const body = inst.skeleton.slots.find((s) => s.data.id === 'slot_body');
 const att = inst.skeleton.getAttachment(body);

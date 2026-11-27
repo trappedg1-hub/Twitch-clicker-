@@ -2,8 +2,9 @@
 // happens to be when the click lands. Measure the worst phase, not the average one.
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 
-const raw = JSON.parse(readFileSync('public/rigs/t1_s0.obone', 'utf8'));
+const raw = readRigDoc('public/rigs/t1_s0.obonb');
 const SCALE = Number(process.argv[2] ?? 1);
 
 function scaledDoc() {

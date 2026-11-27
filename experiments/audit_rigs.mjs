@@ -1,12 +1,13 @@
 // One table for every art: folds, smear, face rigidity, motion budget, still props.
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
+import { readRigDoc } from '../scripts/rig_doc.mjs';
 const ARTS = Object.keys(JSON.parse(readFileSync('public/rigs/index.json', 'utf8')));
 const area = (v,a,b,c) => (v[b*2]-v[a*2])*(v[c*2+1]-v[a*2+1]) - (v[b*2+1]-v[a*2+1])*(v[c*2]-v[a*2]);
 const d = (a,b) => Math.hypot(a[0]-b[0], a[1]-b[1]);
 console.log('art      | folds | maxA | minA | face% | crown(tap) | idle-body | floor');
 for (const art of ARTS) {
-  const doc = JSON.parse(readFileSync(`public/rigs/${art}.obone`, 'utf8'));
+  const doc = readRigDoc(`public/rigs/${art}.obonb`);
   const inst = new OpenBoneInstance(doc);
   const body = inst.skeleton.slots.find((s) => s.data.id === 'slot_body');
   const att = inst.skeleton.getAttachment(body);

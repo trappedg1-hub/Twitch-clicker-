@@ -1,11 +1,11 @@
 // The tap as the game actually plays it: idle loop + live gaze every frame, then the reaction
 // cross-faded in — measure the peak the player sees and when it lands.
-//   node experiments/_tap_live.mjs <doc.obone> <mix> [phase] [art]
+//   node experiments/_tap_live.mjs <doc.obonb> <mix> [phase] [art]
 import { readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
 import { applyGaze, gazeDegrees, GazeSpring, aimFromPointer } from '../src/heroine/gaze.ts';
 
-const docPath = process.argv[2] ?? 'public/rigs/t1_s0.obone';
+const docPath = process.argv[2] ?? 'public/rigs/t1_s0.obonb';
 const mix = Number(process.argv[3] ?? 0.06);
 const doc = JSON.parse(readFileSync(docPath, 'utf8'));
 
