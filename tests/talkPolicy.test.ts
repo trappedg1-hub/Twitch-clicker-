@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canTalk, idleAfterReaction } from '../src/heroine/talkPolicy.ts';
+import { canTalk, idleAfterReaction, talkDeadline } from '../src/heroine/talkPolicy.ts';
 import { readPublishedRig } from '../scripts/rig_doc.mjs';
 
 /**
@@ -18,4 +18,21 @@ test('a document without a mouth never asks for the mouth animation', () => {
   assert.equal(idleAfterReaction(missing, true), 'idle', 'mouthless: a reaction must fall back to idle');
   assert.equal(idleAfterReaction(present, true), 'idle_talk', 'with a mouth: return to the talk loop');
   assert.equal(idleAfterReaction(present, false), 'idle', 'not talking: idle');
+});
+
+/**
+ * A chat line that lands on an idle glance. She turns her head for 2.4 s, the line comes in at the
+ * top of it, and the mouth waits for the turn to finish — so the deadline has to start when the beat
+ * ends. Starting it at "now" made the sentence expire exactly as the head came back: the mouth
+ * never opened at all, and the QA run in the browser caught her answering two lines in silence.
+ */
+test('a sentence asked for mid-beat starts when the beat ends', () => {
+  const now = 1_000;
+  assert.equal(talkDeadline(now, 0, 2_400), 3_400, 'no beat: the mouth is due right now');
+  assert.equal(talkDeadline(now, 3_400, 2_400), 5_800, 'mid-glance: the full length starts at its end');
+  assert.equal(talkDeadline(now, 1_200, 2_400), 3_600, 'beat shorter than the sentence still adds up');
+  // The deadline only ever moves forward: a second line during a sentence extends it, never cuts it.
+  const first = talkDeadline(now, 0, 2_400);
+  const second = talkDeadline(now + 500, 0, 2_400);
+  assert.ok(Math.max(first, second) === second);
 });

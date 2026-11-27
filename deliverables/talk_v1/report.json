@@ -1,0 +1,453 @@
+{
+ "rows": [
+  {
+   "day": 1,
+   "stage": 0,
+   "art": "t1_s0",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s idle_talk(talk 1.0, beat -20.1)\n  1.4s idle_talk(talk 0.8, beat -20.3)\n  1.6s idle_talk(talk 0.6, beat -20.5)\n  1.8s idle_talk(talk 0.4, beat -20.7)\n  2.0s idle_talk(talk 0.2, beat -20.9)\n  2.2s idle_talk(talk -0.0, beat -21.1)\n  2.4s idle_talk(talk -0.2, beat -21.3)\n  2.6s idle_talk(talk -0.4, beat -21.5)\n  2.8s idle_talk(talk -0.6, beat -21.7)\n  3.0s idle_talk(talk -0.8, beat -21.9)\n  3.2s idle_talk(talk -1.1, beat -22.1)\n  3.4s idle_talk(talk -1.3, beat -22.4)",
+   "fault": null
+  },
+  {
+   "day": 1,
+   "stage": 1,
+   "art": "t1_s1",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.7, beat 0.7)\n  0.2s shake(talk 3.5, beat 0.5)\n  0.4s shake(talk 3.3, beat 0.3)\n  0.6s shake(talk 3.1, beat 0.1)\n  0.8s shake(talk 2.9, beat -0.1)\n  1.0s shake(talk 2.7, beat -0.3)\n  1.2s shake(talk 2.5, beat -0.5)\n  1.4s shake(talk 2.3, beat -0.7)\n  1.6s idle_talk(talk 2.1, beat -37.0)\n  1.8s idle_talk(talk 1.9, beat -37.2)\n  2.0s idle_talk(talk 1.7, beat -37.4)\n  2.2s idle_talk(talk 1.4, beat -37.6)\n  2.4s idle_talk(talk 1.2, beat -37.8)\n  2.6s idle_talk(talk 1.0, beat -38.0)\n  2.8s idle_talk(talk 0.8, beat -38.2)\n  3.0s idle_talk(talk 0.6, beat -38.4)\n  3.2s idle_talk(talk 0.4, beat -38.6)\n  3.4s idle_talk(talk 0.2, beat -38.8)",
+   "fault": null
+  },
+  {
+   "day": 1,
+   "stage": 2,
+   "art": "t1_s2",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.2, beat 0.7)\n  0.2s shake(talk 3.0, beat 0.5)\n  0.4s shake(talk 2.8, beat 0.3)\n  0.6s shake(talk 2.6, beat 0.1)\n  0.8s shake(talk 2.4, beat -0.1)\n  1.0s shake(talk 2.2, beat -0.3)\n  1.2s shake(talk 2.0, beat -0.5)\n  1.4s shake(talk 1.8, beat -0.7)\n  1.6s shake(talk 1.6, beat -0.9)\n  1.8s shake(talk 1.4, beat -1.1)\n  2.0s idle_talk(talk 1.2, beat -53.9)\n  2.2s idle_talk(talk 1.0, beat -54.1)\n  2.4s idle_talk(talk 0.8, beat -54.4)\n  2.6s idle_talk(talk 0.6, beat -54.6)\n  2.8s idle_talk(talk 0.4, beat -54.8)\n  3.0s idle_talk(talk 0.2, beat -55.0)\n  3.2s idle_talk(talk -0.0, beat -55.2)\n  3.4s idle_talk(talk -0.2, beat -55.4)",
+   "fault": null
+  },
+  {
+   "day": 1,
+   "stage": 3,
+   "art": "t1_base",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "idle"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s shake(talk 1.0, beat -0.5)\n  1.4s shake(talk 0.8, beat -0.7)\n  1.6s idle_talk(talk 0.6, beat -68.4)\n  1.8s idle_talk(talk 0.4, beat -68.6)\n  2.0s idle_talk(talk 0.2, beat -68.8)\n  2.2s idle_talk(talk -0.0, beat -69.0)\n  2.4s idle_talk(talk -0.2, beat -69.2)\n  2.6s idle(talk -69.4, beat -69.4)\n  2.8s idle(talk -69.6, beat -69.6)\n  3.0s idle(talk -69.8, beat -69.8)\n  3.2s idle(talk -70.0, beat -70.0)\n  3.4s idle(talk -70.2, beat -70.2)",
+   "fault": null
+  },
+  {
+   "day": 1,
+   "stage": 4,
+   "art": "t1_s4",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.6, beat 0.7)\n  0.2s shake(talk 3.4, beat 0.5)\n  0.4s shake(talk 3.2, beat 0.3)\n  0.6s shake(talk 3.0, beat 0.1)\n  0.8s shake(talk 2.8, beat -0.1)\n  1.0s shake(talk 2.6, beat -0.3)\n  1.2s shake(talk 2.4, beat -0.5)\n  1.4s idle_talk(talk 2.2, beat -85.6)\n  1.6s idle_talk(talk 2.0, beat -85.8)\n  1.8s idle_talk(talk 1.8, beat -86.0)\n  2.0s idle_talk(talk 1.6, beat -86.2)\n  2.2s idle_talk(talk 1.4, beat -86.4)\n  2.4s idle_talk(talk 1.2, beat -86.6)\n  2.6s idle_talk(talk 1.0, beat -86.8)\n  2.8s idle_talk(talk 0.8, beat -87.0)\n  3.0s idle_talk(talk 0.6, beat -87.2)\n  3.2s idle_talk(talk 0.4, beat -87.4)\n  3.4s idle_talk(talk 0.2, beat -87.6)",
+   "fault": null
+  },
+  {
+   "day": 2,
+   "stage": 0,
+   "art": "t2_s4",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.4, beat 0.7)\n  0.2s shake(talk 3.2, beat 0.5)\n  0.4s shake(talk 3.0, beat 0.3)\n  0.6s shake(talk 2.8, beat 0.1)\n  0.8s shake(talk 2.6, beat -0.1)\n  1.0s shake(talk 2.4, beat -0.3)\n  1.2s idle_talk(talk 2.2, beat -104.1)\n  1.4s idle_talk(talk 2.0, beat -104.3)\n  1.6s idle_talk(talk 1.8, beat -104.5)\n  1.8s idle_talk(talk 1.6, beat -104.7)\n  2.0s idle_talk(talk 1.4, beat -104.9)\n  2.2s idle_talk(talk 1.2, beat -105.1)\n  2.4s idle_talk(talk 1.0, beat -105.3)\n  2.6s idle_talk(talk 0.8, beat -105.5)\n  2.8s idle_talk(talk 0.6, beat -105.7)\n  3.0s idle_talk(talk 0.4, beat -105.9)\n  3.2s idle_talk(talk 0.1, beat -106.1)\n  3.4s idle_talk(talk -0.1, beat -106.3)",
+   "fault": null
+  },
+  {
+   "day": 2,
+   "stage": 1,
+   "art": "t2_s1",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "turn"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s idle_talk(talk 1.4, beat -119.8)\n  1.0s idle_talk(talk 1.2, beat -120.0)\n  1.2s idle_talk(talk 1.0, beat -120.2)\n  1.4s idle_talk(talk 0.8, beat -120.4)\n  1.6s idle_talk(talk 0.6, beat -120.6)\n  1.8s idle_talk(talk 0.4, beat -120.8)\n  2.0s idle_talk(talk 0.2, beat -121.0)\n  2.2s idle_talk(talk -0.0, beat -121.2)\n  2.4s idle_talk(talk -0.2, beat -121.4)\n  2.6s idle_talk(talk -0.4, beat -121.6)\n  2.8s idle_talk(talk -0.6, beat -121.8)\n  3.0s turn(talk -122.0, beat 2.4)\n  3.2s turn(talk -122.2, beat 2.2)\n  3.4s turn(talk -122.5, beat 1.9)",
+   "fault": null
+  },
+  {
+   "day": 2,
+   "stage": 2,
+   "art": "t2_s2",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "idle"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s shake(talk 1.0, beat -0.5)\n  1.4s idle_talk(talk 0.8, beat -135.7)\n  1.6s idle_talk(talk 0.6, beat -135.9)\n  1.8s idle_talk(talk 0.4, beat -136.1)\n  2.0s idle_talk(talk 0.2, beat -136.3)\n  2.2s idle_talk(talk -0.0, beat -136.5)\n  2.4s idle(talk -136.7, beat -136.7)\n  2.6s idle(talk -136.9, beat -136.9)\n  2.8s idle(talk -137.1, beat -137.1)\n  3.0s idle(talk -137.3, beat -137.3)\n  3.2s idle(talk -137.5, beat -137.5)\n  3.4s idle(talk -137.7, beat -137.7)",
+   "fault": null
+  },
+  {
+   "day": 2,
+   "stage": 3,
+   "art": "t2_s3",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "idle"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s idle_talk(talk 1.4, beat -152.1)\n  1.0s idle_talk(talk 1.2, beat -152.3)\n  1.2s idle_talk(talk 1.0, beat -152.5)\n  1.4s idle_talk(talk 0.8, beat -152.7)\n  1.6s idle_talk(talk 0.6, beat -152.9)\n  1.8s idle_talk(talk 0.4, beat -153.1)\n  2.0s idle_talk(talk 0.2, beat -153.3)\n  2.2s idle_talk(talk -0.0, beat -153.5)\n  2.4s idle_talk(talk -0.2, beat -153.7)\n  2.6s idle_talk(talk -0.4, beat -153.9)\n  2.8s idle(talk -154.1, beat -154.1)\n  3.0s idle(talk -154.3, beat -154.3)\n  3.2s idle(talk -154.5, beat -154.5)\n  3.4s idle(talk -154.7, beat -154.7)",
+   "fault": null
+  },
+  {
+   "day": 3,
+   "stage": 0,
+   "art": "t3_s4",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -165.0, beat 0.7)\n  0.2s shake(talk -165.2, beat 0.5)\n  0.4s shake(talk -165.4, beat 0.3)\n  0.6s shake(talk -165.6, beat 0.1)\n  0.8s shake(talk -165.8, beat -0.1)\n  1.0s shake(talk -166.0, beat -0.3)\n  1.2s shake(talk -166.2, beat -0.5)\n  1.4s shake(talk -166.4, beat -0.7)\n  1.6s shake(talk -166.6, beat -0.9)\n  1.8s shake(talk -166.8, beat -1.1)\n  2.0s shake(talk -167.0, beat -1.3)\n  2.2s shake(talk -167.2, beat -1.5)\n  2.4s idle(talk -167.4, beat -167.4)\n  2.6s idle(talk -167.6, beat -167.6)\n  2.8s idle(talk -167.8, beat -167.8)\n  3.0s idle(talk -168.0, beat -168.0)\n  3.2s idle(talk -168.2, beat -168.2)\n  3.4s idle(talk -168.4, beat -168.4)",
+   "fault": null
+  },
+  {
+   "day": 3,
+   "stage": 1,
+   "art": "t3_s1",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "idle"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s shake(talk 1.0, beat -0.5)\n  1.4s shake(talk 0.8, beat -0.7)\n  1.6s idle_talk(talk 0.6, beat -184.0)\n  1.8s idle_talk(talk 0.4, beat -184.2)\n  2.0s idle_talk(talk 0.2, beat -184.4)\n  2.2s idle_talk(talk -0.0, beat -184.6)\n  2.4s idle_talk(talk -0.2, beat -184.8)\n  2.6s idle(talk -185.0, beat -185.0)\n  2.8s idle(talk -185.2, beat -185.2)\n  3.0s idle(talk -185.4, beat -185.4)\n  3.2s idle(talk -185.6, beat -185.6)\n  3.4s idle(talk -185.8, beat -185.8)",
+   "fault": null
+  },
+  {
+   "day": 3,
+   "stage": 2,
+   "art": "t3_s2",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -191.5, beat 0.7)\n  0.2s shake(talk -191.7, beat 0.5)\n  0.4s shake(talk -191.9, beat 0.3)\n  0.6s shake(talk -192.1, beat 0.1)\n  0.8s shake(talk -192.3, beat -0.1)\n  1.0s shake(talk -192.5, beat -0.3)\n  1.2s shake(talk -192.7, beat -0.5)\n  1.4s shake(talk -192.9, beat -0.7)\n  1.6s idle(talk -193.1, beat -193.1)\n  1.8s idle(talk -193.3, beat -193.3)\n  2.0s idle(talk -193.5, beat -193.5)\n  2.2s idle(talk -193.7, beat -193.7)\n  2.4s idle(talk -193.9, beat -193.9)\n  2.6s idle(talk -194.1, beat -194.1)\n  2.8s idle(talk -194.3, beat -194.3)\n  3.0s idle(talk -194.5, beat -194.5)\n  3.2s idle(talk -194.7, beat -194.7)\n  3.4s idle(talk -194.9, beat -194.9)",
+   "fault": null
+  },
+  {
+   "day": 3,
+   "stage": 3,
+   "art": "t3_s3",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s idle_talk(talk 1.0, beat -210.1)\n  1.4s idle_talk(talk 0.8, beat -210.3)\n  1.6s idle_talk(talk 0.6, beat -210.5)\n  1.8s idle_talk(talk 0.4, beat -210.7)\n  2.0s idle_talk(talk 0.2, beat -210.9)\n  2.2s idle_talk(talk -0.0, beat -211.1)\n  2.4s idle_talk(talk -0.2, beat -211.3)\n  2.6s idle_talk(talk -0.4, beat -211.5)\n  2.8s idle_talk(talk -0.6, beat -211.7)\n  3.0s idle_talk(talk -0.8, beat -211.9)\n  3.2s idle_talk(talk -1.0, beat -212.1)\n  3.4s idle_talk(talk -1.2, beat -212.3)",
+   "fault": null
+  },
+  {
+   "day": 4,
+   "stage": 0,
+   "art": "t4_s3",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "turn"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s idle_talk(talk 1.2, beat -235.0)\n  1.2s idle_talk(talk 1.0, beat -235.2)\n  1.4s idle_talk(talk 0.8, beat -235.4)\n  1.6s idle_talk(talk 0.6, beat -235.6)\n  1.8s idle_talk(talk 0.4, beat -235.8)\n  2.0s idle_talk(talk 0.2, beat -236.0)\n  2.2s idle_talk(talk -0.0, beat -236.2)\n  2.4s idle_talk(talk -0.2, beat -236.4)\n  2.6s turn(talk -236.6, beat 2.2)\n  2.8s turn(talk -236.8, beat 2.0)\n  3.0s turn(talk -237.0, beat 1.8)\n  3.2s turn(talk -237.2, beat 1.6)\n  3.4s turn(talk -237.4, beat 1.4)",
+   "fault": null
+  },
+  {
+   "day": 4,
+   "stage": 1,
+   "art": "t4_s0",
+   "docHasMouth": null,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "idle",
+   "end": "idle",
+   "lineSeen": [],
+   "spokeOnLine": false,
+   "lineTrace": "",
+   "fault": null
+  },
+  {
+   "day": 4,
+   "stage": 2,
+   "art": "t4_s1",
+   "docHasMouth": null,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "idle",
+   "end": "idle",
+   "lineSeen": [],
+   "spokeOnLine": false,
+   "lineTrace": "",
+   "fault": null
+  },
+  {
+   "day": 4,
+   "stage": 3,
+   "art": "t4_s2",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -249.8, beat 0.7)\n  0.2s shake(talk -250.0, beat 0.5)\n  0.4s shake(talk -250.2, beat 0.3)\n  0.6s shake(talk -250.4, beat 0.1)\n  0.8s shake(talk -250.6, beat -0.1)\n  1.0s shake(talk -250.8, beat -0.3)\n  1.2s shake(talk -251.0, beat -0.5)\n  1.4s shake(talk -251.2, beat -0.7)\n  1.6s idle(talk -251.4, beat -251.4)\n  1.8s idle(talk -251.6, beat -251.6)\n  2.0s idle(talk -251.8, beat -251.8)\n  2.2s idle(talk -252.0, beat -252.0)\n  2.4s idle(talk -252.2, beat -252.2)\n  2.6s idle(talk -252.4, beat -252.4)\n  2.8s idle(talk -252.6, beat -252.6)\n  3.0s idle(talk -252.8, beat -252.8)\n  3.2s idle(talk -253.0, beat -253.0)\n  3.4s idle(talk -253.2, beat -253.2)",
+   "fault": null
+  },
+  {
+   "day": 5,
+   "stage": 0,
+   "art": "t5_s3",
+   "docHasMouth": null,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "idle",
+   "end": "idle",
+   "lineSeen": [],
+   "spokeOnLine": false,
+   "lineTrace": "",
+   "fault": null
+  },
+  {
+   "day": 5,
+   "stage": 1,
+   "art": "t5_s0",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle_talk",
+    "turn"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 2.2, beat 0.7)\n  0.2s shake(talk 2.0, beat 0.5)\n  0.4s shake(talk 1.8, beat 0.3)\n  0.6s shake(talk 1.6, beat 0.1)\n  0.8s shake(talk 1.4, beat -0.1)\n  1.0s shake(talk 1.2, beat -0.3)\n  1.2s idle_talk(talk 1.0, beat -276.6)\n  1.4s idle_talk(talk 0.8, beat -276.8)\n  1.6s idle_talk(talk 0.6, beat -277.0)\n  1.8s idle_talk(talk 0.4, beat -277.2)\n  2.0s idle_talk(talk 0.2, beat -277.4)\n  2.2s idle_talk(talk -0.0, beat -277.6)\n  2.4s turn(talk -277.8, beat 2.4)\n  2.6s turn(talk -278.0, beat 2.2)\n  2.8s turn(talk -278.2, beat 2.0)\n  3.0s turn(talk -278.4, beat 1.8)\n  3.2s turn(talk -278.6, beat 1.6)\n  3.4s turn(talk -278.8, beat 1.4)",
+   "fault": null
+  },
+  {
+   "day": 5,
+   "stage": 2,
+   "art": "t5_s1",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.3, beat 0.7)\n  0.2s shake(talk 3.1, beat 0.5)\n  0.4s shake(talk 2.9, beat 0.3)\n  0.6s shake(talk 2.7, beat 0.1)\n  0.8s shake(talk 2.5, beat -0.1)\n  1.0s idle_talk(talk 2.3, beat -292.3)\n  1.2s idle_talk(talk 2.1, beat -292.5)\n  1.4s idle_talk(talk 1.9, beat -292.7)\n  1.6s idle_talk(talk 1.7, beat -292.9)\n  1.8s idle_talk(talk 1.5, beat -293.1)\n  2.0s idle_talk(talk 1.3, beat -293.3)\n  2.2s idle_talk(talk 1.1, beat -293.5)\n  2.4s idle_talk(talk 0.9, beat -293.7)\n  2.6s idle_talk(talk 0.7, beat -293.9)\n  2.8s idle_talk(talk 0.5, beat -294.1)\n  3.0s idle_talk(talk 0.3, beat -294.3)\n  3.2s idle_talk(talk 0.1, beat -294.5)\n  3.4s idle_talk(talk -0.1, beat -294.7)",
+   "fault": null
+  },
+  {
+   "day": 5,
+   "stage": 3,
+   "art": "t5_s2",
+   "docHasMouth": true,
+   "runtimeHasMouth": true,
+   "before": "idle",
+   "start": "idle_talk",
+   "hold": "idle_talk",
+   "end": "turn",
+   "lineSeen": [
+    "shake",
+    "idle_talk"
+   ],
+   "spokeOnLine": true,
+   "lineTrace": "0.0s shake(talk 3.9, beat 0.7)\n  0.2s shake(talk 3.7, beat 0.5)\n  0.4s shake(talk 3.5, beat 0.3)\n  0.6s shake(talk 3.3, beat 0.1)\n  0.8s shake(talk 3.1, beat -0.1)\n  1.0s shake(talk 2.9, beat -0.3)\n  1.2s idle_talk(talk 2.7, beat -309.1)\n  1.4s idle_talk(talk 2.5, beat -309.3)\n  1.6s idle_talk(talk 2.3, beat -309.5)\n  1.8s idle_talk(talk 2.1, beat -309.7)\n  2.0s idle_talk(talk 1.9, beat -309.9)\n  2.2s idle_talk(talk 1.7, beat -310.1)\n  2.4s idle_talk(talk 1.5, beat -310.3)\n  2.6s idle_talk(talk 1.3, beat -310.5)\n  2.8s idle_talk(talk 1.1, beat -310.7)\n  3.0s idle_talk(talk 0.8, beat -310.9)\n  3.2s idle_talk(talk 0.6, beat -311.1)\n  3.4s idle_talk(talk 0.4, beat -311.3)",
+   "fault": null
+  },
+  {
+   "day": 6,
+   "stage": 0,
+   "art": "t6_s3",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -321.9, beat 0.7)\n  0.2s shake(talk -322.1, beat 0.5)\n  0.4s shake(talk -322.4, beat 0.3)\n  0.6s shake(talk -322.6, beat 0.1)\n  0.8s shake(talk -322.8, beat -0.1)\n  1.0s shake(talk -323.0, beat -0.3)\n  1.2s shake(talk -323.2, beat -0.5)\n  1.4s shake(talk -323.4, beat -0.7)\n  1.6s shake(talk -323.6, beat -0.9)\n  1.8s shake(talk -323.8, beat -1.1)\n  2.0s idle(talk -324.0, beat -324.0)\n  2.2s idle(talk -324.2, beat -324.2)\n  2.4s idle(talk -324.4, beat -324.4)\n  2.6s idle(talk -324.6, beat -324.6)\n  2.8s idle(talk -324.8, beat -324.8)\n  3.0s idle(talk -325.0, beat -325.0)\n  3.2s idle(talk -325.2, beat -325.2)\n  3.4s idle(talk -325.4, beat -325.4)",
+   "fault": null
+  },
+  {
+   "day": 6,
+   "stage": 1,
+   "art": "t6_s0",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -330.5, beat 0.7)\n  0.2s shake(talk -330.7, beat 0.5)\n  0.4s shake(talk -330.9, beat 0.3)\n  0.6s shake(talk -331.1, beat 0.1)\n  0.8s shake(talk -331.3, beat -0.1)\n  1.0s idle(talk -331.5, beat -331.5)\n  1.2s idle(talk -331.7, beat -331.7)\n  1.4s idle(talk -331.9, beat -331.9)\n  1.6s idle(talk -332.1, beat -332.1)\n  1.8s idle(talk -332.3, beat -332.3)\n  2.0s idle(talk -332.5, beat -332.5)\n  2.2s idle(talk -332.7, beat -332.7)\n  2.4s idle(talk -332.9, beat -332.9)\n  2.6s idle(talk -333.1, beat -333.1)\n  2.8s idle(talk -333.3, beat -333.3)\n  3.0s idle(talk -333.5, beat -333.5)\n  3.2s idle(talk -333.7, beat -333.7)\n  3.4s idle(talk -333.9, beat -333.9)",
+   "fault": null
+  },
+  {
+   "day": 6,
+   "stage": 2,
+   "art": "t6_s1",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -339.3, beat 0.7)\n  0.2s shake(talk -339.5, beat 0.5)\n  0.4s shake(talk -339.7, beat 0.3)\n  0.6s shake(talk -339.9, beat 0.1)\n  0.8s shake(talk -340.1, beat -0.1)\n  1.0s shake(talk -340.3, beat -0.3)\n  1.2s shake(talk -340.5, beat -0.5)\n  1.4s idle(talk -340.7, beat -340.7)\n  1.6s idle(talk -340.9, beat -340.9)\n  1.8s idle(talk -341.1, beat -341.1)\n  2.0s idle(talk -341.3, beat -341.3)\n  2.2s idle(talk -341.5, beat -341.5)\n  2.4s idle(talk -341.7, beat -341.7)\n  2.6s idle(talk -341.9, beat -341.9)\n  2.8s idle(talk -342.1, beat -342.1)\n  3.0s idle(talk -342.3, beat -342.3)\n  3.2s idle(talk -342.5, beat -342.5)\n  3.4s idle(talk -342.7, beat -342.7)",
+   "fault": null
+  },
+  {
+   "day": 6,
+   "stage": 3,
+   "art": "t6_s2",
+   "docHasMouth": false,
+   "runtimeHasMouth": false,
+   "before": "idle",
+   "start": "idle",
+   "hold": "held:idle|idle|idle|idle|idle|idle",
+   "end": "idle",
+   "lineSeen": [
+    "shake",
+    "idle"
+   ],
+   "spokeOnLine": false,
+   "lineTrace": "0.0s shake(talk -348.2, beat 0.7)\n  0.2s shake(talk -348.4, beat 0.5)\n  0.4s shake(talk -348.6, beat 0.3)\n  0.6s shake(talk -348.8, beat 0.1)\n  0.8s shake(talk -349.0, beat -0.1)\n  1.0s idle(talk -349.2, beat -349.2)\n  1.2s idle(talk -349.4, beat -349.4)\n  1.4s idle(talk -349.6, beat -349.6)\n  1.6s idle(talk -349.8, beat -349.8)\n  1.8s idle(talk -350.0, beat -350.0)\n  2.0s idle(talk -350.2, beat -350.2)\n  2.2s idle(talk -350.4, beat -350.4)\n  2.4s idle(talk -350.7, beat -350.7)\n  2.6s idle(talk -350.9, beat -350.9)\n  2.8s idle(talk -351.1, beat -351.1)\n  3.0s idle(talk -351.3, beat -351.3)\n  3.2s idle(talk -351.5, beat -351.5)\n  3.4s idle(talk -351.7, beat -351.7)",
+   "fault": null
+  }
+ ],
+ "errors": []
+}

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { readRigDoc } from '../scripts/rig_doc.mjs';
@@ -40,6 +40,32 @@ test('index lists the arts that have a face kit', () => {
     assert.ok(entry.animations.includes('shake'), `${art}: no shake animation`);
     assert.ok(entry.animations.includes('blink'), `${art}: no blink animation`);
   }
+});
+
+test('every plate the scene can show is either rigged or a recorded skip', () => {
+  // The rig is optional per plate, but the CHOICE has to be written down. A plate the scene can
+  // show, with no rig and no entry in the manifest, is the "she is a picture again" hole this whole
+  // pipeline exists to close — and it is invisible from any single file.
+  const manifest = JSON.parse(
+    readFileSync(join(import.meta.dirname, '..', 'public', 'art', 'face_kit', 'manifest.json'), 'utf8'),
+  ) as Record<string, { skip?: boolean }>;
+  const src = join(import.meta.dirname, '..', 'src');
+  const plates = new Set<string>();
+  const walk = (dir: string) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const path = join(dir, entry.name);
+      if (entry.isDirectory()) walk(path);
+      else if (entry.name.endsWith('.ts')) {
+        for (const m of readFileSync(path, 'utf8').matchAll(/\/art\/heroine_([a-z0-9_]+)\.webp/g)) {
+          plates.add(m[1]!);
+        }
+      }
+    }
+  };
+  walk(src);
+  assert.ok(plates.size > 20, `plate scan found only ${plates.size} arts — the regex or the layout moved`);
+  const missing = [...plates].filter((art) => !index[art] && !manifest[`heroine_${art}`]?.skip);
+  assert.deepEqual(missing, [], `these plates have no rig and no recorded reason: ${missing.join(', ')}`);
 });
 
 const rig = (art: string) => index[art]!;

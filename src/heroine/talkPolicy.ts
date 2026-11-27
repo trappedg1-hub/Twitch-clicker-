@@ -17,3 +17,16 @@ export function canTalk(animations: readonly string[]): boolean {
 export function idleAfterReaction(animations: readonly string[], stillTalking: boolean): 'idle' | 'idle_talk' {
   return stillTalking && canTalk(animations) ? 'idle_talk' : 'idle';
 }
+
+/**
+ * When a sentence asked for now actually ends.
+ *
+ * A chat line can land in the middle of an idle glance: `talk()` deliberately does not restart the
+ * mouth over a beat that is already playing (that reads as a stutter), so the sentence waits for the
+ * beat to finish. But the deadline used to start at *now*, which meant a line that arrived at the
+ * top of a 2.4 s head turn expired at the exact instant the turn ended — and she finished the turn
+ * in silence. The mouth is due from the moment the beat is over, and for the full length asked for.
+ */
+export function talkDeadline(now: number, reactionUntil: number, ms: number): number {
+  return Math.max(now, reactionUntil) + ms;
+}

@@ -118,6 +118,22 @@ declare global {
       startDay5: () => boolean;
       startDay6: () => boolean;
       isDay6Unlocked: () => boolean;
+      say: (text: string) => void;
+      talk: (ms: number) => void;
+      muteChat: (on: boolean) => void;
+      plate: () => string;
+      liveDebug: () => {
+        animation: string;
+        animations: string[];
+        art: string | null;
+        fault: string | null;
+        enabled: boolean;
+        talkUntil: number;
+        reactionUntil: number;
+        lastUpdate: number;
+        visible: boolean;
+        now: number;
+      };
       isDay5Unlocked: () => boolean;
       bikiniInfo: () => { unlocked: boolean; plates: boolean; flashLive: boolean; day: number };
       isDay3Unlocked: () => boolean;
@@ -333,7 +349,7 @@ export async function bootstrapApp(): Promise<void> {
     lastCelebrationMs = performance.now();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
-    stage.spawnReactionCallout(latest.removedItemLabel, true, latest.stage);
+    announce(latest.removedItemLabel, true, latest.stage);
     ui.showSpeech(latest.unlockLine);
     ui.showDonationAlert(
       `★ SUB GOAL ${latest.subsRequired} САБОВ ПРОБИТ!`,
@@ -350,6 +366,15 @@ export async function bootstrapApp(): Promise<void> {
         }, idx * 240);
       }
     });
+  };
+
+  // Every reaction callout the *game* makes goes through here, so QA can silence the script's
+  // noise without silencing its own calls: the talk QA asks "does she answer a line", and it cannot
+  // answer that if the game is answering lines of its own at the same time.
+  let announceMuted = false;
+  const announce = (tag: string, isFever = false, seed = 0) => {
+    if (announceMuted) return;
+    stage.spawnReactionCallout(tag, isFever, seed);
   };
 
   stage.onHeroineTap = (zone: TapZoneId) => {
@@ -372,11 +397,11 @@ export async function bootstrapApp(): Promise<void> {
       isBoo || isDone ? stage.triggerGhostBoo(state.hype >= 72 ? 700 : 480) : false;
     if (booFlashed && isDone) {
       ui.showSpeech(DAY4_DONE_LINES[state.totalTaps % DAY4_DONE_LINES.length]!);
-      stage.spawnReactionCallout('♥ ГОТОВО? ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      announce('♥ ГОТОВО? ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 4));
     } else if (booFlashed) {
       ui.showSpeech(GHOST_BOO_LINES[state.totalTaps % GHOST_BOO_LINES.length]!);
-      stage.spawnReactionCallout('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      announce('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 3));
     } else if (isFeverTrigger) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
@@ -389,7 +414,7 @@ export async function bootstrapApp(): Promise<void> {
     }
 
     if (state.totalTaps % 2 === 0 || isFeverTrigger) {
-      stage.spawnReactionCallout(
+      announce(
         pickReactionCalloutTag(zone, isFever, state.totalTaps),
         isFeverTrigger,
         state.totalTaps,
@@ -462,7 +487,7 @@ export async function bootstrapApp(): Promise<void> {
       const emo: Exclude<HeroineEmotion, 'neutral'> =
         afterStats.boldness < 50 ? 'shy' : afterStats.boldness < 78 ? 'fluster' : 'tease';
       stage.rig.triggerTapReaction('chest', emo);
-      stage.spawnReactionCallout(`+${count} САБ ♥`, count >= 5, state.subscribers);
+      announce(`+${count} САБ ♥`, count >= 5, state.subscribers);
       const shyLine = pickShySubGoalApproachLine(
         afterStats.nextSubGoalDef,
         state.subscribers + count,
@@ -530,7 +555,7 @@ export async function bootstrapApp(): Promise<void> {
     if (id === 'desk_mic') {
       const tier = getMicTier(state.upgrades.desk_mic ?? 0);
       ui.showSpeech(tier?.reactionLine ?? UPGRADE_REACTION_LINES[id]);
-      stage.spawnReactionCallout(
+      announce(
         tier ? `🎙 Тир ${tier.tier} ★` : '🎙 Микрофон ★',
         true,
         state.upgrades.desk_mic ?? 0,
@@ -568,7 +593,7 @@ export async function bootstrapApp(): Promise<void> {
       2300,
     );
     if (index === beats - 1) {
-      stage.spawnReactionCallout(
+      announce(
         state.streamDay === 4
           ? '♥ ЙОГА-ДЕНЬ ЗАКРЫТ!'
           : state.streamDay === 3
@@ -616,7 +641,7 @@ export async function bootstrapApp(): Promise<void> {
         ui.pushChatMessage(createDay2ProvocationChatMessage(i));
         stage.rig.triggerEmotion(i % 2 === 0 ? 'shy' : 'fluster', 2400);
         if (i === DAY2_SHAME_LINES.length - 1) {
-          stage.spawnReactionCallout('♥ ЧАТ ПОДНАИВАЕТ!', true, i);
+          announce('♥ ЧАТ ПОДНАИВАЕТ!', true, i);
         }
       }, 1500 + i * 4600);
     });
@@ -661,7 +686,7 @@ export async function bootstrapApp(): Promise<void> {
     window.setTimeout(() => {
       if (stage.triggerGhostBoo(760)) {
         ui.showSpeech(DAY4_DONE_LINES[0]!);
-        stage.spawnReactionCallout('♥ ГОТОВО? МЫ ТОЛЬКО НАЧАЛИ!', true, 0);
+        announce('♥ ГОТОВО? МЫ ТОЛЬКО НАЧАЛИ!', true, 0);
       }
     }, 900);
     ui.pushChatMessage({
@@ -732,7 +757,7 @@ export async function bootstrapApp(): Promise<void> {
     window.setTimeout(() => {
       if (stage.triggerGhostBoo(760)) {
         ui.showSpeech(GHOST_BOO_LINES[0]!);
-        stage.spawnReactionCallout('♥ БУ! ПРИЗРАК НА СВЯЗИ!', true, 0);
+        announce('♥ БУ! ПРИЗРАК НА СВЯЗИ!', true, 0);
       }
     }, 900);
     ui.pushChatMessage({
@@ -765,7 +790,7 @@ export async function bootstrapApp(): Promise<void> {
     }
 
     stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
-    stage.spawnReactionCallout('ФАНСЕРВИС ★ ♥', true, Math.floor(res.reward));
+    announce('ФАНСЕРВИС ★ ♥', true, Math.floor(res.reward));
 
     ui.pushChatMessage({
       id: `ch_${Date.now()}`,
@@ -1219,6 +1244,28 @@ export async function bootstrapApp(): Promise<void> {
         ui.onBuyUpgrade?.(id);
         return state.upgrades[id] > prev;
       },
+      // QA only: the same call a chat line makes, so a script can prove she speaks on THIS plate.
+      // Straight to the stage, not through `announce`: a muted game must not mute the QA's own line.
+      say: (text: string) => stage.spawnReactionCallout(text, false, 0),
+      talk: (ms: number) => stage.playLiveTalk(ms),
+      muteChat: (on: boolean) => {
+        announceMuted = on;
+      },
+      // Which plate the stage is actually showing — the rig's own art name goes STALE the moment a
+      // non-rigged plate hides it, so QA must never judge by that.
+      plate: () => stage.getActivePlateName(),
+      liveDebug: () => ({
+        animation: stage.live.currentAnimation,
+        animations: stage.live.animations,
+        art: stage.live.currentArt,
+        fault: stage.live.faultReason,
+        enabled: stage.liveEnabled,
+        talkUntil: stage.live.talkDebug.until,
+        reactionUntil: stage.live.talkDebug.reactionUntil,
+        lastUpdate: stage.live.talkDebug.lastUpdate,
+        visible: stage.live.talkDebug.visible,
+        now: performance.now(),
+      }),
       isDay3Unlocked: () => isDay3Unlocked(),
       isDay4Unlocked: () => isDay4Unlocked(),
       isDay5Unlocked: () => isDay5Unlocked(),

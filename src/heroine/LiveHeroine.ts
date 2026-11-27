@@ -1,6 +1,6 @@
 import { Container } from 'pixi.js';
 import { isMissingDocumentError } from './rigFailures.ts';
-import { canTalk, idleAfterReaction } from './talkPolicy.ts';
+import { canTalk, idleAfterReaction, talkDeadline } from './talkPolicy.ts';
 import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
 import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
@@ -121,6 +121,14 @@ export class LiveHeroine {
     return this.asset?.doc.animations.map((a) => a.name) ?? [];
   }
 
+  /**
+   * The two deadlines, as numbers. Nothing in the game reads this: `scripts/qa_talk.mjs` does, so
+   * that when the mouth is not moving the report says *which* clock ran out instead of "it broke".
+   */
+  public get talkDebug(): { until: number; reactionUntil: number; lastUpdate: number; visible: boolean } {
+    return { until: this.talkUntil, reactionUntil: this.reactionUntil, lastUpdate: this.lastUpdateMs, visible: this.view.visible };
+  }
+
   /** What is playing right now, as far as the game is concerned. */
   public get currentAnimation(): string {
     return this.current;
@@ -202,9 +210,24 @@ export class LiveHeroine {
     }
   }
 
-  /** Hide the live rig (no rig for this plate, or a flash frame owns the screen). */
+  /**
+   * Hide the live rig (no rig for this plate, or a flash frame owns the screen).
+   *
+   * Parking it matters as much as hiding it: `update()` returns at the top while the view is
+   * hidden, so a reaction or a sentence that was in flight when the plate changed keeps its
+   * deadlines and its `current` forever. Nothing shows — until the same plate comes back, and the
+   * first frame replays a beat from a different scene. Hide, then stand her down.
+   */
   public hide(): void {
     this.view.visible = false;
+    this.talkUntil = 0;
+    this.reactionUntil = 0;
+    const bone = this.bone;
+    if (!bone) return;
+    this.guard('скрыть', () => {
+      bone.play('idle', true);
+      this.current = 'idle';
+    });
   }
 
   public setTransform(scale: number, x: number, y: number): void {
@@ -239,7 +262,7 @@ export class LiveHeroine {
     // plate made the next reaction exit play an animation that is not there (see `talkPolicy.ts`).
     if (!canTalk(this.animations)) return;
     const now = performance.now();
-    this.talkUntil = Math.max(this.talkUntil, now + ms);
+    this.talkUntil = Math.max(this.talkUntil, talkDeadline(now, this.reactionUntil, ms));
     // Already talking, or mid-reaction: extend the deadline and leave the picture alone. Replaying
     // the mouth pattern from its first key on every chat line is a stutter, not speech.
     if (this.current === 'idle_talk' || this.reactionUntil > now) return;
