@@ -16,7 +16,7 @@
 //
 //   node scripts/rig_audit.mjs                # every published rig
 //   node scripts/rig_audit.mjs t3_s4 t6_s3    # just these
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { OpenBoneInstance } from '@openbone/runtime';
 import { readRigDoc } from '../scripts/rig_doc.mjs';
 
@@ -29,7 +29,17 @@ const area = (v, a, b, c) =>
 
 const rows = [];
 for (const art of arts) {
-  const doc = readRigDoc(`${DIR}/${art}.obonb`);
+  // `.obonb` is what ships; `.obone` is what the builder writes, so a candidate build can be
+  // audited before it is published — which is the whole point of auditing a candidate.
+  const candidates = [
+    `${DIR}/${art}.obonb`,
+    `${DIR}/${art}.obone`,
+    `${DIR}/miya_${art}.obone`,
+    ...(art === 't1_s0' ? [`${DIR}/miya_day1.obone`] : []),
+  ];
+  const path = candidates.find((p) => existsSync(p));
+  if (!path) throw new Error(`${art}: no rig in ${DIR}`);
+  const doc = readRigDoc(path);
   const inst = new OpenBoneInstance(doc);
   const body = inst.skeleton.slots.find((s) => s.data.id === 'slot_body');
   const att = inst.skeleton.getAttachment(body);

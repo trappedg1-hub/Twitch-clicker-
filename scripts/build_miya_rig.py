@@ -631,7 +631,17 @@ def head_ceiling() -> np.ndarray:
     for r in range(rows):
         for c in range(cols):
             x, y = c * W / COLS, r * H / ROWS
-            her[r, c] = max(head_gate(x, y), hair_factor(x, y), head_cap(x, y)) > 0.02
+            her[r, c] = (
+                max(
+                    head_gate(x, y),
+                    hair_factor(x, y),
+                    head_cap(x, y),
+                    torso_gate(x, y),
+                    foot_factor("left", x, y),
+                    foot_factor("right", x, y),
+                )
+                > 0.02
+            )
     big = 1e6
     dist = np.where(her, big, 0.0)
     for _ in range(2):  # chamfer, four neighbours, twice: cheap and monotone
@@ -654,59 +664,62 @@ def head_ceiling() -> np.ndarray:
     return np.where(her, ramp, 0.0)
 
 
+RELAX_FAMILY = os.environ.get("RIG_RELAX_FAMILY", "all")   # "all" or "head"
+
+
 def relax_weights(
     weights: list[list[dict]],
     world: dict[str, tuple[float, float]],
     ceiling: np.ndarray | None = None,
     face_box: list[int] | None = None,
 ) -> list[list[dict]]:
-    """Spread the head's weight step over a few cells instead of one.
+    """Spread every weight step over a few cells instead of one.
 
     The worst ghost in this rig is neither a fold nor a stretched bone: it is the *edge* where a
-    `head`-weighted vertex has a `root`-weighted neighbour. Her hair against the backrest is exactly
-    that edge, `turn` carries the whole head past it, and on t3_s4 that edge grew 17.5 px — the hair
-    drawn twice, once on the head and once on the chair. `mesh_smear` reports the number; this is
-    the fix.
+    moving vertex has a still neighbour. Her hair against the backrest is the loudest one, because
+    `turn` carries the whole head past it (17.5 px on t3_s4 before this), but the neck against the
+    room does the same thing the moment the torso leans (`lean_in`, 18.7 px), and so does a shoulder.
 
-    It smooths **one scalar**: `h`, the share of the head family (head + what she wears + the hair
-    that hangs off it). Nothing else is touched, and that is deliberate:
+    So the thing that gets smoothed is **one scalar per vertex: how much of it moves at all** —
+    everything except `root`. Inside that, every bone keeps its original share, so articulation is
+    untouched: the head is still rigid, the neck still bends over the same band, the hat still rides
+    the skull. What changes is only *where the moving/static boundary sits*, and by construction it
+    is three cells wide now instead of one.
 
-    * the face stays exactly as rigid as it was — every face vertex is h = 1 and all its neighbours
-      are h = 1, so smoothing cannot change it ("her face is a face" still holds);
-    * the hat keeps its own split between skull and worn-on-head (`h` is re-divided in the vertex's
-      original ratio), so "a hat is worn" still holds;
-    * the torso ladder, the neck, the feet and the socks are untouched, so articulation is the same
-      articulation;
-    * a vertex with no head share at all is a boundary condition, not a participant: it is returned
-      *unchanged*, weight for weight. That is what keeps the chair, the desk, the room and the floor
-      still — `rig_audit`'s prop column is a hard zero, not a budget.
+    Three boundary conditions, and each one is a promise kept:
 
-    Three passes of half-neighbour averaging spread the same travel over three cells, so no single
-    edge carries it: t3_s4 17.5 → 10.3 px, t5_s1 17.4 → 10.1, t1_s0 16.4 → 9.6, and the fold count
-    stays 0.
+    * a vertex with no moving share is returned **weight for weight** — the chair, the desk, the
+      room and the floor cannot move (`qa:audit`'s prop column is a hard zero);
+    * the ceiling is her own silhouette, ramped inward by distance, so no vertex that is not hers
+      can inherit motion from a neighbour (without it one backrest vertex carrying 0.02 grew to
+      0.08 and the backrest rocked 2.4 px in `idle`);
+    * the drawn face is frozen outright, because the face test measures eye-to-chin and 0.25 % of a
+      170 px face is a visible 0.4 px.
+
+    `RIG_RELAX_FAMILY=head` restricts the pass to head + hat + hair, for comparing a candidate.
+    Shipped values: three passes of half-neighbour averaging, `RAMP` 2.2 cells.
     """
     if RELAX_PASSES <= 0 or RELAX <= 0.0:
         return weights
     rows, cols = ROWS + 1, COLS + 1
-    nv = len(weights)
-    h = np.zeros((rows, cols), np.float64)
-    ratio = [[np.zeros(3) for _ in range(cols)] for _ in range(rows)]
+    group = None if RELAX_FAMILY != "head" else set(HEAD_FAMILY)
+    m = np.zeros((rows, cols), np.float64)
+    shares: list[dict[str, float]] = [dict() for _ in range(len(weights))]
     for i, entry in enumerate(weights):
         r, c = divmod(i, cols)
         for e in entry:
             name = e["bone"][5:]
-            if name in HEAD_FAMILY:
-                h[r, c] += e["weight"]
-                ratio[r][c][HEAD_FAMILY.index(name)] = e["weight"]
-    moving = h > 0.0
+            if name == "root":
+                continue
+            if group is not None and name not in group:
+                continue
+            m[r, c] += e["weight"]
+            shares[i][name] = e["weight"]
+
+    moving = m > 0.0
     if ceiling is not None:
         moving &= ceiling > 1e-3
-    # The face is rigid, and it stays rigid through the smoothing: the drawn face is frozen and
-    # returned weight for weight. The box is the manifest's own face box, *widened downward and to
-    # the sides only*: the face test samples the chin, which sits a few pixels under it, while the
-    # hair and the hood above her eyes are exactly where the smoothing has work to do. An
-    # anatomy-shaped freeze (1.15 span each way from the eyes) froze the hat brim too and put the
-    # worst edge back to 15.4 px.
+
     def frozen(x: float, y: float) -> bool:
         # The face band, in anatomy: from just over the eyes down past the chin. Deliberately NOT
         # the whole head — the hair and the hood above her eyes are where the smoothing has work.
@@ -722,36 +735,38 @@ def relax_weights(
             if frozen(c * W / COLS, r * H / ROWS):
                 moving[r, c] = False
     moving = np.array(moving, dtype=bool)
+
     for _ in range(RELAX_PASSES):
-        acc = np.zeros_like(h)
-        cnt = np.zeros_like(h)
-        acc[1:] += h[:-1]; cnt[1:] += 1
-        acc[:-1] += h[1:]; cnt[:-1] += 1
-        acc[:, 1:] += h[:, :-1]; cnt[:, 1:] += 1
-        acc[:, :-1] += h[:, 1:]; cnt[:, :-1] += 1
-        nxt = (1.0 - RELAX) * h + RELAX * (acc / cnt)
-        nxt[~moving] = h[~moving]
-        h = np.clip(nxt, 0.0, 1.0)
+        acc = np.zeros_like(m)
+        cnt = np.zeros_like(m)
+        acc[1:] += m[:-1]; cnt[1:] += 1
+        acc[:-1] += m[1:]; cnt[:-1] += 1
+        acc[:, 1:] += m[:, :-1]; cnt[:, 1:] += 1
+        acc[:, :-1] += m[:, 1:]; cnt[:, :-1] += 1
+        nxt = (1.0 - RELAX) * m + RELAX * (acc / cnt)
+        nxt[~moving] = m[~moving]
+        m = np.clip(nxt, 0.0, 1.0)
     if ceiling is not None:
-        h = np.minimum(h, ceiling)
+        m = np.minimum(m, ceiling)
+
     out: list[list[dict]] = []
     for i, entry in enumerate(weights):
         r, c = divmod(i, cols)
         if not moving[r, c]:
             out.append(entry)
             continue
-        old = sum(ratio[r][c])
+        inner = shares[i]
+        inner_total = sum(inner.values())
+        keep = [e for e in entry if e["bone"][5:] not in inner]
+        keep_total = sum(e["weight"] for e in keep)
         parts: list[tuple[str, float]] = []
-        if old > 1e-6:
-            for name, share in zip(HEAD_FAMILY, ratio[r][c]):
-                if share > 1e-6:
-                    parts.append((name, share / old * h[r, c]))
-        rest = [e for e in entry if e["bone"][5:] not in HEAD_FAMILY]
-        rest_total = sum(e["weight"] for e in rest)
-        for e in rest:
-            parts.append((e["bone"][5:], e["weight"] / rest_total * (1.0 - h[r, c]) if rest_total > 1e-6 else 0.0))
-        if rest_total <= 1e-6 and h[r, c] < 1.0:
-            parts.append(("root", 1.0 - h[r, c]))
+        if inner_total > 1e-6:
+            for name, share in inner.items():
+                parts.append((name, share / inner_total * m[r, c]))
+        elif m[r, c] > 1e-6:
+            parts.append(("root", m[r, c]))
+        for e in keep:
+            parts.append((e["bone"][5:], e["weight"] / keep_total * (1.0 - m[r, c]) if keep_total > 1e-6 else 0.0))
         x, y = c * W / COLS, r * H / ROWS
         out.append(finish(x, y, world, parts))
     return out
@@ -1234,6 +1249,104 @@ def build() -> dict:
             "events": [],
         }
 
+    # Giggle: two small bounces, a squint and a mouth that opens twice. The beat for something
+    # funny in chat, and the shortest way this rig has of saying "she has a personality".
+    def eyes(values) -> dict:
+        return {
+            "target": "slot",
+            "id": "slot_eyes",
+            "property": "attachment",
+            "keys": [{"time": t, "value": v, "curve": "stepped"} for t, v in values],
+        }
+
+    giggle = {
+        "id": "anim_giggle",
+        "name": "giggle",
+        "duration": 1.15,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.10, 1.1), (0.22, -0.7), (0.34, 0.9), (0.48, -0.4), (0.66, 0.15), (0.95, 0)), ease=(0.25, 0.3, 0.4, 1)),
+            tl("bone_head", "y", ((0, 0), (0.10, -1.6), (0.24, 0.2), (0.36, -1.3), (0.54, 0), (0.95, 0))),
+            tl("bone_chest", "y", ((0, 0), (0.12, -1.5), (0.26, 0.2), (0.38, -1.2), (0.56, 0), (0.95, 0))),
+            tl("bone_spine", "rotation", ((0, 0), (0.20, -0.28), (0.48, 0.18), (0.80, 0)), ease=(0.3, 0, 0.5, 1)),
+            *bust_pair("rotation", ((0, 0), (0.14, -0.7), (0.34, 0.3), (0.60, 0)), lag=0.05, scale=0.85),
+            eyes([(0.00, None), (0.09, "eyes_closed"), (0.21, None), (0.35, "eyes_closed"), (0.47, None)]),
+        ] + ([
+            {
+                "target": "slot",
+                "id": "slot_mouth",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.07, "value": "mouth_open", "curve": "stepped"},
+                    {"time": 0.22, "value": "mouth_closed", "curve": "stepped"},
+                    {"time": 0.34, "value": "mouth_open", "curve": "stepped"},
+                    {"time": 0.56, "value": None, "curve": "stepped"},
+                ],
+            },
+        ] if has_closed_mouth else []),
+        "events": [],
+    }
+
+    # Lean in: she comes toward the camera, holds it a beat, and settles back.
+    #
+    # Rotation and a head translation only — **no torso translation**, and that is a measured
+    # decision, not a taste one. Moving the chest 7 px forward drags her hands across the armrests
+    # they are resting on: the audit caught 8 folded triangles and a 23 px edge on t3_s4 at the
+    # hand, where the arm follows the chest and the armrest does not. A lean the player reads is
+    # mostly the chin coming down and forward, so the head carries the translation (3.5 px) and the
+    # chest carries 1 degree of pitch, which shears nothing that is standing still.
+    lean_in = {
+        "id": "anim_lean_in",
+        "name": "lean_in",
+        "duration": 2.6,
+        "timelines": [
+            # A lean toward the camera, authored the only way a 2D grid rig survives it: rotation
+            # about the neck chain. Measured alternatives, all rejected: a 7 px torso translation
+            # dragged her hands across the armrests (8 folds, 23 px on t3_s4); a 3.5 px head
+            # translation tore the hair silhouette at the jaw (14.8 px, and that edge runs *along*
+            # the translation); a 3.5 % head scale exploded the subtree (148 px — scale on a bone
+            # with children multiplies through them in this runtime).
+            tl("bone_head", "rotation", ((0, 0), (0.62, 2.0), (1.10, 1.6), (1.85, 1.9), (2.45, 0)), ease=(0.3, 0.2, 0.4, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.66, 0.9), (1.95, 0.7), (2.50, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (0.70, 0.45), (1.95, 0.35), (2.50, 0))),
+            tl("bone_spine", "rotation", ((0, 0), (0.74, 0.25), (1.98, 0.2), (2.52, 0))),
+            *bust_pair("rotation", ((0, 0), (0.70, -0.8), (1.20, 0.3), (2.30, 0)), lag=0.08, scale=0.8),
+            eyes([(0.00, None), (0.75, "eyes_closed"), (0.95, None)]),
+        ] + ([
+            {
+                "target": "slot",
+                "id": "slot_mouth",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.70, "value": "mouth_closed", "curve": "stepped"},
+                    {"time": 2.05, "value": None, "curve": "stepped"},
+                ],
+            },
+        ] if has_closed_mouth else []),
+        "events": [],
+    }
+
+    # Hair flip: the small theatrical gesture. The head snaps one way, the hair goes the other and
+    # comes back twice — the springs add a third and a fourth swing on their own.
+    hair_flip = {
+        "id": "anim_hair_flip",
+        "name": "hair_flip",
+        "duration": 1.4,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.12, -2.6), (0.32, 1.3), (0.50, -0.5), (0.74, 0.2), (1.05, 0)), ease=(0.2, 0.6, 0.3, 1)),
+            # 4.4 degrees, not 5.0: the swing is the point, the hair edge against the dark backdrop
+            # is the bill, and the audit charges 13.3 px for 5.0. This is the largest swing that
+            # stays inside the same budget as the rest of the rig.
+            tl("bone_hair_back", "rotation", ((0, 0), (0.10, 3.0), (0.34, -4.4), (0.60, 1.9), (0.86, -0.6), (1.40, 0)), ease=(0.2, 0.5, 0.3, 1)),
+            tl("bone_spine", "rotation", ((0, 0), (0.18, 0.45), (0.52, -0.2), (0.86, 0))),
+            tl("bone_chest", "y", ((0, 0), (0.16, -1.2), (0.44, 0.3), (0.80, 0))),
+            *bust_pair("rotation", ((0, 0), (0.18, -0.8), (0.46, 0.35), (0.80, 0)), lag=0.06, scale=0.85),
+            eyes([(0.00, None), (0.07, "eyes_closed"), (0.19, None)]),
+        ],
+        "events": [],
+    }
+
     # Gasp: the beat for a tap on her chest. A held breath — head back, chin up, chest lifted,
     # mouth open on the same frame the hit lands — and the two bust springs do the rest by
     # themselves, because the chest moved under them. It exists so that a tap on the chest is not
@@ -1570,7 +1683,7 @@ def build() -> dict:
         + ([smile] if has_closed_mouth else [])
         + ([tease] if tease else [])
         + ([tickle] if tickle else [])
-        + [gasp],
+        + [gasp, giggle, lean_in, hair_flip],
         "stateMachines": [
             {
                 "id": "sm_miya",

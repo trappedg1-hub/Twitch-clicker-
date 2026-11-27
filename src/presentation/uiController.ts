@@ -31,6 +31,7 @@ import type {
 } from '../domain/types.ts';
 import { getMicTier, getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
 import { renderChatTextWithEmotes } from './twitchEmotes.ts';
+import { sfx } from '../audio/sfx.ts';
 
 function formatMoney(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M ₽`;
@@ -107,6 +108,8 @@ export class UiController {
   private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
   private readonly finaleOpenBtnEl = document.getElementById('btn-finale-open')!;
   private readonly finaleCloseBtnEl = document.getElementById('btn-finale-close')!;
+  /** Optional on purpose: the game runs headless in tests, where there is no HUD to toggle. */
+  private readonly soundBtnEl = document.getElementById('btn-sound') as HTMLButtonElement | null;
   /**
    * The finale card is player-invoked. `false` means "the day is closed, but the stream is still
    * hers": taps, gifts and her commentary keep running, and nothing is covered by the modal.
@@ -134,6 +137,13 @@ export class UiController {
   private outfitCards = new Map<SubGoalStageIndex, HTMLElement>();
   private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
+  private syncSoundButton(): void {
+    if (!this.soundBtnEl) return;
+    const on = sfx.isEnabled;
+    this.soundBtnEl.setAttribute('aria-pressed', on ? 'true' : 'false');
+    this.soundBtnEl.title = on ? 'Звук: вкл (M)' : 'Звук: выкл (M)';
+  }
+
   public onBuyUpgrade?: (id: UpgradeId) => void;
   public onGiftSubs?: (count: number) => void;
   public onSelectSubStage?: (stage: SubGoalStageIndex) => void;
@@ -151,6 +161,21 @@ export class UiController {
     this.buildChallengeCards();
     this.startDay2BtnEl.addEventListener('click', () => this.onStartDay2?.());
     this.finaleOpenBtnEl.addEventListener('click', () => this.openFinaleCard());
+    this.syncSoundButton();
+    this.soundBtnEl?.addEventListener('click', () => {
+      sfx.toggle();
+      this.syncSoundButton();
+    });
+    // `M` for mute, because a clicker is played with one hand on the mouse and the other on the
+    // keyboard, and reaching for a 26 px button in a corner is a way to lose a combo.
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'm' && event.key !== 'M' && event.key !== 'ь' && event.key !== 'Ь') return;
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      event.preventDefault();
+      sfx.toggle();
+      this.syncSoundButton();
+    });
     this.finaleCloseBtnEl.addEventListener('click', () => this.closeFinaleCard());
     this.skipFarewellBtnEl.addEventListener('click', () => this.finishFarewell());
 

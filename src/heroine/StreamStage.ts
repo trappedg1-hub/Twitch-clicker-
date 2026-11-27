@@ -572,6 +572,25 @@ export class StreamStage {
     this.live.react(kind);
   }
 
+  /**
+   * The donation beat: a gasp where the money landed, then a giggle a beat later.
+   *
+   * Two reactions, sequenced, because one animation cannot say "oh!" and then "hee" — and a body
+   * that answers every donation with the same 0.9 s shake is a machine. The second call is guarded:
+   * if the plate or the rig changed in between, it is simply dropped.
+   */
+  public playLiveDonation(): void {
+    const live = this.live;
+    if (!live) return;
+    if (live.hasAnimation('gasp')) live.react('gasp', 850);
+    else live.react('shake', 900);
+    if (live.hasAnimation('giggle')) {
+      window.setTimeout(() => {
+        if (this.live === live) live.react('giggle', 1150);
+      }, 900);
+    }
+  }
+
   /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
   public playLiveTalk(ms = 2600): void {
     this.live.talk(ms);
@@ -581,7 +600,10 @@ export class StreamStage {
     // She answers the chat: talk with the mouth, and a small head turn the hair has to catch up
     // with. Both are no-ops when the plate on screen has no rig.
     this.live?.talk(2400);
-    this.live?.react('shake', 900);
+    // The chat beat answers with a small shake; a donation goes through `playLiveDonation` below,
+    // which is a gasp and a giggle instead.
+    if (isFever) this.playLiveDonation();
+    else this.live?.react('shake', 900);
     // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
     if (this.activeCalloutParticle) {
       const idx = this.particles.indexOf(this.activeCalloutParticle);

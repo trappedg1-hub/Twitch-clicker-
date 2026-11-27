@@ -2700,3 +2700,73 @@ body.drawer-open .obs-chat-overlay {
     font-size: 10px;
   }
 }
+
+/* Sound toggle: the same size, radius and weight as the quality badge beside it, because it lives
+   in that row and is the only control in the HUD the player can actually press. */
+.tw-sound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+  color: #f1f1f4;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.tw-sound-btn:hover,
+.tw-sound-btn:focus-visible {
+  background: rgb(169 112 255 / 75%);
+  outline: none;
+}
+
+/* A 26 px badge is the right size in this row and the wrong size for a thumb. The visible button
+   stays as it is; the hit area grows 7 px on every side through a pseudo-element, which is the only
+   way to enlarge a target without moving the layout around it. */
+.tw-sound-btn::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+.tw-sound-btn {
+  position: relative;
+  /* The top HUD is a pass-through layer (`pointer-events: none`) so taps reach the canvas under
+     it. The one control in that row has to opt back in, or it is a picture of a button. */
+  pointer-events: auto;
+}
+
+/* On a phone the badge row stacks vertically and there is room, so the control grows into a real
+   thumb target instead of borrowing reach from a pseudo-element that the row would clip. */
+@media (max-width: 680px) {
+  .tw-sound-btn {
+    width: 32px;
+    height: 30px;
+  }
+
+  .tw-sound-btn .tw-sound-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tw-sound-btn .tw-sound-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tw-sound-btn[aria-pressed='true'] .tw-sound-off {
+  display: none;
+}
+
+.tw-sound-btn[aria-pressed='false'] .tw-sound-on {
+  display: none;
+}
+
+.tw-sound-btn[aria-pressed='false'] {
+  color: #b6b6c2;
+}

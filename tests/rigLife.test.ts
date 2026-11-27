@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { readRigDoc } from '../scripts/rig_doc.mjs';
 import { OpenBoneInstance } from '@openbone/runtime';
+import { IDLE_QUIRKS } from '../src/heroine/LiveHeroine.ts';
 
 /**
  * Is she a character, or a rubber sheet?
@@ -91,9 +92,10 @@ function facePoints(art: string): Record<'eye' | 'chin' | 'crown', [number, numb
 
 test('her face is a face: no skin weight stretches it', () => {
   for (const art of ARTS) {
+    const rig = open(art);
     const points = facePoints(art);
-    for (const anim of ['idle', 'tap', 'shake', 'turn', 'sway', 'talk']) {
-      const rig = open(art);
+    // Every animation, not a hand-picked list: a beat added later cannot quietly stretch the face.
+    for (const anim of rig.doc.animations.map((a: any) => a.name as string)) {
       // Arts with a prop at the lips ship no mouth and therefore no `talk`.
       if (!rig.doc.animations.some((a: any) => a.name === anim)) continue;
       const setup = rig.vertices();
@@ -444,4 +446,59 @@ test('a tongue is art, and only where the art exists', () => {
     assert.ok(lane, `${art}: tease lane`);
   }
   assert.ok(withTongue >= 7, `tongue patches on ${withTongue} arts`);
+});
+
+test('the idle beats exist on every plate, and their face keys are art that is actually there', () => {
+  // A beat whose mouth key names an attachment the skin does not have is silent in a way no type
+  // checker catches: the runtime draws nothing and the animation still "works". These three are
+  // the ones she performs on her own, so they ship on all 36 plates.
+  for (const art of ARTS) {
+    const rig = open(art);
+    for (const [name, duration] of [
+      ['giggle', 1.15],
+      ['lean_in', 2.6],
+      ['hair_flip', 1.4],
+    ] as const) {
+      const anim = rig.doc.animations.find((a: any) => a.name === name);
+      assert.ok(anim, `${art}: no ${name}`);
+      assert.equal(anim.duration, duration, `${art}/${name}: duration`);
+      for (const timeline of anim.timelines) {
+        if (timeline.property !== 'attachment') continue;
+        const skin = rig.doc.skeleton.skins[0].attachments[timeline.id] ?? {};
+        for (const key of timeline.keys) {
+          if (!key.value) continue;
+          assert.ok(skin[key.value], `${art}/${name}: ${timeline.id} has no attachment ${key.value}`);
+        }
+      }
+    }
+
+    // A giggle is two laughs. One open mouth in 1.15 s is a gasp that happens to be short.
+    const giggle = rig.doc.animations.find((a: any) => a.name === 'giggle');
+    const mouth = giggle.timelines.find((t: any) => t.id === 'slot_mouth');
+    if (mouth) {
+      const opens = mouth.keys.filter((k: any) => k.value === 'mouth_open').length;
+      assert.equal(opens, 2, `${art}/giggle: ${opens} mouth openings`);
+    }
+
+    // A lean-in that translates the torso tears her hands off the armrests (measured: 8 folds and
+    // 23 px on t3_s4), so the beat is authored in rotation only, and this is the guard.
+    const lean = rig.doc.animations.find((a: any) => a.name === 'lean_in');
+    for (const timeline of lean.timelines) {
+      if (timeline.target !== 'bone' || !['y', 'x'].includes(timeline.property)) continue;
+      assert.ok(
+        timeline.keys.every((k: any) => k.value === 0),
+        `${art}/lean_in: ${timeline.id} translates — a translation is not free`,
+      );
+    }
+  }
+});
+
+test('idle quirks are beats the rigs actually have', () => {
+  // She picks from a weighted pool while nothing is happening. A name in that pool that no rig
+  // ships is a beat that never plays, and `filter` would hide it forever.
+  const known = new Set(ARTS.map((art) => open(art).doc.animations.map((a: any) => a.name)).flat());
+  for (const quirk of IDLE_QUIRKS) {
+    assert.ok(known.has(quirk), `idle quirk '${quirk}' is on no rig`);
+  }
+  assert.ok(IDLE_QUIRKS.includes('turn'), 'a plate with only `turn` must still have a quirk');
 });

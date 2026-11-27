@@ -14,7 +14,8 @@
     "qa:talk": "node scripts/qa_talk.mjs",
     "qa:rigs": "node scripts/qa_rig_days.mjs",
     "qa:smear": "node scripts/mesh_smear.mjs",
-    "qa:audit": "node scripts/rig_audit.mjs"
+    "qa:audit": "node scripts/rig_audit.mjs",
+    "qa:mobile": "node scripts/qa_mobile.mjs"
   },
   "dependencies": {
     "@openbone/pixi": "^0.4.12",

@@ -15,11 +15,14 @@
    "smile",
    "tease",
    "tickle",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 16,
-  "bytes": 351302
+  "bytes": 353176
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -36,11 +39,14 @@
    "talk",
    "smile",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 340569
+  "bytes": 342296
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -57,11 +63,14 @@
    "talk",
    "smile",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 342592
+  "bytes": 344440
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -77,11 +86,14 @@
    "idle_talk",
    "talk",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 339439
+  "bytes": 341487
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -97,11 +109,14 @@
    "idle_talk",
    "talk",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 341585
+  "bytes": 343096
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -116,11 +131,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 347266
+  "bytes": 348809
  },
  "t2_s0": {
   "file": "/rigs/t2_s0.obonb",
@@ -136,11 +154,14 @@
    "idle_talk",
    "talk",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 335253
+  "bytes": 336625
  },
  "t2_s1": {
   "file": "/rigs/t2_s1.obonb",
@@ -156,11 +177,14 @@
    "idle_talk",
    "talk",
    "tease",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 334109
+  "bytes": 335293
  },
  "t2_s2": {
   "file": "/rigs/t2_s2.obonb",
@@ -175,11 +199,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 340277
+  "bytes": 341357
  },
  "t2_s3": {
   "file": "/rigs/t2_s3.obonb",
@@ -194,11 +221,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 342221
+  "bytes": 343368
  },
  "t2_s4": {
   "file": "/rigs/t2_s4.obonb",
@@ -213,11 +243,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 333401
+  "bytes": 334542
  },
  "t3_flash": {
   "file": "/rigs/t3_flash.obonb",
@@ -232,11 +265,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 350662
+  "bytes": 350732
  },
  "t3_s1": {
   "file": "/rigs/t3_s1.obonb",
@@ -251,11 +287,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 329051
+  "bytes": 331089
  },
  "t3_s2": {
   "file": "/rigs/t3_s2.obonb",
@@ -268,11 +307,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 327589
+  "bytes": 328768
  },
  "t3_s3": {
   "file": "/rigs/t3_s3.obonb",
@@ -287,11 +329,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 350644
+  "bytes": 350714
  },
  "t3_s4": {
   "file": "/rigs/t3_s4.obonb",
@@ -304,11 +349,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 324639
+  "bytes": 325668
  },
  "t4_flash": {
   "file": "/rigs/t4_flash.obonb",
@@ -323,11 +371,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 332397
+  "bytes": 333800
  },
  "t4_s2": {
   "file": "/rigs/t4_s2.obonb",
@@ -340,11 +391,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 317177
+  "bytes": 319755
  },
  "t4_s3": {
   "file": "/rigs/t4_s3.obonb",
@@ -359,11 +413,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 332379
+  "bytes": 333782
  },
  "t4_start": {
   "file": "/rigs/t4_start.obonb",
@@ -378,11 +435,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 324785
+  "bytes": 326306
  },
  "t4_start_hq": {
   "file": "/rigs/t4_start_hq.obonb",
@@ -397,11 +457,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 324992
+  "bytes": 326790
  },
  "t5_s0": {
   "file": "/rigs/t5_s0.obonb",
@@ -416,11 +479,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 323173
+  "bytes": 325104
  },
  "t5_s1": {
   "file": "/rigs/t5_s1.obonb",
@@ -435,11 +501,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 337103
+  "bytes": 338430
  },
  "t5_s2": {
   "file": "/rigs/t5_s2.obonb",
@@ -454,11 +523,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 330178
+  "bytes": 332068
  },
  "t5_start": {
   "file": "/rigs/t5_start.obonb",
@@ -473,11 +545,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 325970
+  "bytes": 327676
  },
  "t5_start_hq": {
   "file": "/rigs/t5_start_hq.obonb",
@@ -492,11 +567,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 323619
+  "bytes": 325452
  },
  "t5_start_hq2": {
   "file": "/rigs/t5_start_hq2.obonb",
@@ -511,11 +589,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 324915
+  "bytes": 326627
  },
  "t6_s0": {
   "file": "/rigs/t6_s0.obonb",
@@ -528,11 +609,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 321562
+  "bytes": 323317
  },
  "t6_s1": {
   "file": "/rigs/t6_s1.obonb",
@@ -545,11 +629,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 324601
+  "bytes": 326111
  },
  "t6_s2": {
   "file": "/rigs/t6_s2.obonb",
@@ -562,11 +649,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 322906
+  "bytes": 324401
  },
  "t6_s3": {
   "file": "/rigs/t6_s3.obonb",
@@ -579,11 +669,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 324160
+  "bytes": 325647
  },
  "t6_start_hq": {
   "file": "/rigs/t6_start_hq.obonb",
@@ -598,11 +691,14 @@
    "blink",
    "idle_talk",
    "talk",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 330541
+  "bytes": 332256
  },
  "transparent_s0": {
   "file": "/rigs/transparent_s0.obonb",
@@ -615,11 +711,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 330861
+  "bytes": 331004
  },
  "transparent_s1": {
   "file": "/rigs/transparent_s1.obonb",
@@ -632,11 +731,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 330725
+  "bytes": 331170
  },
  "transparent_s2": {
   "file": "/rigs/transparent_s2.obonb",
@@ -649,11 +751,14 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 328874
+  "bytes": 329431
  },
  "transparent_s3": {
   "file": "/rigs/transparent_s3.obonb",
@@ -666,10 +771,13 @@
    "shake",
    "tap",
    "blink",
-   "gasp"
+   "gasp",
+   "giggle",
+   "lean_in",
+   "hair_flip"
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 322482
+  "bytes": 323395
  }
 }

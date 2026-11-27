@@ -351,10 +351,44 @@ def draw_slots(
         if not name:
             continue
         att = skin.get(slot["id"], {}).get(name)
-        if not att or att.get("type") != "region":
+        if not att:
             continue
         img = images.get(att["image"])
         if img is None:
+            continue
+
+        if att.get("type") == "mesh" and len(att.get("vertices") or []) == 8:
+            # The face kit ships as *mesh* attachments — a four-corner quad skinned to the head —
+            # not as plain regions, so a preview that only understands regions draws a perfectly
+            # clean face with no eyes and no mouth and no way to see whether `gasp` or `giggle`
+            # actually reads. Two triangles' worth of quad, mapped with PIL's MESH transform:
+            # the source rectangle onto the four skinned corners, in order.
+            verts = np.array(att["vertices"], dtype=np.float64).reshape(-1, 2)
+            world = np.zeros_like(verts)
+            for i, infl in enumerate(att.get("weights") or [{"bone": slot["bone"], "weight": 1.0, "x": 0, "y": 0}] * len(verts)):
+                p = np.zeros(3)
+                for w in infl:
+                    p += w["weight"] * (posed[w["bone"]] @ np.array([w["x"], w["y"], 1.0]))
+                world[i] = p[:2]
+            # The face patch is affine (a rectangle skinned to one bone), so the affine transform
+            # is exact and PIL's AFFINE — which takes the *inverse* map, output pixel to source
+            # pixel — is the honest way to draw it. (MESH looks like the right tool and silently
+            # returns a transparent layer here.)
+            p0, p1, p2, p3 = (world[i] * out_scale for i in range(4))
+            ex = (p1 - p0) / max(1.0, float(img.width))
+            ey = (p3 - p0) / max(1.0, float(img.height))
+            fwd = np.array([[ex[0], ey[0], p0[0]], [ex[1], ey[1], p0[1]]])
+            inv = np.linalg.inv(np.vstack([fwd, [0.0, 0.0, 1.0]]))[:2]
+            layer = img.transform(
+                frame.size,
+                Image.AFFINE,
+                (inv[0, 0], inv[0, 1], inv[0, 2], inv[1, 0], inv[1, 1], inv[1, 2]),
+                Image.BICUBIC,
+            )
+            frame.alpha_composite(layer)
+            continue
+
+        if att.get("type") != "region":
             continue
 
         bone = posed[slot["bone"]]

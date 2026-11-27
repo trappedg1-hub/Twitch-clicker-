@@ -1,4 +1,5 @@
 import type { Application } from 'pixi.js';
+import { sfx } from '../audio/sfx.ts';
 import {
   createAmbientChatMessage,
   createDay2ProvocationChatMessage,
@@ -347,6 +348,7 @@ export async function bootstrapApp(): Promise<void> {
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
     if (unlockedStages.length === 0) return;
     lastCelebrationMs = performance.now();
+    sfx.milestone();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
     announce(latest.removedItemLabel, true, latest.stage);
@@ -379,6 +381,9 @@ export async function bootstrapApp(): Promise<void> {
 
   stage.onHeroineTap = (zone: TapZoneId) => {
     lastPlayerInteractionMs = performance.now();
+    // Sound first, before any of the bookkeeping: the click has to land on the frame the player
+    // clicked, and everything below this line can allocate.
+    sfx.tap(state.hype / 100);
     const outcome = applyTap(state, zone);
     state = outcome.state;
     const afterStats = computeStats(state);
@@ -448,6 +453,8 @@ export async function bootstrapApp(): Promise<void> {
       }
 
       if (outcome.triggeredDonationAlert) {
+        sfx.donation();
+        stage.playLiveDonation();
         ui.showDonationAlert(
           `★ ГОРЯЧИЙ ДОНАТ +${outcome.earned} ₽`,
           '«Не прикрывайся, ты сводишь весь чат с ума! ♥»',
@@ -966,7 +973,7 @@ export async function bootstrapApp(): Promise<void> {
   const saveRigTuning = (): void => writeFlag(RIG_TUNING_KEY, JSON.stringify(rigTuning));
 
   /** Animations that are a beat, not a loop — the console should not leave her mid-shake. */
-  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp']);
+  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp', 'giggle', 'lean_in', 'hair_flip']);
 
   const rigApi: AdminRigApi = {
     snapshot: () => {

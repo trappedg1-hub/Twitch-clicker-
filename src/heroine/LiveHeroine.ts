@@ -4,6 +4,7 @@ import { canTalk, idleAfterReaction, talkDeadline } from './talkPolicy.ts';
 import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
 import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
+import { sfx } from '../audio/sfx.ts';
 
 /**
  * The authored rig, played in the game.
@@ -28,7 +29,27 @@ import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
  * inside a guard: whatever the skeleton does, it can only ever cost us the skeleton.
  */
 
-export type LiveReaction = 'shake' | 'turn' | 'sway' | 'tap' | 'tickle' | 'tease' | 'gasp';
+export type LiveReaction =
+  | 'shake'
+  | 'turn'
+  | 'sway'
+  | 'tap'
+  | 'tickle'
+  | 'tease'
+  | 'gasp'
+  | 'giggle'
+  | 'lean_in'
+  | 'hair_flip';
+
+/**
+ * What she does when nothing is happening to her.
+ *
+ * An idle loop that only breathes is a screensaver. These are the beats that make a stream feel
+ * attended: she looks around, tosses her hair, leans in as if reading chat, giggles at something
+ * only she saw. Only the ones that exist in the current document are ever picked — `turn` is on
+ * every plate, the rest are extras.
+ */
+export const IDLE_QUIRKS: LiveReaction[] = ['turn', 'hair_flip', 'lean_in', 'giggle', 'turn', 'tease'];
 
 export interface RigStats {
   bones: number;
@@ -65,6 +86,8 @@ export class LiveHeroine {
   private reactionUntil = 0;
   /** When the last reaction was asked for — the clicker asks faster than a beat lasts. */
   private lastReactionAt = -Infinity;
+  /** When the player last did anything to her. Drives the "she gets bored" gap below. */
+  private lastInteractionAt = 0;
   /**
    * When she looks around on her own.
    *
@@ -189,6 +212,7 @@ export class LiveHeroine {
       bone.play('idle', true);
       this.current = 'idle';
       this.nextGlanceAt = performance.now() + 9000 + Math.random() * 8000;
+      this.lastInteractionAt = performance.now();
       this.gaze.reset();
       // The panel's tuning survives the art change: a slider must mean the same thing on every plate.
       if (this.defaultTuning) this.applyTuning(this.defaultTuning);
@@ -284,6 +308,7 @@ export class LiveHeroine {
     const bone = this.bone;
     if (!bone || this.fault) return;
     const now = performance.now();
+    this.lastInteractionAt = now;
     // A tap is the common case and must never restart a beat that is still playing; a donation is
     // rare and should always be felt, so it only yields to a reaction from the last 160 ms.
     if (kind === 'tap' ? this.reactionUntil > now : now - this.lastReactionAt < 160) return;
@@ -356,16 +381,23 @@ export class LiveHeroine {
         bone.play('idle', true);
         this.current = 'idle';
       }
-      // Nothing is happening to her: she looks around by herself. Only in a real gap — never on
-      // top of a click, a donation or a line of chat.
+      // Nothing is happening to her: she fusses. Only in a real gap — never on top of a click, a
+      // donation or a line of chat — and the gap shortens the longer the player leaves her alone,
+      // because a person waiting for attention does not sit still. Every quirk is filtered against
+      // the document, so a plate with no giggle simply never giggles.
       if (
         this.current === 'idle' &&
         !this.reactionUntil &&
         !this.talkUntil &&
         now >= this.nextGlanceAt
       ) {
-        this.nextGlanceAt = now + 12000 + Math.random() * 14000;
-        this.react('turn', 2400);
+        const bored = Math.min(1, (now - this.lastInteractionAt) / 45000);
+        const pool = IDLE_QUIRKS.filter((n) => this.animations.includes(n));
+        const pick = pool[Math.floor(Math.random() * pool.length)] ?? 'turn';
+        this.nextGlanceAt = now + (12000 - bored * 5500) + Math.random() * (14000 - bored * 7000);
+        this.react(pick, pick === 'turn' ? 2400 : 2000);
+        // The idle beats are audible too — quietly, and only the ones that are hers to make.
+        if (pick !== 'turn' && pick !== 'sway') sfx.quirk();
       }
     });
   }
