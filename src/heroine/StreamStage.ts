@@ -16,6 +16,7 @@ import type {
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
 import { LiveHeroine } from './LiveHeroine.ts';
+import { aimFromPointer } from './gaze.ts';
 
 interface FloatingParticle {
   node: Container;
@@ -77,6 +78,8 @@ export class StreamStage {
   private readonly particles: FloatingParticle[] = [];
   private activeCalloutParticle?: FloatingParticle;
   private readonly motes: DustMote[] = [];
+  /** Has the pointer ever been over the stage? On a phone, never — she looks straight ahead. */
+  private pointerSeen = false;
   private pointerNormX = 0;
   private pointerNormY = 0;
   private lampLevel = 0;
@@ -350,12 +353,20 @@ export class StreamStage {
       }
     };
 
-    hostEl.addEventListener('pointermove', (e) => {
+    const trackPointer = (e: PointerEvent) => {
       const rect = hostEl.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         this.pointerNormX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
         this.pointerNormY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        this.pointerSeen = true;
       }
+    };
+    hostEl.addEventListener('pointermove', trackPointer);
+    // A tap is also a pointer position, and on a phone it is the ONLY one there is: `pointerdown`
+    // arrives before the click, so she has already turned towards the finger by the time she nods.
+    hostEl.addEventListener('pointerdown', trackPointer);
+    hostEl.addEventListener('pointerleave', () => {
+      this.pointerSeen = false;
     });
 
     this.hostEl = hostEl;
@@ -785,6 +796,14 @@ export class StreamStage {
     this.rig.update(safeDt);
     // Guarded inside `LiveHeroine`: the skeleton ticks on the stage's clock, so an exception in it
     // can never stop the app's ticker (that is exactly how a rig bug becomes a black screen).
+    // Where the player is pointing, every frame, before the skeleton is advanced: the head
+    // follows the cursor with a spring, and the parallax below moves the room behind her.
+    if (this.pointerSeen && this.live.view.visible) {
+      const aim = aimFromPointer(this.pointerNormX, this.pointerNormY);
+      this.live.look(aim.x, aim.y);
+    } else {
+      this.live.releaseGaze();
+    }
     this.live.update(performance.now());
 
     // One invariant instead of a dozen call sites: while the skeleton is on screen the flat plate

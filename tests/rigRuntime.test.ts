@@ -56,8 +56,9 @@ test('idle is a breath, not a wobble', () => {
     // plus whatever is mostly bone_hair_back — the strand mass that falls past the jaw. A
     // threshold on the head share would shift with the mesh, and the hair edge (85 % head, 15 %
     // root) would keep leaking into "body" as an 18 px wobble that is not there.
-    const bones = doc.skeleton.bones as { name: string; y: number }[];
-    const neckY = bones.find((b) => b.name === 'neck')?.y ?? 0;
+    // World Y, not the document's parent-relative bone y (see `rigGaze.test.ts`).
+    instance.skeleton.updateWorldTransform();
+    const neckY = instance.skeleton.findBone('bone_neck')?.worldY ?? 0;
     const mesh = doc.skeleton.skins[0].attachments.slot_body.miya_body as {
       weights: { bone: string; weight: number }[][];
     };

@@ -1,6 +1,7 @@
 import { Container } from 'pixi.js';
 import { OpenBone, loadOpenBone, type OpenBoneAsset } from '@openbone/pixi';
 import { clampTuning, TUNING_PARAMS, type ConstraintTuning, type RigTuning } from './rigTuning.ts';
+import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
 
 /**
  * The authored rig, played in the game.
@@ -58,6 +59,13 @@ export class LiveHeroine {
    * seconds, in the gaps between clicks, she turns her head for a beat and settles back.
    */
   private nextGlanceAt = 0;
+  /**
+   * The one live channel into the skeleton: where the player is pointing.
+   *
+   * Everything else she does is authored and identical on every machine. This is the part that
+   * makes her look back — see `gaze.ts` for why a spring and a split chain read as alive.
+   */
+  private readonly gaze = new GazeSpring();
   private destroyed = false;
   /** Animation the panel/state asked for last — the readout in the admin console. */
   private current = 'idle';
@@ -158,6 +166,7 @@ export class LiveHeroine {
       bone.play('idle', true);
       this.current = 'idle';
       this.nextGlanceAt = performance.now() + 9000 + Math.random() * 8000;
+      this.gaze.reset();
       // The panel's tuning survives the art change: a slider must mean the same thing on every plate.
       if (this.defaultTuning) this.applyTuning(this.defaultTuning);
       if (previous) {
@@ -179,6 +188,21 @@ export class LiveHeroine {
   public setTransform(scale: number, x: number, y: number): void {
     this.view.scale.set(scale);
     this.view.position.set(x, y);
+  }
+
+  /**
+   * Point her attention at a place on the stage (−1..1 in both axes) — or `look(0, 0)` to let go.
+   *
+   * Called every frame from the stage tick with the pointer position, so a stale target is
+   * impossible: whatever the player does, the next frame says where to look.
+   */
+  public look(x: number, y: number): void {
+    this.gaze.aim(x, y);
+  }
+
+  /** Drop any live target — the pointer left the stage, or the rig was hidden. */
+  public releaseGaze(): void {
+    this.gaze.rest();
   }
 
   /**
@@ -255,6 +279,14 @@ export class LiveHeroine {
       // that explodes — the hair would fly off her head on the first frame after the tab wakes up.
       const dt = previous ? Math.min(0.1, Math.max(0, (now - previous) / 1000)) : 1 / 60;
       bone.update(dt);
+      // Live gaze, after the animation has written its absolute pose: the offset is additive for
+      // this frame only, and the next `bone.update` rebuilds the pose from the timelines, so it can
+      // never accumulate. `applyGaze` rebuilds the world matrices itself — without that call the
+      // runtime keeps drawing the cached ones and a written rotation is invisible.
+      // Skipped entirely once the spring has settled: a rig sitting still with the cursor parked on
+      // her nose should not pay for a world-transform rebuild every frame.
+      const gaze = this.gaze.step(dt);
+      if (!this.gaze.settled) applyGaze(bone.skeleton, gazeDegrees(gaze));
       if (this.reactionUntil && now >= this.reactionUntil) {
         this.reactionUntil = 0;
         const next = this.talkUntil > now ? 'idle_talk' : 'idle';
