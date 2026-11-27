@@ -1001,17 +1001,21 @@ def build() -> dict:
 
     # A breath every four seconds, five of them, no two the same depth: a person at rest is not
     # a sine wave — the second breath is shallower than the first, the fourth is a sigh.
+    # 30 % deeper than it shipped: the breath read at 3 px on the plate, which is a third of a
+    # pixel where the game draws her — measurably alive, invisible in practice. At 4 px of chest
+    # travel the bust (which lags on its own spring) reaches 6.4 px and the picture finally
+    # breathes at a glance. The body cap is 16 px; this is not close to it.
     chest_y = [
-        (0.00, 0.0), (1.55, -3.1), (3.05, 0.0), (3.65, 0.18),
-        (5.40, -2.6), (7.20, 0.0), (7.75, 0.14),
-        (9.30, -3.4), (11.15, 0.0),
-        (13.60, -2.8), (15.30, 0.0), (15.85, 0.16),
-        (17.40, -3.2), (19.15, 0.0), (IDLE_LEN, 0.0),
+        (0.00, 0.0), (1.55, -4.0), (3.05, 0.0), (3.65, 0.24),
+        (5.40, -3.4), (7.20, 0.0), (7.75, 0.18),
+        (9.30, -4.4), (11.15, 0.0),
+        (13.60, -3.6), (15.30, 0.0), (15.85, 0.21),
+        (17.40, -4.2), (19.15, 0.0), (IDLE_LEN, 0.0),
     ]
     chest_rot = [
-        (0.00, 0.0), (1.75, 0.22), (3.25, 0.0), (5.60, -0.20), (7.40, 0.0),
-        (9.50, 0.24), (11.35, 0.0), (13.80, -0.18), (15.50, 0.0),
-        (17.60, 0.22), (19.35, 0.0), (IDLE_LEN, 0.0),
+        (0.00, 0.0), (1.75, 0.29), (3.25, 0.0), (5.60, -0.26), (7.40, 0.0),
+        (9.50, 0.31), (11.35, 0.0), (13.80, -0.23), (15.50, 0.0),
+        (17.60, 0.29), (19.35, 0.0), (IDLE_LEN, 0.0),
     ]
 
     # Where she looks, in degrees of head rotation (positive is her left). Four glances, none the
