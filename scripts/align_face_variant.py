@@ -13,8 +13,10 @@ Two rules fix it:
    plate frame first — that is what this script does, with a scale+shift search anchored on the
    face, because a rescaled face cannot be aligned by translation alone.
 2. **Score the drift.** Everything outside the eye windows should be *her*, unchanged. The mean
-   absolute difference over the face box minus the eye windows is that number; above the threshold
-   the variant is rejected and the generation is retried, instead of silently shipped.
+   absolute difference over the band around the eyes minus the eye windows is that number; above
+   the threshold the variant is rejected and the generation is retried, instead of silently shipped.
+   It is measured on her skin only (see `SKIN_ACCEPT`): on a small face the band is mostly hair, and
+   hair jitter both hides a redraw and fails an honest edit.
 
     python3 scripts/align_face_variant.py \
         --plate public/art/heroine_t1_s2.webp \
@@ -33,13 +35,21 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw
 
-# Mean absolute luma difference in the band around the eyes, outside the windows that get pasted,
-# 0-255. Calibration: the raws that ship with a face kit score 2.5-5.1 on the eleven arts whose
-# generation actually matches the plate, and a full-plate edit of `t1_s2` (which came back with a
-# redder face and a different mouth — a face swap after the merge) scored 3.7 here. So the number
-# catches a wrong frame — the same art generated from the wrong crop scores 20-100 — but not an
-# artistic drift. That is what generating inside the crop is for; this is the seatbelt.
+# Two numbers, both mean absolute luma difference 0-255 outside the windows the merge pastes.
+#
+# `band` is the original one: the 1.8x band around the eyes minus the pasted windows. It was
+# calibrated on the large-face arts, where a matching generation scores 2.5-5.1 and a wrong frame
+# 20-100. On a plate where the face is small it stops ordering anything: it lands mostly on hair
+# strands next to the eyes, so `t4_s0` — whose patch is fine — scores 125, while a generation that
+# shifted the whole face by six pixels can score 11. It is kept as a printed number, not a gate.
+#
+# `skin` is the gate: the same region, but only pixels that are skin on the plate (luma > 95), so
+# hair and lash jitter does not drown the signal. Calibration on everything that ships today
+# (23 raws): 3.8-16.5. A faithful closed-eye edit of `transparent_s0`: 10.4. Generations that
+# re-rendered her instead of closing her eyes: 22.3 / 46.2 / 76.5. Hence 18.
 ACCEPT = 5.5
+SKIN_ACCEPT = 18.0
+SKIN_LUMA = 95
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -53,7 +63,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--check", default=None, help="side-by-side PNG of plate / aligned / mask")
     ap.add_argument("--grow", type=float, default=1.35, help="eye window the merge pastes, mask scale")
     ap.add_argument("--band", type=float, default=1.8, help="band around the eyes that must not drift")
-    ap.add_argument("--accept", type=float, default=ACCEPT)
+    ap.add_argument("--accept", type=float, default=ACCEPT, help="band drift, printed; not the gate")
+    ap.add_argument("--skin-accept", type=float, default=SKIN_ACCEPT, help="gate: drift on skin pixels")
+    ap.add_argument("--skin-luma", type=int, default=SKIN_LUMA, help="plate luma above which a pixel counts as skin")
     return ap.parse_args(argv)
 
 
@@ -156,10 +168,22 @@ def main(argv: list[str] | None = None) -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     aligned.save(out)
 
-    verdict = "ACCEPT" if score <= args.accept else "REJECT"
+    # The gate: what changed on her skin, not on the hair next to it.
+    full = mask_for((plate.size[1], plate.size[0]), eyes, args.grow, args.band, 1.0)
+    skin_mask = full & (np.asarray(plate.convert("L"), np.float32) > args.skin_luma)
+    if skin_mask.any():
+        skin = score_of(
+            np.asarray(plate.convert("L"), np.float32),
+            np.asarray(aligned.convert("L"), np.float32),
+            skin_mask,
+        )
+    else:
+        skin = float("inf")
+    ok = skin <= args.skin_accept
+    verdict = "ACCEPT" if ok else "REJECT"
     print(
-        f"{verdict}: drift {score:.2f} (limit {args.accept}), scale {s:.2f}, shift {dx:+.0f},{dy:+.0f} px"
-        f" -> {out}"
+        f"{verdict}: skin {skin:.2f} (limit {args.skin_accept}), band {score:.2f}, "
+        f"scale {s:.2f}, shift {dx:+.0f},{dy:+.0f} px -> {out}"
     )
 
     if args.check:
@@ -177,11 +201,11 @@ def main(argv: list[str] | None = None) -> int:
                 outline=(0, 255, 0),
                 width=3,
             )
-        draw.text((12, 12), f"{verdict}  drift {score:.2f}", fill=(255, 255, 255))
+        draw.text((12, 12), f"{verdict}  skin {skin:.2f}  band {score:.2f}", fill=(255, 255, 255))
         Path(args.check).parent.mkdir(parents=True, exist_ok=True)
         suite.save(args.check)
 
-    return 0 if score <= args.accept else 1
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

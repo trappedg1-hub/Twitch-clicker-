@@ -451,6 +451,27 @@ def finish(x: float, y: float, world: dict[str, tuple[float, float]], parts: lis
     return out
 
 
+def apply_motion_scale(doc: dict, factor: float) -> None:
+    """Shrink every rotation key by a per-art factor — the motion budget is in pixels.
+
+    A rotation is authored in degrees, so the pixels it throws depend on the length of the bone
+    levers, and those are placed from the eye line: a plate whose inter-ocular distance is 147 px
+    instead of the reference 101 px gets 1.46x the travel for the same keyframe. On
+    `transparent_s0` — a full-body plate with hair down to the waist — that put the idle crown
+    throw at 30.7 px and a hammered tap at 34.1 px, both outside the budget every other rig in
+    the set keeps. Measured lever arms cannot be turned into a motion factor automatically (the
+    hair length differs by art, not only the scale), so the factor is an explicit per-art number
+    in the manifest. Translations are untouched: bone `y` keys are absolute positions.
+    """
+    if factor >= 0.999:
+        return
+    for anim in doc["animations"]:
+        for tl in anim["timelines"]:
+            if tl["target"] == "bone" and tl["property"] == "rotation":
+                for key in tl["keys"]:
+                    key["value"] = round(key["value"] * factor, 4)
+
+
 def assert_neutral_start(doc: dict) -> None:
     """Every animation must open on the setup pose.
 
@@ -1106,6 +1127,7 @@ def main(argv: list[str] | None = None) -> int:
 
     PATCHES = face_patches(ART_KEY)
     doc = build()
+    apply_motion_scale(doc, float(entry.get("motion", 1.0)))
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1))
     mesh = doc["skeleton"]["skins"][0]["attachments"]["slot_body"]["miya_body"]
