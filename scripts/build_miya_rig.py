@@ -959,13 +959,18 @@ def build() -> dict:
         "name": "breath",
         "duration": 4.0,
         "timelines": [
-            tl("bone_chest", "y", ((0, 0), (1.6, -1.5), (3.2, 0), (4.0, 0))),
-            tl("bone_neck", "y", ((0, 0), (1.6, -0.6), (3.2, 0), (4.0, 0))),
-            tl("bone_head", "y", ((0, 0), (1.6, -0.4), (3.2, 0), (4.0, 0))),
+            # Asymmetric, because she is breathing and not being inflated: a human takes about a
+            # third of the cycle to fill the lungs and the rest to let go, then holds an empty beat
+            # before the next one. A symmetric 2 s / 2 s sine is the single most recognisable sign
+            # of a synthesised idle — the eye reads it as a loop within two breaths.
+            tl("bone_chest", "y", ((0, 0), (1.35, -1.5), (3.5, 0), (4.0, 0)),
+               ease=(0.34, 0.02, 0.44, 1)),
+            tl("bone_neck", "y", ((0, 0), (1.45, -0.6), (3.6, 0), (4.0, 0))),
+            tl("bone_head", "y", ((0, 0), (1.55, -0.4), (3.65, 0), (4.0, 0))),
             # The bust is a leaf bone: scaling it swells the chest without moving the head.
-            *bust_pair("scaleY", ((0, 0), (1.6, 0.014), (3.2, 0), (4.0, 0))),
-            *bust_pair("scaleX", ((0, 0), (1.6, 0.008), (3.2, 0), (4.0, 0))),
-            tl("bone_chest", "rotation", ((0, 0), (1.6, 0.14), (3.2, 0), (4.0, 0))),
+            *bust_pair("scaleY", ((0, 0), (1.4, 0.014), (3.5, 0), (4.0, 0))),
+            *bust_pair("scaleX", ((0, 0), (1.4, 0.008), (3.5, 0), (4.0, 0))),
+            tl("bone_chest", "rotation", ((0, 0), (1.35, 0.14), (3.5, 0), (4.0, 0))),
         ],
         "events": [],
     }
