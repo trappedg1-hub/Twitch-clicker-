@@ -142,8 +142,18 @@ for (const view of VIEWPORTS) {
   const tapped = await page.evaluate(() => ({
     taps: window.__qaScene?.getState?.().totalTaps ?? null,
     soundPressed: document.getElementById('btn-sound')?.getAttribute('aria-pressed') ?? null,
+    audio: window.__sfx?.debugState?.() ?? null,
   }));
   if (tapped.taps === 0) problems.push(`${view.name}: five taps on her registered as zero`);
+  // The audio graph cannot be heard here, so it is measured: a context has to exist (created inside
+  // the tap gesture), it has to be running, and every tap has to have reached the synth.
+  if (!tapped.audio) problems.push(`${view.name}: __sfx not exposed under ?qa`);
+  else {
+    if (tapped.audio.context === 'none') problems.push(`${view.name}: no audio context after tapping`);
+    if (tapped.audio.context === 'suspended') problems.push(`${view.name}: audio context suspended`);
+    if (tapped.audio.taps < 5) problems.push(`${view.name}: only ${tapped.audio.taps} of 5 taps made a sound`);
+    if (tapped.audio.master <= 0) problems.push(`${view.name}: master gain is ${tapped.audio.master}`);
+  }
 
   // The top row: the sub-goal card on the left against the status badges on the right. On a phone
   // they are supposed to stack, not sit on top of each other.
@@ -170,7 +180,7 @@ for (const view of VIEWPORTS) {
   console.log(
     `${view.name.padEnd(7)} ${view.width}x${view.height}  sound ${sound.present ? `${sound.width}x${sound.height} (target ${sound.target}) @${sound.x},${sound.y}` : 'MISSING'}  ` +
       `overlap ${overlap.skipped ? 'n/a' : overlap.ok ? 'none' : `${overlap.overlapX}x${overlap.overlapY}px`}  ` +
-      `taps ${tapped.taps}`,
+      `taps ${tapped.taps}  audio ${tapped.audio ? `${tapped.audio.context}/${tapped.audio.taps}` : 'n/a'}`,
   );
 
   await context.close();

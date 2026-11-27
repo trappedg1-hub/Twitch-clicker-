@@ -1173,6 +1173,8 @@ export async function bootstrapApp(): Promise<void> {
   if (isQa) {
     window.__pixiApp = stage.app;
     window.__heroineRig = stage.rig;
+    // The audio graph is invisible by nature; QA reads its state instead of hearing it.
+    (window as unknown as { __sfx?: unknown }).__sfx = sfx;
     window.__qaFreezeTicker = () => {
       stage.app.ticker.stop();
       stage.app.render();

@@ -21,7 +21,12 @@ export class Sfx {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noise: AudioBuffer | null = null;
-  private lastTapAt = 0;
+  // -1, not 0: a fresh AudioContext's clock starts at zero too, so `now - 0 < 0.028` swallowed the
+  // very first click of the session — the one that matters most, because it is the click that
+  // creates the context.
+  private lastTapAt = -1;
+  /** Counted for QA only — the audio graph itself has no need for it. */
+  private taps = 0;
   private enabled: boolean;
 
   public constructor() {
@@ -50,6 +55,19 @@ export class Sfx {
     } else if (on && this.master && this.ctx) {
       this.master.gain.setTargetAtTime(Sfx.MASTER, this.ctx.currentTime, 0.02);
     }
+  }
+
+  /**
+   * What QA needs to know about a thing that cannot be heard in a headless browser: did a context
+   * actually come up, and is it running (iOS leaves a context suspended until a real gesture)?
+   */
+  public debugState(): { enabled: boolean; context: string; master: number; taps: number } {
+    return {
+      enabled: this.enabled,
+      context: this.ctx?.state ?? 'none',
+      master: this.master?.gain.value ?? 0,
+      taps: this.taps,
+    };
   }
 
   public toggle(): boolean {
@@ -161,6 +179,7 @@ export class Sfx {
     const now = ctx.currentTime;
     if (now - this.lastTapAt < 0.028) return;
     this.lastTapAt = now;
+    this.taps += 1;
     const h = Math.min(1, Math.max(0, heat));
     const base = 520 + h * 380 + (Math.random() * 12 - 6);
     this.tone(ctx, { at: now, freq: base, to: base * 1.06, dur: 0.085, gain: 0.5 });
