@@ -642,14 +642,19 @@ def build() -> dict:
         "events": [],
     }
 
-    # Tap: the clicker's own pulse. It has to READ on a phone, and the old one did not: 1.5° of
-    # head is 11 px of silhouette on the plate, which the stage draws at roughly 0.4 — four pixels
-    # of nod. That is what "она не двигается при тапе" means in practice.
+    # Tap: the clicker's own pulse. It has to READ on a phone, and the old one did not: the stage
+    # draws this 1526 px plate at ~0.14 on a 390 px screen, so 1.5° of head — 11 px of silhouette
+    # here — arrived as 1.5 px there. That is what «она не двигается при тапе» means in practice.
     #
     # The amplitude was cut back originally because the soft weight field smeared every degree into
-    # a ghost. The head is a rigid body now: the fold count stays at zero and the face stretches
-    # 0.05 %, so the honest limit is much higher. 2.6° of head plus 0.9° of neck is 21 px of crown
-    # — the same read as the deepest glance in the idle loop, and still well under `turn`.
+    # a ghost. The head has been a rigid body since; the fold count stays at zero, so the honest
+    # limit is set by the face instead: 6° of lean measured over the eye↔chin span comes to 0.16 %
+    # (the test allows 0.25 %), and it reaches 21–23 px of travel even on the worst beat of the
+    # idle loop.
+    #
+    # Where the lean sits matters. With all 6° on `bone_head` the jaw blend stretched to 0.30 % at
+    # the same on-screen angle; splitting it 3°/3° between head and neck keeps the face rigid,
+    # because the whole chain turning is rigid and only the head-against-neck part pulls the chin.
     #
     # Shape: down, a small lift past neutral, a settle. One beat, no ringing — the clicker fires
     # several times a second and the runtime drops requests that arrive mid-beat.
