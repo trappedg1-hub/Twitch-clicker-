@@ -394,11 +394,15 @@ def main(argv: list[str]) -> int:
 
     mesh = doc["skeleton"]["skins"][0]["attachments"]["slot_body"]["miya_body"]
     n = len(mesh["vertices"]) // 2
+    # The mesh is triangulated adaptively, so the lattice in `grid` is a hint about the authoring
+    # grid, not the shape of the geometry: `triangles` + per-vertex data are the truth, and the
+    # renderer below is index-based already. Only a document with neither is unusable.
     grid = mesh.get("grid") or {}
     cols = int(grid.get("cols") or 0)
     rows = int(grid.get("rows") or 0)
-    if not cols or (cols + 1) * (rows + 1) != n:
-        raise SystemExit(f"{args.document}: mesh has no usable grid metadata for {n} vertices")
+    lattice = bool(cols and (cols + 1) * (rows + 1) == n)
+    if not lattice and not (mesh.get("triangles") and mesh.get("uvs")):
+        raise SystemExit(f"{args.document}: mesh has neither a lattice nor triangles for {n} vertices")
 
     rest = bone_rest(doc)
     anim = next(a for a in doc["animations"] if a["name"] == args.animation)
@@ -450,7 +454,8 @@ def main(argv: list[str]) -> int:
         optimize=False,
     )
 
-    print(f"{args.animation}: {args.frames} frames, grid {cols}×{rows} ({n} vertices)")
+    shape = f"grid {cols}×{rows}" if lattice else f"adaptive mesh, subdiv {grid.get('subdiv', '?')}"
+    print(f"{args.animation}: {args.frames} frames, {shape} ({n} vertices, {len(mesh['triangles'])//3} triangles)")
     print(f"wrote {out.with_suffix('.webp')} and {out.with_suffix('.gif')}")
     return 0
 
