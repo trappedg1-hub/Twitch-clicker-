@@ -5,6 +5,7 @@ import type {
   UpgradeId,
 } from '../domain/types.ts';
 import { contradictsWardrobe, getWardrobe } from '../domain/wardrobe.ts';
+import type { QuirkKind } from '../heroine/LiveHeroine.ts';
 
 export interface ChatMessage {
   id: string;
@@ -1103,5 +1104,60 @@ export function createMilestoneChatMessage(title: string): ChatMessage {
     badge: 'MOD',
     text: `★ РЕКОРД СТРИМА: ${title}! Чат кипит от фансервиса :Overheat: :Pog: :SubHype:`,
     isSystemHighlight: true,
+  };
+}
+
+/**
+ * Chat noticing that she is entertaining herself.
+ *
+ * These lines are deliberately day-agnostic: a giggle, a hair toss and a lean toward the camera are
+ * true on every plate of every day, so nothing here can contradict a wardrobe the player is looking
+ * at. They also never claim a garment moved, which is the rule the whole chat obeys.
+ */
+const SELF_QUIRK_LINES: Record<QuirkKind, string[]> = {
+  giggle: [
+    'она засмеялась САМА, никто ничего не написал, чат, вы это слышали :LUL:',
+    'смеётся над чем-то в своей голове. аниме-девочка в естественной среде обитания :peepoShy:',
+    'я готов поспорить, что она сейчас читает наши сообщения и ржёт :LUL: :Pog:',
+    'два всхлипа и прищур. я в клип это :ClipIt:',
+  ],
+  hair_flip: [
+    'поправила волосы просто так, без причины. и это сработало :AWOOGA:',
+    'волосы в одну сторону, голова в другую — как в аниме, только лучше :pepeDance:',
+    'это был театр. я аплодирую :Pog:',
+  ],
+  lean_in: [
+    'наклонилась к камере. я забыл, что хотел написать :peepoShy:',
+    'она приблизилась, и я приблизился к экрану. наука :Pog:',
+    'дыхание в микрофон, глаза в камеру. всё, я пропал :Nosebleed:',
+  ],
+  tease: [
+    'показала язык просто так. без повода. вот это характер :LUL:',
+    'ты видела? ВИДЕЛА? чат, она дразнится :AWOOGA:',
+  ],
+  turn: [
+    'оглянулась. кто-то вошёл в комнату? :peepoShy:',
+    'смотрит в сторону, будто там что-то есть. заговор :LUL:',
+  ],
+};
+
+export function createSelfQuirkMessage(
+  kind: QuirkKind,
+  seed = seqCounter,
+  streamDay = 1,
+): ChatMessage {
+  const viewer = VIEWER_NICKS[(seed * 5 + 3) % VIEWER_NICKS.length]!;
+  const pool = SELF_QUIRK_LINES[kind] ?? SELF_QUIRK_LINES.turn;
+  const text = pool[Math.abs(seed) % pool.length]!;
+  // Ghost day: the sheet is the joke, so the one quirk line it gets is about the sheet.
+  return {
+    id: nextMsgId(),
+    author: viewer.name,
+    color: viewer.color,
+    badge: viewer.badge,
+    text:
+      streamDay === 3 && kind === 'lean_in'
+        ? 'простыня наклонилась вместе с ней. физика, сэр :LUL:'
+        : text,
   };
 }

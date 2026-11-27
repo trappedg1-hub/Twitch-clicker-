@@ -49,6 +49,12 @@ export type LiveReaction =
  * only she saw. Only the ones that exist in the current document are ever picked — `turn` is on
  * every plate, the rest are extras.
  */
+/**
+ * Fired when she performs a beat of her own — not on a tap, not on a line of chat, but because
+ * nobody was doing anything. The stream reads this: chat notices when she entertains herself.
+ */
+export type QuirkKind = 'turn' | 'hair_flip' | 'lean_in' | 'giggle' | 'tease';
+
 export const IDLE_QUIRKS: LiveReaction[] = ['turn', 'hair_flip', 'lean_in', 'giggle', 'turn', 'tease'];
 
 export interface RigStats {
@@ -88,6 +94,8 @@ export class LiveHeroine {
   private lastReactionAt = -Infinity;
   /** When the player last did anything to her. Drives the "she gets bored" gap below. */
   private lastInteractionAt = 0;
+  /** Called after one of her own beats starts. Never called for reactions to the player. */
+  public onQuirk?: (kind: QuirkKind) => void;
   /**
    * When she looks around on her own.
    *
@@ -398,6 +406,7 @@ export class LiveHeroine {
         this.react(pick, pick === 'turn' ? 2400 : 2000);
         // The idle beats are audible too — quietly, and only the ones that are hers to make.
         if (pick !== 'turn' && pick !== 'sway') sfx.quirk();
+        this.onQuirk?.(pick as QuirkKind);
       }
     });
   }

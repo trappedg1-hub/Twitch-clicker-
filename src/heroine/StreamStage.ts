@@ -15,7 +15,7 @@ import type {
 } from '../domain/types.ts';
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
-import { LiveHeroine } from './LiveHeroine.ts';
+import { LiveHeroine, type QuirkKind } from './LiveHeroine.ts';
 import { aimFromPointer } from './gaze.ts';
 
 interface FloatingParticle {
@@ -283,6 +283,7 @@ export class StreamStage {
     this.rig.view.addChild(this.live.view);
     // A broken skeleton is a broken ornament, never a broken game: the moment it throws, the flat
     // plate comes back and the console says why (see `onLiveFault` in bootstrap).
+    this.live.onQuirk = (kind) => this.onLiveQuirk?.(kind);
     this.live.onFault = (reason) => {
       this.liveEnabled = false;
       this.rig?.setPlateVisible(true);
@@ -566,6 +567,9 @@ export class StreamStage {
       () => this.app?.render(),
     );
   }
+
+  /** Her own beats — the ones she does when the player is not doing anything. */
+  public onLiveQuirk?: (kind: QuirkKind) => void;
 
   /** One-shot secondary motion on the live skeleton, if one is up. */
   public playLiveReaction(kind: 'shake' | 'turn' | 'sway' = 'shake'): void {

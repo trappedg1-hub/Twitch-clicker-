@@ -9,6 +9,7 @@ import {
   createSubNotificationMessage,
   createUpgradeChatMessage,
   createViralClipChatMessage,
+  createSelfQuirkMessage,
   createZoneBurstMessage,
 } from '../chat/chatEngine.ts';
 import {
@@ -377,6 +378,18 @@ export async function bootstrapApp(): Promise<void> {
   const announce = (tag: string, isFever = false, seed = 0) => {
     if (announceMuted) return;
     stage.spawnReactionCallout(tag, isFever, seed);
+  };
+
+  // She entertains herself and the chat notices — but only sometimes, and only when the room is
+  // already talking: a chat that comments on every single head turn is a chat full of bots.
+  let lastQuirkChatMs = -Infinity;
+  stage.onLiveQuirk = (kind) => {
+    const now = performance.now();
+    if (now - lastQuirkChatMs < 18000) return;
+    if (announceMuted) return;
+    if (Math.random() > 0.45) return;
+    lastQuirkChatMs = now;
+    ui.pushChatMessage(createSelfQuirkMessage(kind, state.totalTaps + Math.floor(now / 1000), state.streamDay));
   };
 
   stage.onHeroineTap = (zone: TapZoneId) => {
