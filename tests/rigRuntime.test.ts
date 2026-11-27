@@ -92,7 +92,15 @@ test('idle is a breath, not a wobble', () => {
         const dy = v[i + 1]! - setup[i + 1]!;
         const d = Math.hypot(dx, dy);
         if (wornShare(i / 2) > 0.5) continue;
-        if (setup[i + 1]! > 1400) floor = Math.max(floor, d);
+        // Her socks hang past y = 1400 and they are hers, not the floor: the rule this line
+        // enforces is that the desk, the floor and the chair's base never move. "Furniture" is
+        // defined the way the rig defines it — a vertex that only `root` drives — so this asks
+        // the question of the things that cannot move by construction. The feet have their own
+        // guard (`rigLife`, "her feet are not furniture").
+        const rooted = mesh.weights[i / 2]!.every(
+          (part) => part.bone === 'bone_root' || part.weight <= 0.001,
+        );
+        if (rooted && setup[i + 1]! > 1400) floor = Math.max(floor, d);
         else if (headOnly.has(i / 2)) head = Math.max(head, d);
         else body = Math.max(body, d);
       }

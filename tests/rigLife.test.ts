@@ -206,6 +206,33 @@ test('a hat is worn: what is on her head moves with her head, and rigidly', () =
   assert.ok(worstRigid <= 1, `the hat deforms by ${worstRigid.toFixed(2)} px — that is a smear`);
 });
 
+test('her feet are not furniture: the socks swing, the seat under them does not', () => {
+  // The bottom of the plate was the last part of the picture that never moved: her feet dangled
+  // over the chair's front edge weighted to `root`, exactly like the chair they hang in front of.
+  // They now swing around their own ankles (bones placed on the socks the art itself draws, see
+  // `foot_field`). Two numbers keep that honest: the swing has to be big enough to see and small
+  // enough not to be a kick, and it must not reach the seat — which is what the chair test above
+  // measures on the same rig.
+  const rig = open('t1_s0');
+  const setup = rig.vertices();
+  const share = (i: number) =>
+    rig.weights[i]!.reduce((sum, w) => sum + (w.bone.startsWith('bone_foot') ? w.weight : 0), 0);
+  const feet = rig.weights.map((_, i) => (share(i) > 0.5 ? i : -1)).filter((i) => i >= 0);
+  assert.ok(feet.length >= 60, `only ${feet.length} vertices are feet`);
+
+  rig.instance.play('idle', true);
+  let peak = 0;
+  for (let f = 0; f < 20 * 60; f++) {
+    rig.instance.advance(1 / 60);
+    const v = rig.vertices();
+    for (const i of feet) {
+      peak = Math.max(peak, Math.hypot(v[i * 2]! - setup[i * 2]!, v[i * 2 + 1]! - setup[i * 2 + 1]!));
+    }
+  }
+  assert.ok(peak >= 4, `the feet move ${peak.toFixed(1)} px — that is a photograph`);
+  assert.ok(peak <= 14, `the feet swing ${peak.toFixed(1)} px — that is a kick, not a fidget`);
+});
+
 test('the chair she sits on never moves', () => {
   // Visible chair pixels on the day-1 plate, measured off the art: both backrest wings, both
   // armrests, and the seat under her thigh. The plate is the same chair on every day.

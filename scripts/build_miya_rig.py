@@ -231,6 +231,67 @@ def hair_field(plate: Path, face_box: list[int] | None, eyes_mid: tuple[float, f
     return soft
 
 
+def foot_field(plate: Path, eyes_mid: tuple[float, float], span: float):
+    """Per-foot masks, taken from the socks.
+
+    Her feet dangle over the front of the chair and were weighted to `root` like the furniture
+    under them — the bottom of the picture never moved. Socks are the one part of her that is
+    white in a dark frame (the seat, the desk and the floor are all dark), so the mask can be read
+    off the art instead of guessed: anything below the waist that is bright and nearly neutral.
+    Her skin is warm (red channel well above blue) and the stripes are violet, so neither passes.
+
+    Returns (left, right, left_ankle, right_ankle) or None when no sock is in frame — a plate with
+    a desk over her knees gets nothing, and the foot bones simply do nothing on it.
+    """
+    img = Image.open(plate).convert("RGBA")
+    rgba = np.asarray(img)
+    rgb = rgba[..., :3].astype(np.int16)
+    alpha = rgba[..., 3]
+    mx, my = eyes_mid
+    height, width = alpha.shape
+    yy, xx = np.mgrid[0:height, 0:width]
+    # Below the chair's front edge (9.2 spans under the eye line is y = 1180 on t1_s0) and white:
+    # the hoodie is grey and sits 600 px higher, so both tests matter — the first version of this
+    # mask ran from her chest down and put the ankle bones in her collarbone.
+    below = yy > my + 9.2 * span
+    neutral = (rgb.max(axis=2) - rgb.min(axis=2)) < 32
+    bright = rgb.min(axis=2) > 200
+    mask = below & neutral & bright & (alpha > 200)
+    left = (mask & (xx < mx)).astype(np.uint8) * 255
+    right = (mask & (xx >= mx)).astype(np.uint8) * 255
+    out = []
+    ankles = []
+    for half in (left, right):
+        # A sock has a shape: a compact blob, in the bottom of the frame, no taller than the foot.
+        # White alone is not enough — on the plates where she is not sitting in the chair the
+        # brightest thing under the waist is her underwear, and the first version of this mask
+        # happily attached a foot bone to a bra (t4_s2: a 610 px tall "foot"). No sock, no foot
+        # bone: a plate with no feet in frame simply does not get the feature.
+        # A real sock is most of a foot: ~16 000 px at a 97 px eye span. Highlights and the odd
+        # white edge are one to three thousand; the threshold is deliberately far above them.
+        if int(half.sum()) < 8000 * (span / REF_SPAN) ** 2:
+            return None
+        ys, xs = np.nonzero(half)
+        if ys.max() - ys.min() > 3.4 * span or ys.max() < height - 2.2 * span:
+            return None
+        # Ankle = the top edge of the sock, on its centre line: the bone has to sit *above* the
+        # foot, or a rotation swings the heel instead of the toes.
+        ankles.append((float(xs.mean()), float(ys.min())))
+        soft = Image.fromarray(half, "L").filter(ImageFilter.GaussianBlur(FOOT_BLUR))
+        out.append(np.asarray(soft))
+    return out[0], out[1], ankles[0], ankles[1]
+
+
+def foot_factor(side: str, x: float, y: float) -> float:
+    if _FOOT_PIX is None:
+        return 0.0
+    field = _FOOT_PIX[0] if side == "left" else _FOOT_PIX[1]
+    height, width = field.shape
+    xi = min(width - 1, max(0, int(x)))
+    yi = min(height - 1, max(0, int(y)))
+    return float(field[yi, xi]) / 255.0
+
+
 def head_cap_field(plate: Path, eyes_mid: tuple[float, float], span: float) -> tuple[np.ndarray, np.ndarray]:
     """Solid mask + the "worn on the head" mask, both from the plate's alpha.
 
@@ -262,6 +323,8 @@ _HAIR_PIX: np.ndarray | None = None
 # plus the chair she sits on). Used by the head cap below.
 _SOLID_PIX: np.ndarray | None = None
 _CAP_PIX: np.ndarray | None = None
+# Her socks, per foot, from the plate: the only near-white thing below her knees.
+_FOOT_PIX: tuple[np.ndarray, np.ndarray] | None = None
 
 # --- anatomy, in eye spans ---------------------------------------------------------------
 # Everything below is measured off the calibration plate and expressed in inter-ocular
@@ -283,6 +346,9 @@ HEAD_RX, HEAD_RY = 2.00, 1.75   # and how far it reaches; a touch proud of the h
 CAP_BOTTOM = float(os.environ.get("RIG_CAP_BOTTOM", "-0.35"))
 CAP_FADE = float(os.environ.get("RIG_CAP_FADE", "0.65"))
 CAP_BLUR = int(os.environ.get("RIG_CAP_BLUR", "40"))
+# The sock mask's own soften, in px: the same rule as the hat — a mask edge is a step in a skin
+# weight. 22 px keeps the sole of a sock moving as one piece and its outline from tearing.
+FOOT_BLUR = int(os.environ.get("RIG_FOOT_BLUR", "22"))
 BLEND = 0.30         # half-width of a joint band, in spans
 
 
@@ -465,7 +531,16 @@ def weights_for(x: float, y: float, world: dict[str, tuple[float, float]]) -> li
     # Whatever the envelope rejected is the chair under her: still, forever.
     parts.append(("root", max(0.0, 1.0 - w_head - w_worn - w_hair - w_neck - lower)))
 
-    # 5. Bust: a small, soft part in front of the chest with its own spring.
+    # 5. Feet: the socks take themselves over, softly, and nothing else on the plate with them.
+    #    A blunt takeover (share 1 in the mask, 0 outside) would draw the sock's edge twice, so the
+    #    mask is blurred and a half-share sock pixel splits between the foot and its neighbour.
+    for side in ("left", "right"):
+        share = foot_factor(side, x, y)
+        if share > 0.0:
+            parts = [(n, v * (1.0 - share)) for n, v in parts]
+            parts.append((f"foot_{side}", share))
+
+    # 6. Bust: a small, soft part in front of the chest with its own spring.
     if abs(y - world["bust"][1]) < 1.1 * span:
         bust = influence("bust", x, y)
         if bust > 0.0:
@@ -963,6 +1038,19 @@ def build() -> dict:
         (0.00, 0.0), (2.40, 0.12), (6.00, -0.10), (10.50, 0.14),
         (15.00, -0.12), (19.00, 0.05), (IDLE_LEN, 0.0),
     ]
+    # Feet: the smallest thing in the plate that can move on its own, and the only part of the
+    # bottom of the picture that ever will. 3.2 degrees about the ankle is 8 px at the toe
+    # (1.4 px where the game draws it) — visible in the loop, invisible in a still, and far under
+    # the 16 px the body cap allows. The two feet are never together: one leads the breath, the
+    # other answers half a beat later and shallower.
+    foot_sway_left = [
+        (0.00, 0.0), (2.20, 3.20), (4.60, -0.80), (7.10, 2.30), (9.80, -1.05),
+        (12.30, 2.85), (14.90, -0.70), (17.20, 2.00), (19.40, 0.25), (IDLE_LEN, 0.0),
+    ]
+    foot_sway_right = [
+        (0.00, 0.0), (3.10, -2.30), (5.70, 0.95), (8.30, -2.75), (10.90, 0.70),
+        (13.60, -2.05), (16.10, 1.10), (18.40, -1.70), (IDLE_LEN, 0.0),
+    ]
 
     # Eyelids: fifteen closures, gaps from 0.12 s to 2.35 s, two doubles and five that land right
     # before a glance — a person blinks before they turn their head, not during.
@@ -1011,6 +1099,15 @@ def build() -> dict:
             tl("bone_bust", "rotation", shifted(head_rot, 0.06, 0.34)),
             tl("bone_hips", "rotation", hips_rot),
         ]
+        if _FOOT_PIX is not None:
+            # The feet hang off the front of the chair and nothing else in the picture moves down
+            # there, which is what made the bottom of the plate read as a photograph. They swing
+            # around the ankle, a degree and a half, out of step with the breath and with each
+            # other: two feet that swing together are a metronome.
+            timelines += [
+                tl("bone_foot_left", "rotation", foot_sway_left),
+                tl("bone_foot_right", "rotation", foot_sway_right),
+            ]
         timelines.append(slot_timeline("slot_eyes", blink_beats))
         if with_talk and has_mouth:
             # ONE timeline for the whole loop: the runtime keys a slot attachment once per track,
@@ -1151,7 +1248,7 @@ def place_for(art: str) -> tuple[tuple[float, float], float]:
 
 def main(argv: list[str] | None = None) -> int:
     global PATCHES, BONES, INFLUENCE, WEIGHT_SIGMA, PLATE, ART_KEY, IMG_ID, EYES_ID
-    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, MX, MY, SPAN
+    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, _FOOT_PIX, MX, MY, SPAN
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--art", default="t1_s0", help="art key, e.g. t6_s1")
@@ -1194,6 +1291,15 @@ def main(argv: list[str] | None = None) -> int:
     field = hair_field(PLATE, entry.get("face"), mid, span)
     _HAIR_PIX = np.asarray(field) if field is not None else None
     _SOLID_PIX, _CAP_PIX = head_cap_field(PLATE, mid, span)
+    feet = foot_field(PLATE, mid, span)
+    _FOOT_PIX = (feet[0], feet[1]) if feet else None
+    if feet:
+        # The bones sit on the art's own ankles, so the swing is around the ankle on every plate,
+        # not around a reference point that happens to be right on one of them.
+        BONES.append(("foot_left", round(feet[2][0], 3), round(feet[2][1], 3), "hips"))
+        BONES.append(("foot_right", round(feet[3][0], 3), round(feet[3][1], 3), "hips"))
+        INFLUENCE["foot_left"] = (feet[2][0], feet[2][1] + 1.0 * span, 1.2 * span, 1.3 * span)
+        INFLUENCE["foot_right"] = (feet[3][0], feet[3][1] + 1.0 * span, 1.2 * span, 1.3 * span)
 
     PATCHES = face_patches(ART_KEY)
     doc = build()
@@ -1202,7 +1308,7 @@ def main(argv: list[str] | None = None) -> int:
     OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1))
     mesh = doc["skeleton"]["skins"][0]["attachments"]["slot_body"]["miya_body"]
     print(
-        f"{OUT}: {len(doc['skeleton']['bones'])} bones, "
+        f"{OUT}: {len(doc['skeleton']['bones'])} bones{'' if feet else ' (no feet in frame)'}, "
         f"{len(mesh['vertices']) // 2} vertices, {len(mesh['triangles']) // 3} triangles, "
         f"{len(doc['animations'])} animations"
     )

@@ -15,8 +15,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 326932
+  "bones": 13,
+  "bytes": 336662
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -34,8 +34,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 324754
+  "bones": 13,
+  "bytes": 329715
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -53,8 +53,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 326773
+  "bones": 13,
+  "bytes": 331502
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -71,8 +71,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 323963
+  "bones": 13,
+  "bytes": 329240
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -89,8 +89,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 325941
+  "bones": 13,
+  "bytes": 330515
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -107,8 +107,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 336284
+  "bones": 13,
+  "bytes": 339757
  },
  "t2_s0": {
   "file": "/rigs/t2_s0.obonb",
@@ -161,8 +161,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 326681
+  "bones": 13,
+  "bytes": 332417
  },
  "t2_s3": {
   "file": "/rigs/t2_s3.obonb",
@@ -179,8 +179,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 328807
+  "bones": 13,
+  "bytes": 334498
  },
  "t2_s4": {
   "file": "/rigs/t2_s4.obonb",
@@ -215,8 +215,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 337583
+  "bones": 13,
+  "bytes": 341895
  },
  "t3_s1": {
   "file": "/rigs/t3_s1.obonb",
@@ -249,8 +249,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 11,
-  "bytes": 315592
+  "bones": 13,
+  "bytes": 321530
  },
  "t3_s3": {
   "file": "/rigs/t3_s3.obonb",
@@ -267,8 +267,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 337565
+  "bones": 13,
+  "bytes": 341877
  },
  "t3_s4": {
   "file": "/rigs/t3_s4.obonb",
@@ -283,8 +283,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 11,
-  "bytes": 314424
+  "bones": 13,
+  "bytes": 318496
  },
  "t4_flash": {
   "file": "/rigs/t4_flash.obonb",
@@ -407,8 +407,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 324599
+  "bones": 13,
+  "bytes": 329562
  },
  "t5_s2": {
   "file": "/rigs/t5_s2.obonb",
@@ -425,8 +425,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 11,
-  "bytes": 319253
+  "bones": 13,
+  "bytes": 323366
  },
  "t5_start": {
   "file": "/rigs/t5_start.obonb",
