@@ -402,6 +402,21 @@
   "hasMouth": true,
   "bones": 10
  },
+ "t6_s0": {
+  "file": "/rigs/t6_s0.obone",
+  "plate": "/art/heroine_t6_s0.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
  "t6_s1": {
   "file": "/rigs/t6_s1.obone",
   "plate": "/art/heroine_t6_s1.webp",
