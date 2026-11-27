@@ -253,6 +253,36 @@
   "hasMouth": false,
   "bones": 10
  },
+ "t4_s2": {
+  "file": "/rigs/t4_s2.obone",
+  "plate": "/art/heroine_t4_s2.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
+ "t4_s3": {
+  "file": "/rigs/t4_s3.obone",
+  "plate": "/art/heroine_t4_s3.webp",
+  "animations": [
+   "idle",
+   "breath",
+   "sway",
+   "turn",
+   "shake",
+   "tap",
+   "blink"
+  ],
+  "hasMouth": false,
+  "bones": 10
+ },
  "t4_start": {
   "file": "/rigs/t4_start.obone",
   "plate": "/art/heroine_t4_start.webp",
