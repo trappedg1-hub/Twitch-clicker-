@@ -280,9 +280,11 @@
    "turn",
    "shake",
    "tap",
-   "blink"
+   "blink",
+   "idle_talk",
+   "talk"
   ],
-  "hasMouth": false,
+  "hasMouth": true,
   "bones": 10
  },
  "t4_s2": {
@@ -310,9 +312,11 @@
    "turn",
    "shake",
    "tap",
-   "blink"
+   "blink",
+   "idle_talk",
+   "talk"
   ],
-  "hasMouth": false,
+  "hasMouth": true,
   "bones": 10
  },
  "t4_start": {

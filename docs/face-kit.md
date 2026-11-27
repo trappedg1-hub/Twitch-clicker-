@@ -132,7 +132,7 @@ python3 scripts/face_kit_batch.py     # собрать все доступные
 Патчи глаз стоят на **36 артах**: `t1_base, t1_s0, t1_s1, t1_s2, t1_s4, t1_s5, t2_s0…t2_s4,
 t3_flash, t3_s1, t3_s2, t3_s3, t3_s4, t4_flash, t4_s2, t4_s3, t4_start, t4_start_hq, t5_s0, t5_s1,
 t5_s2, t5_start, t5_start_hq, t5_start_hq2, t6_s0, t6_s1, t6_s2, t6_s3, t6_start_hq,
-transparent_s0…s3`. Рот (`mouth_open`) — на 23 из них; там, где на каноне рот уже открыт,
+transparent_s0…s3`. Рот (`mouth_open`) — на 25 из них; там, где на каноне рот уже открыт,
 в кадре предмет у губ или лицо экстремально крупное, стоит `mouth_fixed: true` (7 артов) и
 анимируется только мигание. Ригнуто и опубликовано **36** документов (`public/rigs`), 30 из них стоят в подложках
 сцены.
