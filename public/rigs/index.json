@@ -12,11 +12,12 @@
    "blink",
    "idle_talk",
    "talk",
-   "smile"
+   "smile",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 13,
-  "bytes": 336662
+  "bytes": 339395
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -31,11 +32,12 @@
    "blink",
    "idle_talk",
    "talk",
-   "smile"
+   "smile",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 13,
-  "bytes": 329715
+  "bytes": 332452
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -50,11 +52,12 @@
    "blink",
    "idle_talk",
    "talk",
-   "smile"
+   "smile",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 13,
-  "bytes": 331502
+  "bytes": 334235
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -68,11 +71,12 @@
    "tap",
    "blink",
    "idle_talk",
-   "talk"
+   "talk",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 13,
-  "bytes": 329240
+  "bytes": 329943
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -86,11 +90,12 @@
    "tap",
    "blink",
    "idle_talk",
-   "talk"
+   "talk",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 13,
-  "bytes": 330515
+  "bytes": 331218
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -122,11 +127,12 @@
    "tap",
    "blink",
    "idle_talk",
-   "talk"
+   "talk",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 11,
-  "bytes": 327185
+  "bytes": 327730
  },
  "t2_s1": {
   "file": "/rigs/t2_s1.obonb",
@@ -140,11 +146,12 @@
    "tap",
    "blink",
    "idle_talk",
-   "talk"
+   "talk",
+   "tease"
   ],
   "hasMouth": true,
   "bones": 11,
-  "bytes": 325902
+  "bytes": 326447
  },
  "t2_s2": {
   "file": "/rigs/t2_s2.obonb",

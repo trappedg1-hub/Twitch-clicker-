@@ -44,6 +44,12 @@
     "cy": 392.0,
     "h": 118,
     "w": 261
+   },
+   "mouth_tongue": {
+    "cx": 543.5,
+    "cy": 392.0,
+    "h": 118,
+    "w": 261
    }
   }
  },
@@ -88,6 +94,12 @@
     "w": 254
    },
    "mouth_open": {
+    "cx": 543.0,
+    "cy": 390.0,
+    "h": 114,
+    "w": 254
+   },
+   "mouth_tongue": {
     "cx": 543.0,
     "cy": 390.0,
     "h": 114,
@@ -140,6 +152,12 @@
     "cy": 389.5,
     "h": 117,
     "w": 254
+   },
+   "mouth_tongue": {
+    "cx": 543.0,
+    "cy": 389.5,
+    "h": 117,
+    "w": 254
    }
   }
  },
@@ -182,6 +200,12 @@
     "cy": 380.0,
     "h": 88,
     "w": 136
+   },
+   "mouth_tongue": {
+    "cx": 543.0,
+    "cy": 380.0,
+    "h": 88,
+    "w": 136
    }
   }
  },
@@ -220,6 +244,12 @@
     "w": 222
    },
    "mouth_open": {
+    "cx": 543.0,
+    "cy": 389.0,
+    "h": 114,
+    "w": 254
+   },
+   "mouth_tongue": {
     "cx": 543.0,
     "cy": 389.0,
     "h": 114,
@@ -308,6 +338,12 @@
     "cy": 390.5,
     "h": 117,
     "w": 257
+   },
+   "mouth_tongue": {
+    "cx": 542.5,
+    "cy": 390.5,
+    "h": 117,
+    "w": 257
    }
   }
  },
@@ -346,6 +382,12 @@
     "w": 219
    },
    "mouth_open": {
+    "cx": 541.0,
+    "cy": 390.0,
+    "h": 118,
+    "w": 258
+   },
+   "mouth_tongue": {
     "cx": 541.0,
     "cy": 390.0,
     "h": 118,
@@ -548,7 +590,7 @@
    580,
    365
   ],
-  "skip": "stylised scare frame \u2014 generated lids break the face"
+  "skip": "stylised scare frame — generated lids break the face"
  },
  "heroine_t3_s1": {
   "eyes": [
@@ -777,7 +819,7 @@
    556,
    289
   ],
-  "skip": "detected window lands on a hand \u2014 lying pose, face not where the iris detector expects it"
+  "skip": "detected window lands on a hand — lying pose, face not where the iris detector expects it"
  },
  "heroine_t4_s1": {
   "eyes": [
@@ -1124,7 +1166,7 @@
    842,
    953
   ],
-  "skip": "back view \u2014 her face is turned away from camera, there is no face to animate"
+  "skip": "back view — her face is turned away from camera, there is no face to animate"
  },
  "heroine_t5_start": {
   "eyes": [

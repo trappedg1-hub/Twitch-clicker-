@@ -394,3 +394,35 @@ test('she blinks like a person: often enough, never on the beat', () => {
     assert.ok(double, `${art}: no double blink anywhere in the loop`);
   }
 });
+
+test('a tongue is art, and only where the art exists', () => {
+  // The stub that must never ship: `mouth_tongue` as a byte copy of `mouth_open`. It passes every
+  // schema check and shows nothing when played, so the guard has to be on the pixels.
+  const kit = join(import.meta.dirname, '..', 'public', 'art', 'face_kit');
+  const manifest = JSON.parse(readFileSync(join(kit, 'manifest.json'), 'utf8')) as Record<
+    string,
+    { patches?: Record<string, { w: number; h: number }> }
+  >;
+  let withTongue = 0;
+  for (const art of ARTS) {
+    const doc = readRigDoc(join(RIGS, `${art}.obonb`));
+    const names = (doc.animations ?? []).map((a: any) => a.name as string);
+    const images = (doc.images ?? []).map((i: any) => String(i.id ?? i.name));
+    const hasTongueImage = images.some((n) => n.endsWith('_mouth_tongue'));
+    // No art, no emotion: a `tease` that swaps in a mouth identical to the open one is a lie.
+    assert.equal(names.includes('tease'), hasTongueImage, `${art}: tease without a tongue image`);
+    if (!hasTongueImage) continue;
+    withTongue += 1;
+    const entry = manifest[`heroine_${art}`]?.patches?.mouth_tongue;
+    assert.ok(entry, `${art}`);
+
+    const tongue = readFileSync(join(kit, `${art}_mouth_tongue.webp`));
+    const open = readFileSync(join(kit, `${art}_mouth_open.webp`));
+    assert.ok(tongue.length > 0 && !tongue.equals(open), `${art}: tongue patch is a copy of the open mouth`);
+
+    // The stepped swap has to end where it started, or her mouth stays open after the tease.
+    const lane = (doc.animations as any[]).find((a) => a.name === 'tease');
+    assert.ok(lane, `${art}: tease lane`);
+  }
+  assert.ok(withTongue >= 7, `tongue patches on ${withTongue} arts`);
+});

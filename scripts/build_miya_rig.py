@@ -40,6 +40,7 @@ OUT = OUTDIR / "miya_day1.obone"
 IMG_ID = "img_miya_d1"
 EYES_ID = "img_miya_eyes_closed"
 MOUTH_CLOSED_ID = "img_miya_mouth_closed"
+MOUTH_TONGUE_ID = "img_miya_mouth_tongue"   # rewritten per art in `main`, like the two above
 MOUTH_OPEN_ID = "img_miya_mouth_open"
 
 PATCH_DIR = "face_kit"
@@ -898,6 +899,25 @@ def build() -> dict:
         mouth_attachments["mouth_closed"] = patch(
             "mouth_closed", MOUTH_CLOSED_ID, PATCHES["mouth_closed"]
         )
+    # The tongue is the third mouth state, and it is art, not geometry: the moment an art has
+    # `{art}_mouth_tongue.webp` in the face kit and a `mouth_tongue` patch in the manifest, the
+    # rig picks it up, adds the attachment and the `tease` beat below. Nothing else to change —
+    # `scripts/add_mouth_patch.py` registers the file.
+    has_tongue = has_mouth and "mouth_tongue" in PATCHES
+    tongue_image = []
+    if has_tongue:
+        tongue_image = [
+            {
+                "id": MOUTH_TONGUE_ID,
+                "name": "miya_mouth_tongue",
+                "src": f"/art/{PATCH_DIR}/{ART_KEY}_mouth_tongue.webp",
+                "width": PATCHES["mouth_tongue"]["w"],
+                "height": PATCHES["mouth_tongue"]["h"],
+            },
+        ]
+        mouth_attachments["tongue"] = patch(
+            "tongue", MOUTH_TONGUE_ID, PATCHES["mouth_tongue"]
+        )
 
     # Blink: the closed-eye patch is switched on for ~90 ms. Slot attachment keys are stepped by
     # definition — the runtime switches at the key, it does not blend.
@@ -960,6 +980,33 @@ def build() -> dict:
         ],
         "events": [],
     }
+
+    # Tease: the tongue, held about a second, gone again. Slot keys are stepped, so this is a
+    # state with a duration, not a fade — and it is only authored when the art exists.
+    tease = None
+    if has_tongue:
+        tease = {
+            "id": "anim_tease",
+            "name": "tease",
+            "duration": 1.6,
+            "timelines": [
+                {
+                    "target": "slot",
+                    "id": "slot_mouth",
+                    "property": "attachment",
+                    "keys": [
+                        {"time": 0.0, "value": None, "curve": "stepped"},
+                        {"time": 0.12, "value": "tongue", "curve": "stepped"},
+                        {"time": 1.32, "value": "tongue", "curve": "stepped"},
+                        {"time": 1.44, "value": None, "curve": "stepped"},
+                    ],
+                },
+                # She cocks her head a little while she is being cheeky; a mouth that pops out of a
+                # perfectly level head reads as a bug rather than a joke.
+                tl("bone_head", "rotation", [(0.0, 0.0), (0.30, 0.9), (1.20, 0.7), (1.55, 0.0)]),
+            ],
+            "events": [],
+        }
 
     # Idle: one 4 s loop that contains the breathing AND the blinks, so the game can just call
     # play("idle", true) once. A runtime that has to stack a blink animation on top of a breath
@@ -1169,7 +1216,7 @@ def build() -> dict:
                 "width": PATCHES["mouth_open"]["w"],
                 "height": PATCHES["mouth_open"]["h"],
             },
-        ] if has_mouth else []) + closed_image,
+        ] if has_mouth else []) + closed_image + tongue_image,
         "skeleton": {
             "bones": bones,
             "slots": [
@@ -1199,7 +1246,8 @@ def build() -> dict:
         "events": [],
         "animations": [idle, breath, sway, turn, shake, tap, blink]
         + ([idle_talk, talk] if has_mouth else [])
-        + ([smile] if has_closed_mouth else []),
+        + ([smile] if has_closed_mouth else [])
+        + ([tease] if tease else []),
         "stateMachines": [
             {
                 "id": "sm_miya",
@@ -1252,7 +1300,7 @@ def place_for(art: str) -> tuple[tuple[float, float], float]:
 
 def main(argv: list[str] | None = None) -> int:
     global PATCHES, BONES, INFLUENCE, WEIGHT_SIGMA, PLATE, ART_KEY, IMG_ID, EYES_ID
-    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, _FOOT_PIX, MX, MY, SPAN
+    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, MOUTH_TONGUE_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, _FOOT_PIX, MX, MY, SPAN
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--art", default="t1_s0", help="art key, e.g. t6_s1")
@@ -1286,6 +1334,7 @@ def main(argv: list[str] | None = None) -> int:
     EYES_ID = f"img_miya_{ART_KEY}_eyes_closed"
     MOUTH_OPEN_ID = f"img_miya_{ART_KEY}_mouth_open"
     MOUTH_CLOSED_ID = f"img_miya_{ART_KEY}_mouth_closed"
+    MOUTH_TONGUE_ID = f"img_miya_{ART_KEY}_mouth_tongue"
 
     mid, span = place_for(ART_KEY)
     MX, MY, SPAN = mid[0], mid[1], span
