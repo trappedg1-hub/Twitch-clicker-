@@ -963,7 +963,9 @@ t4_start 16.1 → **9.4**, t6_s3 14.6 → **9.0**.
   кнопкой «показать анимацию». Остальные зоны отдают обычный кивок кликера.
 * `npm run qa:audit` — новый постоянный прогон (folded / worst px / prop px по всем ригам).
 
-**Что проверено после всего:** `npm test` 140 pass / 0 fail, `npm run qa:smear` 11.1 px худшее (было
-17.5), `npm run qa:audit` folded 0 / prop 0.00, `npm run qa:rigs` — 26 live / 4 flat, errors: none;
-36 ригов, 11.4 MB.
+**Что проверено после всего:** `npm test` 140 pass / 0 fail, `npm run qa:audit` — folded **0** /
+prop **0.00** на всех 36 ригах, худшее ребро **12.8 px** (`transparent_s3`) против 17.5 px до круга;
+`npm run qa:rigs` — 26 live / 4 flat, errors: none; 36 ригов, 11.4 MB. Полный `qa:smear` на этом
+круге не перегонялся: число `worst px` в `qa:audit` — та же самая величина (максимальный прирост
+ребра), только посчитанная вместе с перевёрнутыми треугольниками и сдвигом кресел.
 Кадры: `deliverables/rig_life_v2/tongue_tease_8_frames.png`, `deliverables/rig_life_v2/mouth_states.png`.
