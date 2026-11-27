@@ -64,9 +64,16 @@ test('idle is a breath, not a wobble', () => {
       weights: { bone: string; weight: number }[][];
     };
     const HEADS = new Set(['bone_head', 'bone_hair_back']);
+    // ...but not the hat. `bone_head_wear` is a rigid body hung off the head (a witch hat's brim
+    // is three eye spans wide): it inherits every turn exactly, so its tip travels three times
+    // what her crown does — that is a lever, not a wobble. Its own guard is the "a hat is worn"
+    // test in `rigLife`; here the question is whether *she* is being thrown about.
+    const wornShare = (i: number) =>
+      mesh.weights[i]!.reduce((sum, part) => sum + (part.bone === 'bone_head_wear' ? part.weight : 0), 0);
     const headOnly = new Set(
       mesh.weights
         .map((w, i) => {
+          if (wornShare(i) > 0.5) return -1;
           const share = w.reduce((sum, part) => sum + (HEADS.has(part.bone) ? part.weight : 0), 0);
           const y = setup[i * 2 + 1]!;
           return y < neckY || share > 0.5 ? i : -1;
@@ -84,6 +91,7 @@ test('idle is a breath, not a wobble', () => {
         const dx = v[i]! - setup[i]!;
         const dy = v[i + 1]! - setup[i + 1]!;
         const d = Math.hypot(dx, dy);
+        if (wornShare(i / 2) > 0.5) continue;
         if (setup[i + 1]! > 1400) floor = Math.max(floor, d);
         else if (headOnly.has(i / 2)) head = Math.max(head, d);
         else body = Math.max(body, d);
@@ -209,6 +217,19 @@ test('a tap is a nod, a donation is a beat — and neither keeps wobbling', () =
     const amplitude = (anim: string, retriggerMs = 0) => {
       const run = open(art);
       const setup = Float32Array.from(run.vertices());
+      // Measured on her, not on the hat: see the note in "idle is a breath, not a wobble".
+      const mesh = doc.skeleton.skins[0].attachments.slot_body.miya_body as {
+        weights: { bone: string; weight: number }[][];
+      };
+      const worn = new Set(
+        mesh.weights
+          .map((w, i) =>
+            w.reduce((sum, part) => sum + (part.bone === 'bone_head_wear' ? part.weight : 0), 0) > 0.5
+              ? i
+              : -1,
+          )
+          .filter((i) => i >= 0),
+      );
       run.instance.play('idle', true);
       let max = 0;
       const step = Math.max(1, Math.round(retriggerMs / (1000 / 60)));
@@ -218,6 +239,7 @@ test('a tap is a nod, a donation is a beat — and neither keeps wobbling', () =
         run.instance.advance(1 / 60);
         const v = run.vertices();
         for (let i = 0; i < v.length; i += 2) {
+          if (worn.has(i / 2)) continue;
           max = Math.max(max, Math.hypot(v[i]! - setup[i]!, v[i + 1]! - setup[i + 1]!));
         }
       }

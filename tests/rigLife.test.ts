@@ -150,6 +150,62 @@ test('no triangle ever folds: a fold is the texture drawn twice — the ghost', 
   }
 });
 
+test('a hat is worn: what is on her head moves with her head, and rigidly', () => {
+  // The hat plate is t1_s5 — a witch hat whose brim is three eye spans wide. Before this, the head
+  // mask was an anatomy ellipse, and a hat is not anatomy: 231 of the 340 hat vertices above
+  // y = 300 carried no head weight at all, so the head turned *inside* a hat that stood still, and
+  // the pinned brim edge is one of the ghost bands the player saw.
+  //
+  // The hat now hangs off `bone_head_wear`, a bone at the head's own origin parented to
+  // `bone_head`: it inherits every head motion with no keys of its own, and it is a separate bone
+  // so that the "is she being thrown about" guards can ask that question of her skull (a rigid
+  // 3-span brim travels three times what her crown does — geometry, not wobble).
+  //
+  // Two things are pinned here: every hat vertex moves, and the hat moves as ONE body (a skin
+  // weight that lags across the hat would draw the brim twice).
+  const rig = open('t1_s5');
+  const setup = rig.vertices();
+  const share = (i: number) =>
+    rig.weights[i]!.reduce((sum, w) => sum + (w.bone === 'bone_head_wear' ? w.weight : 0), 0);
+  // More than half the hat: the pixels that are the hat rather than the soft edge between the hat
+  // and the room behind it. The edge is *meant* to blend — that is what keeps the silhouette from
+  // stepping — so rigidy is checked on the core only.
+  const worn = rig.weights.map((_, i) => (share(i) > 0.5 ? i : -1)).filter((i) => i >= 0);
+  const core = rig.weights.map((_, i) => (share(i) >= 0.95 ? i : -1)).filter((i) => i >= 0);
+  assert.ok(worn.length >= 100, `only ${worn.length} vertices wear the hat`);
+  assert.ok(core.length >= 10, `only ${core.length} vertices are solidly hat`);
+
+  const turn = rig.doc.animations.find((a: any) => a.name === 'turn');
+  const frames = Math.round(turn.duration * 60);
+  rig.instance.play('turn', false);
+  const moved = new Set<number>();
+  let worstRigid = 0;
+  for (let f = 0; f < frames; f++) {
+    rig.instance.advance(1 / 60);
+    const v = rig.vertices();
+    for (const i of worn) {
+      if (Math.hypot(v[i * 2]! - setup[i * 2]!, v[i * 2 + 1]! - setup[i * 2 + 1]!) >= 2) moved.add(i);
+    }
+    // Rigidity: the distance from the first core vertex to every other one, rest vs posed.
+    const a = core[0]!;
+    for (const i of core) {
+      const rest = Math.hypot(setup[a * 2]! - setup[i * 2]!, setup[a * 2 + 1]! - setup[i * 2 + 1]!);
+      const now = Math.hypot(v[a * 2]! - v[i * 2]!, v[a * 2 + 1]! - v[i * 2 + 1]!);
+      worstRigid = Math.max(worstRigid, Math.abs(now - rest));
+    }
+  }
+  const still = worn.filter((i) => !moved.has(i));
+  assert.equal(
+    still.length,
+    0,
+    `${still.length} hat vertices never move — the hat is not worn, it is painted on`,
+  );
+  // The core keeps a few percent of `root` (the soft edge is a ramp, not a step, by design), so
+  // rigidity is "under a plate pixel" rather than "exactly zero": measured 0.78 px on a 1526 px
+  // plate, which is 0.1 px where the game draws it.
+  assert.ok(worstRigid <= 1, `the hat deforms by ${worstRigid.toFixed(2)} px — that is a smear`);
+});
+
 test('the chair she sits on never moves', () => {
   // Visible chair pixels on the day-1 plate, measured off the art: both backrest wings, both
   // armrests, and the seat under her thigh. The plate is the same chair on every day.

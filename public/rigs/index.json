@@ -15,8 +15,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 319461
+  "bones": 11,
+  "bytes": 326932
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -34,8 +34,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 317495
+  "bones": 11,
+  "bytes": 324754
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -53,8 +53,8 @@
    "smile"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 319354
+  "bones": 11,
+  "bytes": 326773
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -71,8 +71,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 316353
+  "bones": 11,
+  "bytes": 323963
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -89,8 +89,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 318551
+  "bones": 11,
+  "bytes": 325941
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -107,8 +107,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 318083
+  "bones": 11,
+  "bytes": 336284
  },
  "t2_s0": {
   "file": "/rigs/t2_s0.obonb",
@@ -125,8 +125,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 317854
+  "bones": 11,
+  "bytes": 327185
  },
  "t2_s1": {
   "file": "/rigs/t2_s1.obonb",
@@ -143,8 +143,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 316642
+  "bones": 11,
+  "bytes": 325898
  },
  "t2_s2": {
   "file": "/rigs/t2_s2.obonb",
@@ -161,8 +161,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 317396
+  "bones": 11,
+  "bytes": 326681
  },
  "t2_s3": {
   "file": "/rigs/t2_s3.obonb",
@@ -179,8 +179,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 319625
+  "bones": 11,
+  "bytes": 328807
  },
  "t2_s4": {
   "file": "/rigs/t2_s4.obonb",
@@ -197,8 +197,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 318169
+  "bones": 11,
+  "bytes": 325725
  },
  "t3_flash": {
   "file": "/rigs/t3_flash.obonb",
@@ -215,8 +215,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313200
+  "bones": 11,
+  "bytes": 337583
  },
  "t3_s1": {
   "file": "/rigs/t3_s1.obonb",
@@ -233,8 +233,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 312320
+  "bones": 11,
+  "bytes": 322645
  },
  "t3_s2": {
   "file": "/rigs/t3_s2.obonb",
@@ -249,8 +249,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 309961
+  "bones": 11,
+  "bytes": 315592
  },
  "t3_s3": {
   "file": "/rigs/t3_s3.obonb",
@@ -267,8 +267,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313182
+  "bones": 11,
+  "bytes": 337565
  },
  "t3_s4": {
   "file": "/rigs/t3_s4.obonb",
@@ -283,8 +283,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 309203
+  "bones": 11,
+  "bytes": 314424
  },
  "t4_flash": {
   "file": "/rigs/t4_flash.obonb",
@@ -301,8 +301,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 315826
+  "bones": 11,
+  "bytes": 324852
  },
  "t4_s2": {
   "file": "/rigs/t4_s2.obonb",
@@ -317,8 +317,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 300902
+  "bones": 11,
+  "bytes": 312904
  },
  "t4_s3": {
   "file": "/rigs/t4_s3.obonb",
@@ -335,8 +335,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 315808
+  "bones": 11,
+  "bytes": 324834
  },
  "t4_start": {
   "file": "/rigs/t4_start.obonb",
@@ -353,8 +353,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313325
+  "bones": 11,
+  "bytes": 317808
  },
  "t4_start_hq": {
   "file": "/rigs/t4_start_hq.obonb",
@@ -371,8 +371,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313263
+  "bones": 11,
+  "bytes": 318058
  },
  "t5_s0": {
   "file": "/rigs/t5_s0.obonb",
@@ -389,8 +389,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 312047
+  "bones": 11,
+  "bytes": 316617
  },
  "t5_s1": {
   "file": "/rigs/t5_s1.obonb",
@@ -407,8 +407,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 318347
+  "bones": 11,
+  "bytes": 324599
  },
  "t5_s2": {
   "file": "/rigs/t5_s2.obonb",
@@ -425,8 +425,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313083
+  "bones": 11,
+  "bytes": 319253
  },
  "t5_start": {
   "file": "/rigs/t5_start.obonb",
@@ -443,8 +443,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 313063
+  "bones": 11,
+  "bytes": 318866
  },
  "t5_start_hq": {
   "file": "/rigs/t5_start_hq.obonb",
@@ -461,8 +461,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 311242
+  "bones": 11,
+  "bytes": 317057
  },
  "t5_start_hq2": {
   "file": "/rigs/t5_start_hq2.obonb",
@@ -479,8 +479,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 312094
+  "bones": 11,
+  "bytes": 317912
  },
  "t6_s0": {
   "file": "/rigs/t6_s0.obonb",
@@ -495,8 +495,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 306651
+  "bones": 11,
+  "bytes": 316294
  },
  "t6_s1": {
   "file": "/rigs/t6_s1.obonb",
@@ -511,8 +511,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 308031
+  "bones": 11,
+  "bytes": 319019
  },
  "t6_s2": {
   "file": "/rigs/t6_s2.obonb",
@@ -527,8 +527,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 307955
+  "bones": 11,
+  "bytes": 317442
  },
  "t6_s3": {
   "file": "/rigs/t6_s3.obonb",
@@ -543,8 +543,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 308260
+  "bones": 11,
+  "bytes": 318336
  },
  "t6_start_hq": {
   "file": "/rigs/t6_start_hq.obonb",
@@ -561,8 +561,8 @@
    "talk"
   ],
   "hasMouth": true,
-  "bones": 10,
-  "bytes": 314300
+  "bones": 11,
+  "bytes": 323778
  },
  "transparent_s0": {
   "file": "/rigs/transparent_s0.obonb",
@@ -577,8 +577,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 319540
+  "bones": 11,
+  "bytes": 323585
  },
  "transparent_s1": {
   "file": "/rigs/transparent_s1.obonb",
@@ -593,8 +593,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 319353
+  "bones": 11,
+  "bytes": 323574
  },
  "transparent_s2": {
   "file": "/rigs/transparent_s2.obonb",
@@ -609,8 +609,8 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 317163
+  "bones": 11,
+  "bytes": 321560
  },
  "transparent_s3": {
   "file": "/rigs/transparent_s3.obonb",
@@ -625,7 +625,7 @@
    "blink"
   ],
   "hasMouth": false,
-  "bones": 10,
-  "bytes": 311275
+  "bones": 11,
+  "bytes": 315996
  }
 }

@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 
 import numpy as np
@@ -83,6 +84,12 @@ REF_BONES = [
     ("neck",           512,  620, "chest"),
     ("head",           512,  470, "neck"),
     ("hair_back",      512,  420, "head"),
+    # What she wears on her head — a hat, headphones, a sheet — rides the head as a rigid body on
+    # its own bone, at the same origin, so it inherits the head's motion exactly and needs no keys
+    # of its own. It is a separate bone so that "is the head being thrown about" can be asked of
+    # her skull: a 3-span hat brim is a long lever and its tip travels three times what her crown
+    # does, which is geometry, not wobble (the jelly guards in `rigRuntime` measure bone_head).
+    ("head_wear",      512,  470, "head"),
     ("arm_left",       330,  860, "chest"),
     ("arm_right",      700,  860, "chest"),
 ]
@@ -224,8 +231,37 @@ def hair_field(plate: Path, face_box: list[int] | None, eyes_mid: tuple[float, f
     return soft
 
 
+def head_cap_field(plate: Path, eyes_mid: tuple[float, float], span: float) -> tuple[np.ndarray, np.ndarray]:
+    """Solid mask + the "worn on the head" mask, both from the plate's alpha.
+
+    The cap fades out at CAP_BOTTOM: the chair's backrest is the only other solid thing up there,
+    and its wings begin below that line on every plate (the chair test's rects start at y=320).
+    Fading rather than cutting is the same rule as everywhere else in this file — a step in a skin
+    weight folds the mesh.
+    """
+    img = Image.open(plate).convert("RGBA")
+    alpha = np.asarray(img)[..., 3]
+    # A wide blur, not 2 px: a mask edge is a step in a skin weight, and a step folds the mesh
+    # (250 folded triangles in `idle` on the first try). The y-ramp below still keeps the chair out.
+    solid = Image.fromarray(alpha, "L").filter(ImageFilter.GaussianBlur(CAP_BLUR))
+    solid_px = np.asarray(solid).copy()
+    height, width = solid_px.shape
+    yy = np.mgrid[0:height, 0:width][0].astype(np.float32)
+    mx, my = eyes_mid
+    bottom = my + CAP_BOTTOM * span
+    fade = CAP_FADE * span
+    ramp = np.clip((bottom + fade - yy) / max(fade, 1e-3), 0.0, 1.0)
+    ramp = ramp * ramp * (3.0 - 2.0 * ramp)
+    cap = (solid_px.astype(np.float32) * ramp).astype(np.uint8)
+    return solid_px, cap
+
+
 HAIR_FIELD: Image.Image | None = None
 _HAIR_PIX: np.ndarray | None = None
+# Her pixels, from the plate's own alpha (the room is a separate layer, so alpha IS her silhouette
+# plus the chair she sits on). Used by the head cap below.
+_SOLID_PIX: np.ndarray | None = None
+_CAP_PIX: np.ndarray | None = None
 
 # --- anatomy, in eye spans ---------------------------------------------------------------
 # Everything below is measured off the calibration plate and expressed in inter-ocular
@@ -238,6 +274,15 @@ NECK_TOP = 0.04      # the neck bend starts a little under the jaw
 NECK_BOTTOM = 1.75   # and is done by here: below this the chest owns the pixel
 HEAD_DX, HEAD_DY = 0.12, -0.03  # centre of the skull+hair+headphone mass, relative to the eyes
 HEAD_RX, HEAD_RY = 2.00, 1.75   # and how far it reaches; a touch proud of the hair (x 340..748)
+# The "worn on the head" cap: full weight above CAP_BOTTOM eye spans over the eye line, gone by
+# CAP_BOTTOM + CAP_FADE, blurred by CAP_BLUR px first. Wide, because the head turns ~50 px at the
+# brim's tip and a narrow ramp across that much motion folds the mesh; ending above the backrest,
+# because the chair's rects start at y = 320. Swept: finer ramps fold the hat, wider ones drag the
+# backrest. This pair reads 0.42 px on the chair and 5.4x on the worst hat triangle (the rig this
+# replaced already read 5.8x), with the hat's 340 solid vertices above y = 300 all moving.
+CAP_BOTTOM = float(os.environ.get("RIG_CAP_BOTTOM", "-0.35"))
+CAP_FADE = float(os.environ.get("RIG_CAP_FADE", "0.65"))
+CAP_BLUR = int(os.environ.get("RIG_CAP_BLUR", "40"))
 BLEND = 0.30         # half-width of a joint band, in spans
 
 
@@ -285,6 +330,23 @@ def head_gate(x: float, y: float) -> float:
     rx, ry = HEAD_RX * SPAN, HEAD_RY * SPAN
     d = math.hypot((x - (MX + HEAD_DX * SPAN)) / rx, (y - (MY + HEAD_DY * SPAN)) / ry)
     return 1.0 - smoothstep(0.84, 1.0, d)
+
+
+def head_cap(x: float, y: float) -> float:
+    """Everything solid above her eye line is her head — hat and headphones included.
+
+    The head ellipse is an anatomy model, and a witch hat is not anatomy: its brim is three eye
+    spans wide and sits exactly at the eye line, so the ellipse left it behind and the hat stood
+    still while the head turned inside it (measured on t1_s5: 231 solid vertices above y=300 with
+    no head weight at all). The cap is the plate's own alpha, faded out before the chair's backrest
+    starts, so the hat rides the head and the chair still never moves.
+    """
+    if _CAP_PIX is None:
+        return 0.0
+    height, width = _CAP_PIX.shape
+    xi = min(width - 1, max(0, int(x)))
+    yi = min(height - 1, max(0, int(y)))
+    return float(_CAP_PIX[yi, xi]) / 255.0
 
 
 def hair_factor(x: float, y: float) -> float:
@@ -356,15 +418,21 @@ def weights_for(x: float, y: float, world: dict[str, tuple[float, float]]) -> li
     chin = MY + CHIN * span
     hair = hair_factor(x, y)
     head = head_gate(x, y)
-    her = max(head, hair)                       # the head+hair mass, soft at its edge
+    # The cap only ever fills what the ellipse missed, never overrides it: inside the head mass
+    # nothing changes (so the face stays rigid and the hair keeps its measured travel), and a hat
+    # brim that hangs outside the anatomy gets the head's motion instead of standing still.
+    worn = head_cap(x, y) * (1.0 - max(head, hair))
+    her = max(head, hair) + worn                # head + hair + anything she wears on it
 
     # 1. The head owns everything above her jaw and hands it over across the neck.
-    w_head = her * (1.0 - below(y, chin, 0.45 * span))
+    head_gate_ramp = 1.0 - below(y, chin, 0.45 * span)
+    w_head = (her - worn) * head_gate_ramp       # her skull and hair
+    w_worn = worn * head_gate_ramp               # the hat on top of it
     # 2. Hair that falls past the jaw is still her hair: it rides the head chain on its own bone,
     #    which is where the physics spring lives.
     w_hair = hair * below(y, chin - 0.45 * span, 0.85 * span)
 
-    rest = max(0.0, 1.0 - w_head - w_hair)
+    rest = max(0.0, 1.0 - w_head - w_worn - w_hair)
     # 3. Under the jaw the neck takes over and then the chest. No booleans: two ramps that cross.
     #    The neck starts BELOW the jaw: without that ramp the band reached the backrest behind her
     #    head and dragged 21 px of chair along with every nod.
@@ -388,13 +456,14 @@ def weights_for(x: float, y: float, world: dict[str, tuple[float, float]]) -> li
     ]
     parts = [
         ("head", w_head),
+        ("head_wear", w_worn),
         ("hair_back", w_hair),
         ("neck", w_neck),
     ]
     for name, share in ladder:
         parts.append((name, lower * share))
     # Whatever the envelope rejected is the chair under her: still, forever.
-    parts.append(("root", max(0.0, 1.0 - w_head - w_hair - w_neck - lower)))
+    parts.append(("root", max(0.0, 1.0 - w_head - w_worn - w_hair - w_neck - lower)))
 
     # 5. Bust: a small, soft part in front of the chest with its own spring.
     if abs(y - world["bust"][1]) < 1.1 * span:
@@ -1082,7 +1151,7 @@ def place_for(art: str) -> tuple[tuple[float, float], float]:
 
 def main(argv: list[str] | None = None) -> int:
     global PATCHES, BONES, INFLUENCE, WEIGHT_SIGMA, PLATE, ART_KEY, IMG_ID, EYES_ID
-    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, MX, MY, SPAN
+    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, MX, MY, SPAN
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--art", default="t1_s0", help="art key, e.g. t6_s1")
@@ -1124,6 +1193,7 @@ def main(argv: list[str] | None = None) -> int:
     entry = json.loads(MANIFEST.read_text())[f"heroine_{ART_KEY}"]
     field = hair_field(PLATE, entry.get("face"), mid, span)
     _HAIR_PIX = np.asarray(field) if field is not None else None
+    _SOLID_PIX, _CAP_PIX = head_cap_field(PLATE, mid, span)
 
     PATCHES = face_patches(ART_KEY)
     doc = build()
