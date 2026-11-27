@@ -28,7 +28,7 @@ import { applyGaze, gazeDegrees, GazeSpring } from './gaze.ts';
  * inside a guard: whatever the skeleton does, it can only ever cost us the skeleton.
  */
 
-export type LiveReaction = 'shake' | 'turn' | 'sway' | 'tap';
+export type LiveReaction = 'shake' | 'turn' | 'sway' | 'tap' | 'tickle' | 'tease' | 'gasp';
 
 export interface RigStats {
   bones: number;
@@ -299,6 +299,11 @@ export class LiveHeroine {
     });
     this.reactionUntil = now + ms;
     this.lastReactionAt = now;
+  }
+
+  /** Does this document carry the animation? Some beats only exist where the art does. */
+  public hasAnimation(name: string): boolean {
+    return this.animations.includes(name);
   }
 
   /**

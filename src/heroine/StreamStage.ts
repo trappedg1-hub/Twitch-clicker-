@@ -349,7 +349,21 @@ export class StreamStage {
       // size affordable. It has to be this size: the stage draws the 1526 px plate at ~0.14 on a
       // phone, so a 12 px nod is a 1.7 px nod, and that is exactly what «она не двигается при
       // тапе» was. See `docs/rig-pilot.md` for the measurements.
-      this.live?.react('tap', 480);
+      // Feet are ticklish. A tap on the socks curls her toes (`tickle`, authored only on the plates
+      // that have socks in frame) instead of nodding — the nod is the clicker's pulse everywhere
+      // else. A tap on her face gets the tongue, when the tongue art exists, because that is what
+      // a player does to a face like that: they poke it and see what she does.
+      if (zone === 'feet' && this.live?.hasAnimation('tickle')) {
+        this.live.react('tickle', 1000);
+      } else if (zone === 'head' && this.live?.hasAnimation('tease') && Math.random() < 0.35) {
+        this.live.react('tease', 1600);
+      } else if (zone === 'chest' && this.live?.hasAnimation('gasp')) {
+        // A tap on the chest is answered where it landed: a held breath, chin up, and the two bust
+        // springs doing the rest on their own because the chest moved under them.
+        this.live.react('gasp', 850);
+      } else {
+        this.live?.react('tap', 480);
+      }
       const res = this.onHeroineTap?.(zone);
       if (res) {
         this.spawnTapBurst(localPt.x, localPt.y, res.earned, res.alert, zone);

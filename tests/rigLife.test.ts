@@ -215,8 +215,13 @@ test('her feet are not furniture: the socks swing, the seat under them does not'
   // measures on the same rig.
   const rig = open('t1_s0');
   const setup = rig.vertices();
+  // Toes are part of the sock: since the tickle feature every sock is split between `foot_*` and
+  // `toe_*`, and a test that only counted the former would call a moving foot a photograph.
   const share = (i: number) =>
-    rig.weights[i]!.reduce((sum, w) => sum + (w.bone.startsWith('bone_foot') ? w.weight : 0), 0);
+    rig.weights[i]!.reduce(
+      (sum, w) => sum + (w.bone.startsWith('bone_foot') || w.bone.startsWith('bone_toe') ? w.weight : 0),
+      0,
+    );
   const feet = rig.weights.map((_, i) => (share(i) > 0.5 ? i : -1)).filter((i) => i >= 0);
   assert.ok(feet.length >= 60, `only ${feet.length} vertices are feet`);
 
@@ -231,6 +236,20 @@ test('her feet are not furniture: the socks swing, the seat under them does not'
   }
   assert.ok(peak >= 4, `the feet move ${peak.toFixed(1)} px — that is a photograph`);
   assert.ok(peak <= 14, `the feet swing ${peak.toFixed(1)} px — that is a kick, not a fidget`);
+
+  // Toes: the tickle beat. The front of the sock has to be a bone of its own, and curling it has
+  // to move the toe tip without moving the ankle — a sock that swings as one piece cannot curl.
+  const toes = rig.weights.map((_, i) => (rig.weights[i]!.some((w) => w.bone.startsWith('bone_toe') && w.weight > 0.4) ? i : -1)).filter((i) => i >= 0);
+  assert.ok(toes.length >= 20, `only ${toes.length} vertices are toes`);
+  assert.ok(rig.doc.animations.some((a: any) => a.name === 'tickle'), 'no tickle animation');
+  rig.instance.play('tickle', false);
+  let tip = 0;
+  for (let f = 0; f < 60; f++) {
+    rig.instance.advance(1 / 60);
+    const v = rig.vertices();
+    for (const i of toes) tip = Math.max(tip, Math.hypot(v[i * 2]! - setup[i * 2]!, v[i * 2 + 1]! - setup[i * 2 + 1]!));
+  }
+  assert.ok(tip >= 2 && tip <= 12, `the toes curl ${tip.toFixed(1)} px`);
 });
 
 test('the chair she sits on never moves', () => {
@@ -407,7 +426,7 @@ test('a tongue is art, and only where the art exists', () => {
   for (const art of ARTS) {
     const doc = readRigDoc(join(RIGS, `${art}.obonb`));
     const names = (doc.animations ?? []).map((a: any) => a.name as string);
-    const images = (doc.images ?? []).map((i: any) => String(i.id ?? i.name));
+    const images: string[] = (doc.images ?? []).map((i: any) => String(i.id ?? i.name));
     const hasTongueImage = images.some((n) => n.endsWith('_mouth_tongue'));
     // No art, no emotion: a `tease` that swaps in a mouth identical to the open one is a lie.
     assert.equal(names.includes('tease'), hasTongueImage, `${art}: tease without a tongue image`);

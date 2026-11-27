@@ -966,7 +966,7 @@ export async function bootstrapApp(): Promise<void> {
   const saveRigTuning = (): void => writeFlag(RIG_TUNING_KEY, JSON.stringify(rigTuning));
 
   /** Animations that are a beat, not a loop — the console should not leave her mid-shake. */
-  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk', 'tease']);
+  const ONESHOT = new Set(['shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp']);
 
   const rigApi: AdminRigApi = {
     snapshot: () => {

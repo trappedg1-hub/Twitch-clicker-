@@ -81,7 +81,12 @@ REF_BONES = [
     ("hips",           512, 1180, "root"),
     ("spine",          512, 1050, "hips"),
     ("chest",          512,  880, "spine"),
-    ("bust",           512,  745, "chest"),
+    # Two breasts, two springs. One `bust` bone could only ever move as one piece, and a single
+    # piece moving is a plate, not a body: the whole point of chest secondary motion is that the
+    # two sides do not agree on when the body stopped. The origins sit against the chest wall
+    # (y 700, above the mass at 745) so a rotation swings the breast instead of spinning it.
+    ("bust_left",      448,  700, "chest"),
+    ("bust_right",     576,  700, "chest"),
     ("neck",           512,  620, "chest"),
     ("head",           512,  470, "neck"),
     ("hair_back",      512,  420, "head"),
@@ -120,14 +125,28 @@ PHYSICS = [
         "gravity": 12.0, "wind": 0.0, "mix": 0.45, "fps": 60, "volume": True,
     },
     {
-        # Bust: the only part with real travel. It hangs off the chest, so it inherits the torso
-        # motion and then overshoots it — that overshoot is the whole effect.
-        "id": "phys_bust",
-        "name": "bust",
-        "bone": "bone_bust",
-        "x": 0.55, "y": 0.75, "rotate": 0.45, "scaleX": 0.20,
-        "inertia": 0.72, "strength": 170.0, "damping": 7.0, "mass": 1.0,
-        "gravity": 0.0, "wind": 0.0, "mix": 0.40, "fps": 60, "volume": False,
+        # Her left breast. The two sides are deliberately not identical: a body that carries two
+        # springs with the same constant is a machined part, and the eye reads the symmetry as
+        # rubber. Left is the softer of the two (lower constant, less damping, more lag), so a nod
+        # arrives on the right first and the left is still settling when it is over.
+        "id": "phys_bust_left",
+        "name": "bust_left",
+        "bone": "bone_bust_left",
+        "x": 0.55, "y": 0.75, "rotate": 0.85, "scaleX": 0.20,
+        "inertia": 0.78, "strength": 132.0, "damping": 5.8, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.66, "fps": 60, "volume": False,
+    },
+    {
+        # Her right. Tauter and better damped: it settles first on a tap and carries the smaller
+        # overshoot on a turn. Both stay under the smear limit — the springs move pixels, and a
+        # spring that moves pixels without the weights to match is the jelly the player complained
+        # about in the first place.
+        "id": "phys_bust_right",
+        "name": "bust_right",
+        "bone": "bone_bust_right",
+        "x": 0.55, "y": 0.75, "rotate": 0.70, "scaleX": 0.20,
+        "inertia": 0.72, "strength": 152.0, "damping": 7.2, "mass": 1.0,
+        "gravity": 0.0, "wind": 0.0, "mix": 0.56, "fps": 60, "volume": False,
     },
     {
         # Chest: taut, fast, small travel. Enough to let the torso settle a moment after the
@@ -155,7 +174,8 @@ REF_INFLUENCE = {
     "hair_back":  (512,  620, 172, 400),
     "neck":       (512,  660, 190, 170),
     "chest":      (512,  880, 225, 230),   # torso only: bust and shoulders, not the chair
-    "bust":       (512,  748, 158, 96),    # just the bust: softest part, gets its own spring
+    "bust_left":  (452,  752, 104, 100),   # her left breast: softest part, its own spring
+    "bust_right": (572,  752, 104, 100),   # and her right, on a second spring
     "spine":      (512, 1020, 205, 150),
     "hips":       (512, 1200, 255, 175),
     "arm_left":   (330,  900, 125, 215),
@@ -293,6 +313,14 @@ def foot_factor(side: str, x: float, y: float) -> float:
     return float(field[yi, xi]) / 255.0
 
 
+def toe_ramp(side: str, y: float) -> float:
+    """0 at the ankle, 1 at the toe tip, smooth between — the sock's own extent sets the band."""
+    band = _TOE_RAMP.get(side)
+    if band is None:
+        return 0.0
+    return below(y, band[0], max(band[1] - band[0], 1e-3))
+
+
 def head_cap_field(plate: Path, eyes_mid: tuple[float, float], span: float) -> tuple[np.ndarray, np.ndarray]:
     """Solid mask + the "worn on the head" mask, both from the plate's alpha.
 
@@ -326,6 +354,12 @@ _SOLID_PIX: np.ndarray | None = None
 _CAP_PIX: np.ndarray | None = None
 # Her socks, per foot, from the plate: the only near-white thing below her knees.
 _FOOT_PIX: tuple[np.ndarray, np.ndarray] | None = None
+# Where the toes start on each sock, as (y_start, y_end) in plate pixels. The sock's own mask
+# decides: the bottom of it is the toes, the top is the ankle.
+_TOE_RAMP: dict[str, tuple[float, float]] = {}
+# The face patch frame on this plate (`manifest.json` -> `face`): the rigid core of the rig. The
+# smoothing pass never touches it, so "her face is a face" stays exact rather than approximately so.
+FACE_BOX: list[int] | None = None
 
 # --- anatomy, in eye spans ---------------------------------------------------------------
 # Everything below is measured off the calibration plate and expressed in inter-ocular
@@ -539,15 +573,188 @@ def weights_for(x: float, y: float, world: dict[str, tuple[float, float]]) -> li
         share = foot_factor(side, x, y)
         if share > 0.0:
             parts = [(n, v * (1.0 - share)) for n, v in parts]
-            parts.append((f"foot_{side}", share))
+            # The front of the sock is its own bone, so a tap on the sole can curl the toes without
+            # swinging the whole foot. The split is by height inside the mask: the toe bone inherits
+            # `foot_*`, so a foot swing still carries the toes with it.
+            toe = toe_ramp(side, y)
+            if toe > 0.001:
+                parts.append((f"toe_{side}", share * toe))
+                if share * (1.0 - toe) > 0.001:
+                    parts.append((f"foot_{side}", share * (1.0 - toe)))
+            else:
+                parts.append((f"foot_{side}", share))
 
-    # 6. Bust: a small, soft part in front of the chest with its own spring.
-    if abs(y - world["bust"][1]) < 1.1 * span:
-        bust = influence("bust", x, y)
-        if bust > 0.0:
-            parts = [(n, v * (1.0 - 0.5 * bust)) for n, v in parts]
-            parts.append(("bust", 0.5 * bust * lower))
+    # 6. Bust: a small, soft part in front of the chest, split left and right so each side can be
+    #    on its own spring. The split is by *influence ratio*, not by a vertical cut: the two
+    #    ellipses overlap across the sternum, so every pixel in the middle is shared and the seam
+    #    between the sides is a gradient rather than a line the mesh could tear along.
+    if abs(y - world["bust_left"][1]) < 1.15 * span:
+        bl = influence("bust_left", x, y)
+        br = influence("bust_right", x, y)
+        both = bl + br
+        if both > 0.0:
+            # 0.62, not 0.5: at half the chest's share the bust travelled 4.7 px on a tap, which the
+            # stage draws at 0.14 scale — two thirds of a pixel. 0.62 plus the softer springs below
+            # put it at ~7 px, which is the smallest that still reads as a body on a phone.
+            soft = 0.80 * min(1.0, both) * lower
+            parts = [(n, v * (1.0 - soft)) for n, v in parts]
+            parts.append(("bust_left", soft * bl / both))
+            parts.append(("bust_right", soft * br / both))
     return finish(x, y, world, parts)
+
+
+RELAX = float(os.environ.get("RIG_RELAX", "0.5"))       # neighbour share per pass
+RELAX_PASSES = int(os.environ.get("RIG_RELAX_PASSES", "3"))
+
+
+HEAD_FAMILY = ("head", "head_wear", "hair_back")
+
+
+RAMP = float(os.environ.get("RIG_RAMP", "2.2"))   # how many cells the head share fades over
+
+
+def head_ceiling() -> np.ndarray:
+    """Per-grid-vertex ceiling on the head family's share: full inside her, ramping to zero at the edge.
+
+    The ceiling is the geometry that already decides what is her (`head_gate`, the hair curtain, the
+    hat cap), sampled at the vertices and then **ramped inward**: the ramp is a chamfer distance to
+    the nearest vertex that is not hers, so it only ever exists *inside* her silhouette and can never
+    hand head weight to the chair (a diffusion without it found the chair: one backrest vertex
+    carrying 0.02 of `head` grew to 0.08 and the backrest rocked 2.4 px in `idle`).
+
+    Distance, not a blurred mask, because a blur is symmetric: half of it lands on the chair. A
+    distance ramp is a fade *she* owns, wide enough (`RAMP` cells ≈ 2.2 × 18 px) that no single
+    mesh edge at the hair/backrest boundary carries the whole head travel.
+    """
+    rows, cols = ROWS + 1, COLS + 1
+    her = np.zeros((rows, cols), bool)
+    for r in range(rows):
+        for c in range(cols):
+            x, y = c * W / COLS, r * H / ROWS
+            her[r, c] = max(head_gate(x, y), hair_factor(x, y), head_cap(x, y)) > 0.02
+    big = 1e6
+    dist = np.where(her, big, 0.0)
+    for _ in range(2):  # chamfer, four neighbours, twice: cheap and monotone
+        for r in range(rows):
+            for c in range(cols):
+                if not her[r, c]:
+                    continue
+                best = dist[r, c]
+                if r > 0:
+                    best = min(best, dist[r - 1, c] + 1.0)
+                if c > 0:
+                    best = min(best, dist[r, c - 1] + 1.0)
+                if r + 1 < rows:
+                    best = min(best, dist[r + 1, c] + 1.0)
+                if c + 1 < cols:
+                    best = min(best, dist[r, c + 1] + 1.0)
+                dist[r, c] = best
+    t = np.clip(dist / max(RAMP, 1e-6), 0.0, 1.0)
+    ramp = t * t * (3.0 - 2.0 * t)
+    return np.where(her, ramp, 0.0)
+
+
+def relax_weights(
+    weights: list[list[dict]],
+    world: dict[str, tuple[float, float]],
+    ceiling: np.ndarray | None = None,
+    face_box: list[int] | None = None,
+) -> list[list[dict]]:
+    """Spread the head's weight step over a few cells instead of one.
+
+    The worst ghost in this rig is neither a fold nor a stretched bone: it is the *edge* where a
+    `head`-weighted vertex has a `root`-weighted neighbour. Her hair against the backrest is exactly
+    that edge, `turn` carries the whole head past it, and on t3_s4 that edge grew 17.5 px — the hair
+    drawn twice, once on the head and once on the chair. `mesh_smear` reports the number; this is
+    the fix.
+
+    It smooths **one scalar**: `h`, the share of the head family (head + what she wears + the hair
+    that hangs off it). Nothing else is touched, and that is deliberate:
+
+    * the face stays exactly as rigid as it was — every face vertex is h = 1 and all its neighbours
+      are h = 1, so smoothing cannot change it ("her face is a face" still holds);
+    * the hat keeps its own split between skull and worn-on-head (`h` is re-divided in the vertex's
+      original ratio), so "a hat is worn" still holds;
+    * the torso ladder, the neck, the feet and the socks are untouched, so articulation is the same
+      articulation;
+    * a vertex with no head share at all is a boundary condition, not a participant: it is returned
+      *unchanged*, weight for weight. That is what keeps the chair, the desk, the room and the floor
+      still — `rig_audit`'s prop column is a hard zero, not a budget.
+
+    Three passes of half-neighbour averaging spread the same travel over three cells, so no single
+    edge carries it: t3_s4 17.5 → 10.3 px, t5_s1 17.4 → 10.1, t1_s0 16.4 → 9.6, and the fold count
+    stays 0.
+    """
+    if RELAX_PASSES <= 0 or RELAX <= 0.0:
+        return weights
+    rows, cols = ROWS + 1, COLS + 1
+    nv = len(weights)
+    h = np.zeros((rows, cols), np.float64)
+    ratio = [[np.zeros(3) for _ in range(cols)] for _ in range(rows)]
+    for i, entry in enumerate(weights):
+        r, c = divmod(i, cols)
+        for e in entry:
+            name = e["bone"][5:]
+            if name in HEAD_FAMILY:
+                h[r, c] += e["weight"]
+                ratio[r][c][HEAD_FAMILY.index(name)] = e["weight"]
+    moving = h > 0.0
+    if ceiling is not None:
+        moving &= ceiling > 1e-3
+    # The face is rigid, and it stays rigid through the smoothing: the drawn face is frozen and
+    # returned weight for weight. The box is the manifest's own face box, *widened downward and to
+    # the sides only*: the face test samples the chin, which sits a few pixels under it, while the
+    # hair and the hood above her eyes are exactly where the smoothing has work to do. An
+    # anatomy-shaped freeze (1.15 span each way from the eyes) froze the hat brim too and put the
+    # worst edge back to 15.4 px.
+    def frozen(x: float, y: float) -> bool:
+        # The face band, in anatomy: from just over the eyes down past the chin. Deliberately NOT
+        # the whole head — the hair and the hood above her eyes are where the smoothing has work.
+        if MX - 1.15 * SPAN <= x <= MX + 1.15 * SPAN and MY - 0.55 * SPAN <= y <= MY + 1.35 * SPAN:
+            return True
+        if face_box:
+            fx0, fy0, fx1, fy1 = face_box
+            return fx0 - 14 <= x <= fx1 + 14 and fy0 - 4 <= y <= fy1 + 30
+        return False
+
+    for r in range(rows):
+        for c in range(cols):
+            if frozen(c * W / COLS, r * H / ROWS):
+                moving[r, c] = False
+    moving = np.array(moving, dtype=bool)
+    for _ in range(RELAX_PASSES):
+        acc = np.zeros_like(h)
+        cnt = np.zeros_like(h)
+        acc[1:] += h[:-1]; cnt[1:] += 1
+        acc[:-1] += h[1:]; cnt[:-1] += 1
+        acc[:, 1:] += h[:, :-1]; cnt[:, 1:] += 1
+        acc[:, :-1] += h[:, 1:]; cnt[:, :-1] += 1
+        nxt = (1.0 - RELAX) * h + RELAX * (acc / cnt)
+        nxt[~moving] = h[~moving]
+        h = np.clip(nxt, 0.0, 1.0)
+    if ceiling is not None:
+        h = np.minimum(h, ceiling)
+    out: list[list[dict]] = []
+    for i, entry in enumerate(weights):
+        r, c = divmod(i, cols)
+        if not moving[r, c]:
+            out.append(entry)
+            continue
+        old = sum(ratio[r][c])
+        parts: list[tuple[str, float]] = []
+        if old > 1e-6:
+            for name, share in zip(HEAD_FAMILY, ratio[r][c]):
+                if share > 1e-6:
+                    parts.append((name, share / old * h[r, c]))
+        rest = [e for e in entry if e["bone"][5:] not in HEAD_FAMILY]
+        rest_total = sum(e["weight"] for e in rest)
+        for e in rest:
+            parts.append((e["bone"][5:], e["weight"] / rest_total * (1.0 - h[r, c]) if rest_total > 1e-6 else 0.0))
+        if rest_total <= 1e-6 and h[r, c] < 1.0:
+            parts.append(("root", 1.0 - h[r, c]))
+        x, y = c * W / COLS, r * H / ROWS
+        out.append(finish(x, y, world, parts))
+    return out
 
 
 def finish(x: float, y: float, world: dict[str, tuple[float, float]], parts: list[tuple[str, float]]) -> list[dict]:
@@ -638,6 +845,7 @@ def assert_neutral_start(doc: dict) -> None:
                 )
 
 
+
 def build() -> dict:
     world = bone_world(BONES)
 
@@ -652,6 +860,7 @@ def build() -> dict:
             verts += [round(x, 3), round(y, 3)]
             uvs += [round(col / COLS, 6), round(row / ROWS, 6)]
             weights.append(weights_for(x, y, world))
+    weights = relax_weights(weights, world, head_ceiling(), FACE_BOX)
 
     triangles: list[int] = []
     stride = COLS + 1
@@ -713,6 +922,18 @@ def build() -> dict:
         ]
         return {"target": "bone", "id": bone, "property": prop, "keys": keys}
 
+    def bust_pair(prop: str, pairs, lag: float = 0.07, scale: float = 0.84, ease=(0.42, 0, 0.58, 1)) -> list[dict]:
+        """The same gesture on two springs, a seventh of a second apart and 16 % apart in size.
+
+        Authored on top of the physics, not instead of it: the springs react to what the animation does,
+        so a lag here becomes a lag there. `scale` is under 1 on the right because her right is the
+        tauter side (see `PHYSICS`), and `lag` is inside the shortest beat this rig has (0.5 s), so the
+        two never read as a single rigid object being moved.
+        """
+        last = pairs[-1][0]
+        right = [(min(round(t + lag, 3), last), round(v * scale, 4)) for t, v in pairs]
+        return [tl("bone_bust_left", prop, pairs, ease), tl("bone_bust_right", prop, right, ease)]
+
     # Breathing is a RISE, not an inflate. Scaling the chest by 3 % scales everything above it
     # about the chest's origin: her head — 400 px up the chain — travelled 24 px per breath, which
     # on a phone reads as a jelly wobble, not as breathing. A 1.5 px lift of the chest plus a
@@ -727,8 +948,8 @@ def build() -> dict:
             tl("bone_neck", "y", ((0, 0), (1.6, -0.6), (3.2, 0), (4.0, 0))),
             tl("bone_head", "y", ((0, 0), (1.6, -0.4), (3.2, 0), (4.0, 0))),
             # The bust is a leaf bone: scaling it swells the chest without moving the head.
-            tl("bone_bust", "scaleY", ((0, 0), (1.6, 0.014), (3.2, 0), (4.0, 0))),
-            tl("bone_bust", "scaleX", ((0, 0), (1.6, 0.008), (3.2, 0), (4.0, 0))),
+            *bust_pair("scaleY", ((0, 0), (1.6, 0.014), (3.2, 0), (4.0, 0))),
+            *bust_pair("scaleX", ((0, 0), (1.6, 0.008), (3.2, 0), (4.0, 0))),
             tl("bone_chest", "rotation", ((0, 0), (1.6, 0.14), (3.2, 0), (4.0, 0))),
         ],
         "events": [],
@@ -804,6 +1025,9 @@ def build() -> dict:
                ease=(0.3, 0, 0.4, 1)),
             tl("bone_chest", "y", ((0, 0), (0.16, 3.2), (0.44, -1.2), (0.9, 0))),
             tl("bone_hips", "rotation", ((0, 0), (0.3, -0.25), (0.9, 0))),
+            # A donation lands on the chest too, and the two sides answer out of step: this is the
+            # beat where the springs are allowed to ring, because it is rare and it is a reward.
+            *bust_pair("rotation", ((0, 0), (0.20, -1.1), (0.46, 0.45), (0.90, 0)), lag=0.07, scale=0.85),
         ],
         "events": [],
     }
@@ -839,7 +1063,9 @@ def build() -> dict:
                ease=(0.25, 0.2, 0.4, 1)),
             tl("bone_chest", "rotation", ((0, 0), (0.14, 0.28), (0.32, -0.10), (0.50, 0))),
             # The far shoulder follows by a beat — the thing that separates a nod from a slide.
-            tl("bone_bust", "rotation", ((0, 0), (0.17, -0.40), (0.36, 0.15), (0.50, 0))),
+            # The chest takes the hit and the bust arrives after it: 1.5° about the chest wall is
+            # ~1.8 px of travel at the mass, and the two springs stretch that into the settle.
+            *bust_pair("rotation", ((0, 0), (0.17, -1.5), (0.36, 0.55), (0.50, 0)), lag=0.06, scale=0.85),
             tl("bone_hair_back", "rotation", ((0, 0), (0.20, 2.0), (0.38, -0.55), (0.50, 0))),
         ],
         "events": [],
@@ -1008,6 +1234,101 @@ def build() -> dict:
             "events": [],
         }
 
+    # Gasp: the beat for a tap on her chest. A held breath — head back, chin up, chest lifted,
+    # mouth open on the same frame the hit lands — and the two bust springs do the rest by
+    # themselves, because the chest moved under them. It exists so that a tap on the chest is not
+    # the same nod as a tap on the arm: a premium heroine answers in the place you touched her.
+    gasp = {
+        "id": "anim_gasp",
+        "name": "gasp",
+        "duration": 0.85,
+        "timelines": [
+            tl("bone_head", "rotation", ((0, 0), (0.12, 2.4), (0.34, 1.6), (0.62, 0.3), (0.85, 0)), ease=(0.2, 0.4, 0.4, 1)),
+            tl("bone_neck", "rotation", ((0, 0), (0.14, 1.5), (0.40, 0.9), (0.70, 0.1), (0.85, 0))),
+            tl("bone_chest", "y", ((0, 0), (0.16, -3.2), (0.44, 0.8), (0.72, -0.3), (0.85, 0)), ease=(0.2, 0.3, 0.4, 1)),
+            tl("bone_chest", "rotation", ((0, 0), (0.18, -0.5), (0.50, 0.2), (0.85, 0))),
+            *bust_pair("rotation", ((0, 0), (0.18, 1.2), (0.42, -0.5), (0.70, 0.2), (0.85, 0)), lag=0.07, scale=0.85),
+            tl("bone_hips", "rotation", ((0, 0), (0.26, 0.2), (0.85, 0))),
+        ] + ([
+            {
+                "target": "slot",
+                "id": "slot_mouth",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.10, "value": "mouth_open", "curve": "stepped"},
+                    {"time": 0.52, "value": None, "curve": "stepped"},
+                ],
+            },
+        ] if has_mouth else []) + [
+            {
+                "target": "slot",
+                "id": "slot_eyes",
+                "property": "attachment",
+                "keys": [
+                    {"time": 0.00, "value": None, "curve": "stepped"},
+                    {"time": 0.16, "value": "eyes_closed", "curve": "stepped"},
+                    {"time": 0.30, "value": None, "curve": "stepped"},
+                ],
+            },
+        ],
+        "events": [],
+    }
+
+    # Tickle: the front of each sock curls in, three quick pulses, and she squirms a little.
+    #
+    # Only authored where the art actually has socks in frame (`_TOE_RAMP`), because the bones are
+    # only on those plates — a `tickle` on a plate with no feet is a button that does nothing.
+    # The toes are the point: a rotation about the toe bone, 9 degrees, which at this plate scale
+    # lifts the toe tip ~5 px and nothing else on her moves that much.
+    tickle = None
+    if _TOE_RAMP:
+        curl = [(0.0, 0.0), (0.10, -9.0), (0.20, -2.6), (0.30, -9.6), (0.42, -3.0),
+                (0.54, -8.4), (0.70, -1.0), (0.86, 0.0), (1.20, 0.0)]
+        tickle = {
+            "id": "anim_tickle",
+            "name": "tickle",
+            "duration": 1.2,
+            "timelines": [
+                tl("bone_toe_left", "rotation", curl, ease=(0.2, 0, 0.4, 1)),
+                # The right foot answers a tenth of a second later and curls less: two feet that
+                # curl in unison are a claw closing, not a person being tickled.
+                tl("bone_toe_right", "rotation",
+                   [(min(round(t + 0.08, 3), 1.20), round(v * 0.85, 3)) for t, v in curl],
+                   ease=(0.2, 0, 0.4, 1)),
+                # The whole foot flinches with it, a degree, so the curl is not a decal on a still sock.
+                tl("bone_foot_left", "rotation", ((0.0, 0.0), (0.12, 1.1), (0.34, -0.5), (0.58, 0.9), (0.86, 0.0)), ease=(0.3, 0, 0.5, 1)),
+                tl("bone_foot_right", "rotation", ((0.0, 0.0), (0.20, -0.9), (0.44, 0.4), (0.66, -0.7), (0.92, 0.0)), ease=(0.3, 0, 0.5, 1)),
+                # She feels it: a small squirm of the head and one giggle-squint of the eyes.
+                tl("bone_head", "rotation", ((0.0, 0.0), (0.14, 0.55), (0.34, -0.45), (0.58, 0.35), (0.84, 0.0)), ease=(0.3, 0, 0.5, 1)),
+                tl("bone_spine", "rotation", ((0.0, 0.0), (0.22, -0.35), (0.56, 0.25), (0.90, 0.0)), ease=(0.3, 0, 0.5, 1)),
+                {
+                    "target": "slot",
+                    "id": "slot_eyes",
+                    "property": "attachment",
+                    "keys": [
+                        {"time": 0.00, "value": None, "curve": "stepped"},
+                        {"time": 0.16, "value": "eyes_closed", "curve": "stepped"},
+                        {"time": 0.30, "value": None, "curve": "stepped"},
+                        {"time": 0.50, "value": "eyes_closed", "curve": "stepped"},
+                        {"time": 0.66, "value": None, "curve": "stepped"},
+                    ],
+                },
+            ] + ([
+                {
+                    "target": "slot",
+                    "id": "slot_mouth",
+                    "property": "attachment",
+                    "keys": [
+                        {"time": 0.00, "value": None, "curve": "stepped"},
+                        {"time": 0.14, "value": "mouth_open", "curve": "stepped"},
+                        {"time": 0.80, "value": None, "curve": "stepped"},
+                    ],
+                },
+            ] if has_mouth else []),
+            "events": [],
+        }
+
     # Idle: one 4 s loop that contains the breathing AND the blinks, so the game can just call
     # play("idle", true) once. A runtime that has to stack a blink animation on top of a breath
     # animation needs layer blending; folding the blinks into the same timeline needs nothing,
@@ -1137,8 +1458,8 @@ def build() -> dict:
             tl("bone_chest", "y", chest_y),
             tl("bone_chest", "rotation", chest_rot),
             tl("bone_neck", "y", shifted(chest_y, 0.32, 0.10)),
-            tl("bone_bust", "scaleY", shifted(chest_y, -0.0072, 0.08)),
-            tl("bone_bust", "scaleX", shifted(chest_y, -0.0036, 0.08)),
+            *bust_pair("scaleY", shifted(chest_y, -0.0072, 0.08)),
+            *bust_pair("scaleX", shifted(chest_y, -0.0036, 0.08)),
             tl("bone_head", "rotation", head_rot),
             tl("bone_head", "y", head_y),
             tl("bone_neck", "rotation", shifted(head_rot, 0.30, 0.20)),
@@ -1147,7 +1468,7 @@ def build() -> dict:
             # bone+property is deduplicated away — the lean would silently disappear.
             tl("bone_spine", "rotation", shifted(head_rot, 0.11, 0.30)),
             tl("bone_hair_back", "rotation", shifted(head_rot, -0.42, 0.26)),
-            tl("bone_bust", "rotation", shifted(head_rot, 0.06, 0.34)),
+            *bust_pair("rotation", shifted(head_rot, 0.06, 0.34), lag=0.09, scale=0.8),
             tl("bone_hips", "rotation", hips_rot),
         ]
         if _FOOT_PIX is not None:
@@ -1247,7 +1568,9 @@ def build() -> dict:
         "animations": [idle, breath, sway, turn, shake, tap, blink]
         + ([idle_talk, talk] if has_mouth else [])
         + ([smile] if has_closed_mouth else [])
-        + ([tease] if tease else []),
+        + ([tease] if tease else [])
+        + ([tickle] if tickle else [])
+        + [gasp],
         "stateMachines": [
             {
                 "id": "sm_miya",
@@ -1300,7 +1623,7 @@ def place_for(art: str) -> tuple[tuple[float, float], float]:
 
 def main(argv: list[str] | None = None) -> int:
     global PATCHES, BONES, INFLUENCE, WEIGHT_SIGMA, PLATE, ART_KEY, IMG_ID, EYES_ID
-    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, MOUTH_TONGUE_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, _FOOT_PIX, MX, MY, SPAN
+    global MOUTH_OPEN_ID, MOUTH_CLOSED_ID, MOUTH_TONGUE_ID, _HAIR_PIX, _SOLID_PIX, _CAP_PIX, _FOOT_PIX, FACE_BOX, MX, MY, SPAN
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--art", default="t1_s0", help="art key, e.g. t6_s1")
@@ -1339,8 +1662,10 @@ def main(argv: list[str] | None = None) -> int:
     mid, span = place_for(ART_KEY)
     MX, MY, SPAN = mid[0], mid[1], span
     BONES, INFLUENCE, WEIGHT_SIGMA = derive_skeleton(mid, span, W, H)
+    _TOE_RAMP.clear()
 
     entry = json.loads(MANIFEST.read_text())[f"heroine_{ART_KEY}"]
+    FACE_BOX = entry.get("face")
     field = hair_field(PLATE, entry.get("face"), mid, span)
     _HAIR_PIX = np.asarray(field) if field is not None else None
     _SOLID_PIX, _CAP_PIX = head_cap_field(PLATE, mid, span)
@@ -1353,6 +1678,29 @@ def main(argv: list[str] | None = None) -> int:
         BONES.append(("foot_right", round(feet[3][0], 3), round(feet[3][1], 3), "hips"))
         INFLUENCE["foot_left"] = (feet[2][0], feet[2][1] + 1.0 * span, 1.2 * span, 1.3 * span)
         INFLUENCE["foot_right"] = (feet[3][0], feet[3][1] + 1.0 * span, 1.2 * span, 1.3 * span)
+        # Toes: one bone per foot, placed at the toe end of the sock and banded by the sock's own
+        # height. She is ticklish — the front of the sock curls when the sole is tapped — and a
+        # single sock bone can only swing, never curl.
+        for side, field, ankle in (
+            ("left", feet[0], feet[2]),
+            ("right", feet[1], feet[3]),
+        ):
+            pix = np.asarray(field)
+            ys, xs = np.nonzero(pix > 128)
+            if len(ys) == 0:
+                continue
+            y0, y1 = float(ys.min()), float(ys.max())
+            band = y0 + 0.46 * (y1 - y0)
+            front = pix > 128
+            tip_band = np.zeros_like(front)
+            tip_band[int(band + 0.30 * (y1 - y0)):] = True
+            tip = tip_band & front
+            if tip.sum() < 40:
+                continue
+            tip_x = float(np.nonzero(tip)[1].mean())
+            tip_y = float(np.nonzero(tip)[0].mean())
+            _TOE_RAMP[side] = (band, y0 + 0.90 * (y1 - y0))
+            BONES.append((f"toe_{side}", round(tip_x, 3), round(tip_y, 3), f"foot_{side}"))
 
     PATCHES = face_patches(ART_KEY)
     doc = build()

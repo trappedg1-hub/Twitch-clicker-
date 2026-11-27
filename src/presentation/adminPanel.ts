@@ -120,7 +120,7 @@ const ZONES: { id: TapZoneId; label: string }[] = [
 const EMOTIONS: Exclude<HeroineEmotion, 'neutral'>[] = ['shy', 'fluster', 'tease', 'bold'];
 
 /** Animations the console offers first; anything else the document has lands after them. */
-const ANIMATION_ORDER = ['idle', 'idle_talk', 'tap', 'shake', 'breath', 'sway', 'turn', 'blink', 'talk', 'smile', 'tease'];
+const ANIMATION_ORDER = ['idle', 'idle_talk', 'tap', 'shake', 'breath', 'sway', 'turn', 'blink', 'talk', 'smile', 'tease', 'tickle', 'gasp'];
 const ANIMATION_LABELS: Record<string, string> = {
   idle: 'idle',
   idle_talk: 'речь',
@@ -133,6 +133,8 @@ const ANIMATION_LABELS: Record<string, string> = {
   talk: 'губы',
   smile: 'улыбка',
   tease: 'показывает язык',
+  tickle: 'щекотка: поджимает пальчики',
+  gasp: 'вздох: тап по груди',
 };
 
 type AdminTab = 'jump' | 'rig' | 'scene' | 'save';

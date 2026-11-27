@@ -1,0 +1,40 @@
+
+art               folded tris  fold frames  worst px  anim        where         prop px  
+transparent_s3    0/9408       0            12.8      turn        0,0           0.00     
+t2_s4             0/9408       0            11.7      shake       0,0           0.00     
+t2_s3             0/9408       0            11.4      shake       0,0           0.00     
+t4_flash          0/9408       0            11.3      shake       0,0           0.00     
+t4_s3             0/9408       0            11.3      shake       0,0           0.00     
+t1_base           0/9408       0            11.1      shake       0,0           0.00     
+t1_s5             0/9408       0            11.1      shake       0,0           0.00     
+t3_s4             0/9408       0            11.1      shake       0,0           0.00     
+t3_flash          0/9408       0            11.0      shake       0,0           0.00     
+t3_s3             0/9408       0            11.0      shake       0,0           0.00     
+t5_s1             0/9408       0            10.8      shake       0,0           0.00     
+t3_s2             0/9408       0            10.8      shake       0,0           0.00     
+transparent_s0    0/9408       0            10.7      shake       0,0           0.00     
+t1_s2             0/9408       0            10.7      shake       0,0           0.00     
+transparent_s2    0/9408       0            10.7      tap         0,0           0.00     
+t6_s0             0/9408       0            10.5      shake       0,0           0.00     
+t6_s1             0/9408       0            10.5      shake       0,0           0.00     
+t1_s4             0/9408       0            10.5      shake       0,0           0.00     
+t1_s1             0/9408       0            10.4      shake       0,0           0.00     
+transparent_s1    0/9408       0            10.4      shake       0,0           0.00     
+t5_start          0/9408       0            10.1      shake       0,0           0.00     
+t2_s0             0/9408       0            10.1      shake       0,0           0.00     
+t5_s2             0/9408       0            10.1      shake       0,0           0.00     
+t2_s1             0/9408       0            10.0      shake       0,0           0.00     
+t4_start_hq       0/9408       0            9.8       shake       0,0           0.00     
+t2_s2             0/9408       0            9.7       shake       0,0           0.00     
+t4_s2             0/9408       0            9.7       turn        0,0           0.00     
+t3_s1             0/9408       0            9.6       shake       0,0           0.00     
+t1_s0             0/9408       0            9.6       shake       0,0           0.00     
+t4_start          0/9408       0            9.4       shake       0,0           0.00     
+t6_s2             0/9408       0            9.3       shake       0,0           0.00     
+t5_s0             0/9408       0            9.1       shake       0,0           0.00     
+t5_start_hq2      0/9408       0            9.1       shake       0,0           0.00     
+t6_start_hq       0/9408       0            9.1       shake       0,0           0.00     
+t6_s3             0/9408       0            9.1       shake       0,0           0.00     
+t5_start_hq       0/9408       0            8.9       shake       0,0           0.00     
+
+36 rigs | folded: 0 | prop moved: 0 | worst px 12.8
