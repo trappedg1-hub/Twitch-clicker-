@@ -138,6 +138,8 @@ declare global {
       chatGlanceDebug: () => { glances: number; frames: number; totalFrames: number };
       pushChatLine: (text: string) => number;
       glareAtChat: () => { x: number; y: number } | null;
+      /** Whether the last pushed line actually earned a glance (the QA of the flash). */
+      lastChatReadDebug: () => boolean;
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
@@ -217,7 +219,8 @@ export async function bootstrapApp(): Promise<void> {
   // ...but never over a challenge: those seconds are hers and the player's, and a chat line landing
   // mid-eyeline would drag her gaze off the face the dare just asked the player to hold.
   ui.onChatPushed = () => {
-    if (!document.body.classList.contains('dare-live')) stage.glareAtChat();
+    if (document.body.classList.contains('dare-live')) return false;
+    return stage.glareAtChat();
   };
 
   // ---- The rig can only ever cost us the rig -------------------------------------------------
@@ -1428,6 +1431,7 @@ export async function bootstrapApp(): Promise<void> {
         ui.pushChatMessage({ id: `qa-${Date.now()}-${Math.random()}`, author: 'qa_viewer', color: '#ff75c3', text });
         return stage.chatGlanceDebug.glances;
       },
+      lastChatReadDebug: () => document.querySelectorAll('.chat-msg.read').length > 0,
       glareAtChat: () => {
         stage.glareAtChat(1500, true);
         stage.app.render();

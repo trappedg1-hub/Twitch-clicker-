@@ -451,6 +451,29 @@ body,
   animation: chatFloatUp 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+.chat-msg.read {
+  animation: chatRead 1200ms ease-out;
+  border-radius: 4px;
+}
+
+/* The row she turned to. Pink on the text, warm wash behind it, and it is gone in about a second —
+   long enough to connect with the head turn, short enough not to look like a selection. */
+@keyframes chatRead {
+  0% {
+    background: rgba(255, 138, 191, 0.24);
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0.85);
+    color: #ffe9f4;
+  }
+  55% {
+    background: rgba(255, 138, 191, 0.1);
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0.45);
+  }
+  100% {
+    background: transparent;
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0);
+  }
+}
+
 .chat-msg.highlight {
   color: #fff8dc;
   text-shadow:

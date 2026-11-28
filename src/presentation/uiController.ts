@@ -835,7 +835,7 @@ export class UiController {
    * Fired after every message actually drawn in the chat. The stage uses it to have her look at the
    * chat — the one thing a streamer does that this game had no way of noticing.
    */
-  public onChatPushed?: () => void;
+  public onChatPushed?: () => boolean;
 
   public pushChatMessage(msg: ChatMessage): void {
     const row = document.createElement('div');
@@ -862,6 +862,15 @@ export class UiController {
     while (this.chatMessagesEl.children.length > 7) {
       this.chatMessagesEl.removeChild(this.chatMessagesEl.firstChild!);
     }
-    this.onChatPushed?.();
+    // The line she turned to is the line that lights up. Unless the glance was rate-limited — then
+    // nothing flashes, because she genuinely did not read this one, and a flash would be a lie the
+    // player can see through in ten seconds of watching.
+    if (this.onChatPushed?.()) this.markRead(row);
+  }
+
+  /** A short warm flash on the row she looked at. Timer is unref'd: seven rows, never a leak. */
+  private markRead(row: HTMLElement): void {
+    row.classList.add('read');
+    window.setTimeout(() => row.classList.remove('read'), 1200);
   }
 }

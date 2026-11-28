@@ -999,10 +999,12 @@ export class StreamStage {
   }
 
   /** The chat said something: she looks at it, briefly, a few times a minute at most. */
-  public glareAtChat(ms = CHAT_GLANCE_MS, force = false): void {
+  public glareAtChat(ms = CHAT_GLANCE_MS, force = false): boolean {
     const next = askChatGlance(this.chatGlance, performance.now(), ms, force);
-    if (next !== this.chatGlance) this.chatGlances += 1;
+    const started = next !== this.chatGlance;
+    if (started) this.chatGlances += 1;
     this.chatGlance = next;
+    return started;
   }
 
   /** Something landed: the frame leans in and comes back. Events only — the drift is free. */
