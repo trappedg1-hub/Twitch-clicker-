@@ -88,6 +88,7 @@ export class UiController {
   private readonly dareFillEl = document.getElementById('chat-dare-fill') as HTMLElement | null;
   private readonly dareCountEl = document.getElementById('chat-dare-count') as HTMLElement | null;
 
+  private readonly dareStreakEl = document.getElementById('chat-dare-streak');
   private readonly speechSubEl = document.getElementById('speech-subtitle')!;
   private readonly speechTextEl = document.getElementById('speech-text')!;
 
@@ -772,8 +773,14 @@ export class UiController {
   }
 
   /** A dare just arrived from the chat. */
-  public showDare(hint: string, label: string): void {
+  public showDare(hint: string, label: string, streakLabel = ''): void {
     if (!this.dareEl) return;
+    // The streak is the reason to say yes to the second dare, so it belongs on the chip and not
+    // only in the payout line the player reads after the fact.
+    if (this.dareStreakEl) {
+      this.dareStreakEl.hidden = streakLabel === '';
+      this.dareStreakEl.textContent = streakLabel;
+    }
     this.dareEl.hidden = false;
     // The phone layout has one top slot, and it is the dare's while the timer runs.
     document.body.classList.add('dare-live');

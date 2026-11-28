@@ -141,6 +141,7 @@ declare global {
       cameraDebug: () => { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean };
       dareDebug: () => { kind: string; status: string; progress: number; target: number } | null;
       lastDareDebug: () => { kind: string; won: boolean; reward: number; at: number } | null;
+      setDareStreak: (n: number) => number;
       startDare: (kind: string) => boolean;
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       gazeAimDebug: () => { x: number; y: number } | null;
@@ -531,7 +532,7 @@ export async function bootstrapApp(): Promise<void> {
     lastDareKind = kind;
     dare = startDare(kind, nowMs);
     const def = DARES[kind];
-    ui.showDare(def.hint, dareLabel(dare));
+    ui.showDare(def.hint, dareLabel(dare), dareStreak > 0 ? `×${dareStreakMultiplier(dareStreak)}` : '');
     // She *hears* the chat. Without this the dare is a HUD timer; with it, it is a request she
     // answered out loud — and her answer is the thing that makes the chip make sense.
     sfx.dareAsk();
@@ -1461,11 +1462,15 @@ export async function bootstrapApp(): Promise<void> {
           ? { kind: dare.kind, status: dare.status, progress: dare.progress, target: DARES[dare.kind].target }
           : null,
       lastDareDebug: () => lastDareOutcome,
+      setDareStreak: (n) => {
+        dareStreak = Math.max(0, Math.min(99, Math.floor(n)));
+        return dareStreak;
+      },
       startDare: (kind) => {
         if (!(kind in DARES)) return false;
         dare = startDare(kind as DareState['kind'], performance.now());
         lastDareKind = dare.kind;
-        ui.showDare(DARES[dare.kind].hint, dareLabel(dare));
+        ui.showDare(DARES[dare.kind].hint, dareLabel(dare), dareStreak > 0 ? `×${dareStreakMultiplier(dareStreak)}` : '');
         return true;
       },
       attentionDebug: () => stage.attentionDebug,
