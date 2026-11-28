@@ -18,6 +18,8 @@ import { HeroineRig } from './HeroineRig.ts';
 import { LiveHeroine, type QuirkKind } from './LiveHeroine.ts';
 import { pickBeat, type BeatName } from './reactionDirector.ts';
 import { pickAttention, type AttentionKind } from './attention.ts';
+import { BlushLayer } from './blushLayer.ts';
+import { HEAT } from './blush.ts';
 import { aimFromPointer } from './gaze.ts';
 
 interface FloatingParticle {
@@ -286,6 +288,7 @@ export class StreamStage {
     // A broken skeleton is a broken ornament, never a broken game: the moment it throws, the flat
     // plate comes back and the console says why (see `onLiveFault` in bootstrap).
     this.live.onQuirk = (kind) => this.onLiveQuirk?.(kind);
+    this.live.attachOverlay(this.blush.container);
     this.live.onFault = (reason) => {
       this.liveEnabled = false;
       this.rig?.setPlateVisible(true);
@@ -375,6 +378,18 @@ export class StreamStage {
     // What the director *chose*, which is not the same as what is playing: a tap that arrives
     // mid-beat is dropped by the rig, so the clip name would report the previous answer.
     this.lastTapBeat = beat.anim;
+    // A tap is warmth; hammering her is more. Twenty small bumps per second add up to a flush, and
+    // then it cools for the next five seconds while she catches her breath. Some beats are simply
+    // hotter than others: being tickled is more embarrassing than being nodded at.
+    const heat =
+      beat.anim === 'tickle'
+        ? HEAT.tickle
+        : beat.anim === 'tease' || beat.anim === 'giggle' || beat.anim === 'shy_tuck'
+          ? HEAT.tap * 1.6
+          : beat.anim === 'tap'
+            ? HEAT.tap * 0.4
+            : HEAT.tap;
+    this.blush.bump(heat);
     this.lastTapDebug = { zone, beat: beat.anim, streak, available: (this.live?.animationSet() ?? new Set()).size };
       const res = this.onHeroineTap?.(zone);
     if (res) {
@@ -589,6 +604,11 @@ export class StreamStage {
     );
   }
 
+  /** QA: how pink she is right now, and where the glows are. */
+  public getBlushDebug(): { level: number; heat: number; at: { x: number; y: number } | null } {
+    return this.blush.debug();
+  }
+
   /** QA: is the pointer resting on her body, and since when. */
   public getHoverDebug(): { zone: string | null; since: number } {
     return { zone: this.hoverZone, since: this.hoverSince };
@@ -611,9 +631,13 @@ export class StreamStage {
   /** Tap timestamps, for the "you are hammering her" rule. Kept short on purpose. */
   private tapTimes: number[] = [];
 
+  /** Her blush, drawn over the skeleton and anchored to the document's own eye box. */
+  private readonly blush = new BlushLayer();
+
   /** Pointer is resting on her body: when it started, and which zone. */
   private hoverZone: string | null = null;
   private hoverSince = 0;
+  private lastBlushMs = 0;
   /** The beat the director chose for the last tap — QA reads this, the game does not. */
   public lastTapBeat: BeatName | null = null;
   public lastTapDebug: { zone: string; beat: string; streak: number; available: number } | null = null;
@@ -678,6 +702,8 @@ export class StreamStage {
     this.lastAttentionAt = now;
     this.lastBeatAt = now;
     live.react(pick.anim, pick.ms);
+    // Being caught looking is the most embarrassing thing in the game, so it is the hottest.
+    this.blush.bump(pick.kind === 'staring' ? HEAT.stare : HEAT.tap);
     this.onAttention?.(pick.kind);
   }
 
@@ -691,6 +717,7 @@ export class StreamStage {
     // else. Same event, different woman — that is the whole point of the director.
     const bold = (this.reactionInput?.().boldness ?? 0) >= 55;
     const follow = bold && live.hasAnimation('lean_in') ? 'lean_in' : live.hasAnimation('giggle') ? 'giggle' : null;
+    this.blush.bump(HEAT.donation);
     if (!follow) return;
     window.setTimeout(() => {
       if (this.live === live) live.react(follow, follow === 'lean_in' ? 2000 : 1150);
@@ -706,6 +733,7 @@ export class StreamStage {
     const live = this.live;
     if (!live) return;
     live.react(live.hasAnimation('arch') ? 'arch' : 'giggle', 1700);
+    this.blush.bump(HEAT.milestone);
   }
 
   /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
@@ -988,6 +1016,13 @@ export class StreamStage {
       this.live.releaseGaze();
     }
     const nowMs = performance.now();
+    // Blush: the one hot channel the rigged plates were missing, driven by the numbers the game
+    // already has. Anchors are null on a plate without measurable face art — then it fades out.
+    this.blush.update(nowMs - (this.lastBlushMs || nowMs), this.live.view.visible ? this.live.cheekAnchors() : null, {
+      boldness: this.reactionInput?.().boldness ?? 0,
+      hype: this.hypeLevel,
+    });
+    this.lastBlushMs = nowMs;
     // Her pace: chat hype plus how far along she is with the player. Set before the update so the
     // breath that is advancing this frame already carries it.
     this.live.setEnergy(Math.max(this.hypeLevel / 100, (this.reactionInput?.().boldness ?? 0) / 140));

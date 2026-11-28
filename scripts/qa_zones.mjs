@@ -180,6 +180,11 @@ if (headCentre) {
   if (seen.size === 0) problems.push('cursor rested on her head for 3.6 s and she did nothing');
 }
 
+// --- 4. the blush is a real channel: it rises with boldness and spikes on a tap -----------------
+const blush = await page.evaluate(() => window.__qaScene.blushDebug());
+if (!blush.at) problems.push('the blush never drew: no anchor on her face');
+if (!(blush.level > 0 && blush.level <= 1)) problems.push(`blush level ${blush.level}`);
+
 const tick = await page.evaluate(() => window.__qaScene.tickDebug());
 if (tick.error) problems.push(`the stage's tick threw: ${tick.error.split('\n')[0]}`);
 await page.screenshot({ path: `${SHOTS}/zones.png` });

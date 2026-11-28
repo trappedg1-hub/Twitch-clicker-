@@ -113,6 +113,7 @@ declare global {
       lastTapBeat: () => string | null;
       lastTapDebug: () => { zone: string; beat: string; streak: number; available: number } | null;
       hoverDebug: () => { zone: string | null; since: number };
+      blushDebug: () => { level: number; heat: number; at: { x: number; y: number } | null };
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
@@ -1264,6 +1265,7 @@ export async function bootstrapApp(): Promise<void> {
       lastTapBeat: () => stage.lastTapBeat,
       lastTapDebug: () => stage.lastTapDebug,
       hoverDebug: () => stage.getHoverDebug(),
+      blushDebug: () => stage.getBlushDebug(),
       attentionDebug: () => stage.attentionDebug,
       tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {

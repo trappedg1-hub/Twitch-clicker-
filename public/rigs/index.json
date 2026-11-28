@@ -26,7 +26,7 @@
   ],
   "hasMouth": true,
   "bones": 16,
-  "bytes": 357921
+  "bytes": 361420
  },
  "t1_base": {
   "file": "/rigs/t1_base.obonb",
@@ -54,7 +54,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 347037
+  "bytes": 351953
  },
  "t1_s1": {
   "file": "/rigs/t1_s1.obonb",
@@ -82,7 +82,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 349181
+  "bytes": 352674
  },
  "t1_s2": {
   "file": "/rigs/t1_s2.obonb",
@@ -109,7 +109,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 346076
+  "bytes": 348941
  },
  "t1_s4": {
   "file": "/rigs/t1_s4.obonb",
@@ -136,7 +136,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 347685
+  "bytes": 351184
  },
  "t1_s5": {
   "file": "/rigs/t1_s5.obonb",
@@ -162,7 +162,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 353013
+  "bytes": 357438
  },
  "t2_s0": {
   "file": "/rigs/t2_s0.obonb",
@@ -189,7 +189,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 340829
+  "bytes": 344802
  },
  "t2_s1": {
   "file": "/rigs/t2_s1.obonb",
@@ -216,7 +216,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 339497
+  "bytes": 343745
  },
  "t2_s2": {
   "file": "/rigs/t2_s2.obonb",
@@ -242,7 +242,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 345561
+  "bytes": 349608
  },
  "t2_s3": {
   "file": "/rigs/t2_s3.obonb",
@@ -268,7 +268,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 347572
+  "bytes": 353153
  },
  "t2_s4": {
   "file": "/rigs/t2_s4.obonb",
@@ -294,7 +294,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 338732
+  "bytes": 343337
  },
  "t3_flash": {
   "file": "/rigs/t3_flash.obonb",
@@ -320,7 +320,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 354936
+  "bytes": 358462
  },
  "t3_s1": {
   "file": "/rigs/t3_s1.obonb",
@@ -346,7 +346,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 335279
+  "bytes": 338124
  },
  "t3_s2": {
   "file": "/rigs/t3_s2.obonb",
@@ -370,7 +370,7 @@
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 332907
+  "bytes": 336476
  },
  "t3_s3": {
   "file": "/rigs/t3_s3.obonb",
@@ -396,7 +396,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 354918
+  "bytes": 358444
  },
  "t3_s4": {
   "file": "/rigs/t3_s4.obonb",
@@ -420,7 +420,7 @@
   ],
   "hasMouth": false,
   "bones": 14,
-  "bytes": 329807
+  "bytes": 334815
  },
  "t4_flash": {
   "file": "/rigs/t4_flash.obonb",
@@ -446,7 +446,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 337990
+  "bytes": 340861
  },
  "t4_s2": {
   "file": "/rigs/t4_s2.obonb",
@@ -470,7 +470,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 323894
+  "bytes": 325413
  },
  "t4_s3": {
   "file": "/rigs/t4_s3.obonb",
@@ -496,7 +496,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 337972
+  "bytes": 340843
  },
  "t4_start": {
   "file": "/rigs/t4_start.obonb",
@@ -522,7 +522,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 330496
+  "bytes": 334085
  },
  "t4_start_hq": {
   "file": "/rigs/t4_start_hq.obonb",
@@ -548,7 +548,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 330980
+  "bytes": 334590
  },
  "t5_s0": {
   "file": "/rigs/t5_s0.obonb",
@@ -574,7 +574,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 329294
+  "bytes": 332185
  },
  "t5_s1": {
   "file": "/rigs/t5_s1.obonb",
@@ -600,7 +600,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 342634
+  "bytes": 346357
  },
  "t5_s2": {
   "file": "/rigs/t5_s2.obonb",
@@ -626,7 +626,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
-  "bytes": 336272
+  "bytes": 339267
  },
  "t5_start": {
   "file": "/rigs/t5_start.obonb",
@@ -652,7 +652,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 331866
+  "bytes": 334059
  },
  "t5_start_hq": {
   "file": "/rigs/t5_start_hq.obonb",
@@ -678,7 +678,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 329642
+  "bytes": 332755
  },
  "t5_start_hq2": {
   "file": "/rigs/t5_start_hq2.obonb",
@@ -704,7 +704,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 330817
+  "bytes": 333419
  },
  "t6_s0": {
   "file": "/rigs/t6_s0.obonb",
@@ -728,7 +728,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 327456
+  "bytes": 329963
  },
  "t6_s1": {
   "file": "/rigs/t6_s1.obonb",
@@ -752,7 +752,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 330250
+  "bytes": 334740
  },
  "t6_s2": {
   "file": "/rigs/t6_s2.obonb",
@@ -776,7 +776,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 328540
+  "bytes": 332428
  },
  "t6_s3": {
   "file": "/rigs/t6_s3.obonb",
@@ -800,7 +800,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 329786
+  "bytes": 333099
  },
  "t6_start_hq": {
   "file": "/rigs/t6_start_hq.obonb",
@@ -826,7 +826,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
-  "bytes": 336446
+  "bytes": 338719
  },
  "transparent_s0": {
   "file": "/rigs/transparent_s0.obonb",
@@ -850,7 +850,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 335140
+  "bytes": 341483
  },
  "transparent_s1": {
   "file": "/rigs/transparent_s1.obonb",
@@ -874,7 +874,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 335306
+  "bytes": 342448
  },
  "transparent_s2": {
   "file": "/rigs/transparent_s2.obonb",
@@ -898,7 +898,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 333567
+  "bytes": 341237
  },
  "transparent_s3": {
   "file": "/rigs/transparent_s3.obonb",
@@ -922,6 +922,6 @@
   ],
   "hasMouth": false,
   "bones": 12,
-  "bytes": 327531
+  "bytes": 333754
  }
 }

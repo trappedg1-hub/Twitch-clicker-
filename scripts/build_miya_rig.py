@@ -96,6 +96,12 @@ REF_BONES = [
     # her skull: a 3-span hat brim is a long lever and its tip travels three times what her crown
     # does, which is geometry, not wobble (the jelly guards in `rigRuntime` measure bone_head).
     ("head_wear",      512,  470, "head"),
+    # Reserved shoulders. They carry no skin weight and that is a measured decision, not an
+    # oversight: her sleeves and her hoodie are one garment in the same colour, so the only way to
+    # separate an arm from the torso is the silhouette — and the silhouette it hangs outside is the
+    # chair's backrest (the test `the chair she sits on never moves` failed by 4.0 px when the arm
+    # blobs reached it). What the arms needed instead was for the *lap* to stop being a photograph;
+    # that is `torso_gate`'s widening below, and it carries her hands with her hips.
     ("arm_left",       330,  860, "chest"),
     ("arm_right",      700,  860, "chest"),
 ]
@@ -178,8 +184,10 @@ REF_INFLUENCE = {
     "bust_right": (572,  752, 104, 100),   # and her right, on a second spring
     "spine":      (512, 1020, 205, 150),
     "hips":       (512, 1200, 255, 175),
-    "arm_left":   (330,  900, 125, 215),
-    "arm_right":  (700,  900, 125, 215),
+    # The arm blobs start *below* the backred wings (they live under y 740 on the day-1 plate): the
+    # spring rings on its parent's motion, so a blob that reached the chair would move the chair.
+    "arm_left":   (318,  935, 105, 118),
+    "arm_right":  (712,  935, 105, 118),
 }
 
 
@@ -402,7 +410,16 @@ def below(y: float, edge: float, width: float) -> float:
 TORSO_DX = 0.04      # centre of her neck+torso envelope, relative to the eyes
 TORSO_RX = 1.62      # half-width: 165 px on t1_s0, so x 371..701
 TORSO_TOP = -0.20    # from just under the jaw...
-TORSO_BOTTOM = 5.70  # ...down to her hips, in spans below the eye line
+TORSO_BOTTOM = 9.10  # ...down past her hands, in spans below the eye line
+# Where the envelope starts widening and where it is as wide as her lap. The backrest is only at
+# her shoulders; below her waist the width of the picture is her thighs, so the rig is allowed to
+# use it.
+TORSO_WAIST = 4.10
+TORSO_LAP = 6.30
+TORSO_RX_SEAT = 1.82  # ...and at her hands, where the seat shows either side of them
+TORSO_RX_LAP = 2.95   # half-width at the lap: 300 px on t1_s0, her crossed thighs
+# ...and then it narrows again. At her hands the plate stops being her: the seat is visible either
+# side of them (measured 4 px of it walking along with `settle` before this taper existed).
 TORSO_RIM = 0.08     # the last 8 % of the envelope fades out, ~13 px
 
 
@@ -413,10 +430,23 @@ def torso_gate(x: float, y: float) -> float:
     at 345, and an ellipse wide enough for one side of her reaches into the chair on the other.
     A boxy superellipse (|dx|^4 + |dy|^4) is flat enough along her sides to leave the backrest,
     the armrests and the seat alone, while her own silhouette stays comfortably inside it.
+
+    **The envelope widens below the waist, and that is the point of the two radii.** Above her
+    ribs it has to be narrow, because the backrest's wings are exactly at her shoulders. At the
+    lap there is nothing but her: crossed thighs, both hands, the hoodie's hem. The first version
+    used the narrow radius all the way down and stopped the envelope at her ribs — which is why
+    two thirds of the picture (`root`, 4045 of 4845 vertices) never moved and the rig read as
+    "the skeleton is on her body, and her hands are a photograph". The lap now belongs to `hips`,
+    so a weight shift carries her hands with it, which is exactly what hands on a lap do.
     """
     span = SPAN
     cx = MX + TORSO_DX * span
-    rx = TORSO_RX * span
+    waist = MY + TORSO_WAIST * span
+    lap = MY + TORSO_LAP * span
+    # Smooth widening, not a step: a step in a skin weight folds the mesh (measured, 547 folds).
+    widen = smoothstep(waist, lap, y)
+    taper = smoothstep(lap + 1.0 * span, lap + 2.7 * span, y)
+    rx = (TORSO_RX + (TORSO_RX_LAP - TORSO_RX) * widen - (TORSO_RX_LAP - TORSO_RX_SEAT) * taper) * span
     top = MY + TORSO_TOP * span
     ry = (MY + TORSO_BOTTOM * span - top) / 2.0
     cy = top + ry
@@ -1425,6 +1455,7 @@ def build() -> dict:
             tl("bone_head", "rotation", ((0, 0), (0.32, -0.45), (0.76, 0.30), (1.08, -0.10), (1.25, 0)), ease=(0.35, 0.1, 0.4, 1)),
             tl("bone_neck", "rotation", ((0, 0), (0.30, -0.18), (0.74, 0.12), (1.25, 0))),
             *bust_pair("rotation", ((0, 0), (0.34, -0.6), (0.78, 0.45), (1.10, -0.15), (1.25, 0)), lag=0.10, scale=0.75),
+            # Hands on a lap do not stay glued to the thigh: they take up the last of the shift.
         ],
         "events": [],
     }

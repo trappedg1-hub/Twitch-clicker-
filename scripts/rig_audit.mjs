@@ -57,6 +57,26 @@ for (const art of arts) {
     if (total > 0 && root / total > 0.999) pinned.push(i);
   }
 
+  // The complaint this column answers: "the skeleton is on her body and her hands are a
+  // photograph". `lower` are the vertices the hips and the spine own — her lap, her crossed
+  // thighs, both hands. `lapPx` is the furthest any of them travels in any clip, and the summary
+  // line fails the run when it is ~0, so the rig cannot quietly go back to a frozen lap.
+  const lower = [];
+  let rootWeight = 0;
+  let totalWeight = 0;
+  for (let i = 0; i < skin.weights.length; i += 1) {
+    const w = skin.weights[i];
+    let total = 0;
+    let low = 0;
+    for (const e of w) {
+      total += e.weight;
+      if (e.bone === 'bone_hips' || e.bone === 'bone_spine') low += e.weight;
+      if (e.bone === 'bone_root') rootWeight += e.weight;
+      totalWeight += e.weight;
+    }
+    if (total > 0 && low / total > 0.8) lower.push(i);
+  }
+
   const restA = new Float64Array(n);
   const foldable = [];
   for (let t = 0; t < n; t += 1) {
@@ -77,6 +97,8 @@ for (const art of arts) {
   let worstPxAt = [0, 0];
   let propPx = 0;
   let propAnim = '';
+  let lapPx = 0;
+  let lapAnim = '';
   const folded = new Set();
   for (const anim of doc.animations) {
     inst.play(anim.name, false);
@@ -109,6 +131,13 @@ for (const art of arts) {
           }
         }
       }
+      for (const p of lower) {
+        const d = Math.hypot(v[p * 2] - setup[p * 2], v[p * 2 + 1] - setup[p * 2 + 1]);
+        if (d > lapPx) {
+          lapPx = d;
+          lapAnim = anim.name;
+        }
+      }
       for (const p of pinned) {
         const d = Math.hypot(v[p * 2] - setup[p * 2], v[p * 2 + 1] - setup[p * 2 + 1]);
         if (d > propPx) {
@@ -118,13 +147,21 @@ for (const art of arts) {
       }
     }
   }
-  rows.push({ art, folds, tris: folded.size, foldAnim, foldAt, worstPx, worstPxAnim, worstPxAt, propPx, propAnim, trisAll: n });
-  process.stderr.write(`${art} folded=${folded.size} px=${worstPx.toFixed(1)} prop=${propPx.toFixed(2)}\n`);
+  rows.push({
+    art, folds, tris: folded.size, foldAnim, foldAt, worstPx, worstPxAnim, worstPxAt,
+    propPx, propAnim, trisAll: n, lapPx, lapAnim, lapVerts: lower.length,
+    rootShare: totalWeight ? rootWeight / totalWeight : 1,
+  });
+  process.stderr.write(
+    `${art} folded=${folded.size} px=${worstPx.toFixed(1)} prop=${propPx.toFixed(2)} lap=${lapPx.toFixed(1)}\n`,
+  );
 }
 
 rows.sort((a, b) => b.tris - a.tris || b.worstPx - a.worstPx);
 const pad = (s, w) => String(s).padEnd(w);
-console.log(`\n${pad('art', 18)}${pad('folded tris', 13)}${pad('fold frames', 13)}${pad('worst px', 10)}${pad('anim', 12)}${pad('where', 14)}${pad('prop px', 9)}`);
+console.log(
+  `\n${pad('art', 18)}${pad('folded tris', 13)}${pad('fold frames', 13)}${pad('worst px', 10)}${pad('anim', 12)}${pad('where', 14)}${pad('prop px', 9)}${pad('lap px', 9)}${pad('rigid', 7)}`,
+);
 for (const r of rows) {
   console.log(
     pad(r.art, 18) +
@@ -133,11 +170,15 @@ for (const r of rows) {
       pad(r.worstPx.toFixed(1), 10) +
       pad(r.worstPxAnim, 12) +
       pad(r.foldAt.join(','), 14) +
-      pad(r.propPx.toFixed(2), 9),
+      pad(r.propPx.toFixed(2), 9) +
+      pad(r.lapPx.toFixed(1), 9) +
+      pad(`${Math.round(r.rootShare * 100)}%`, 7),
   );
 }
-const bad = rows.filter((r) => r.tris > 0 || r.propPx > 0.01);
+const bad = rows.filter((r) => r.tris > 0 || r.propPx > 0.01 || r.lapPx < 1.5);
+const frozen = rows.filter((r) => r.lapPx < 1.5);
 console.log(
-  `\n${rows.length} rigs | folded: ${rows.filter((r) => r.tris > 0).length} | prop moved: ${rows.filter((r) => r.propPx > 0.01).length} | worst px ${Math.max(...rows.map((r) => r.worstPx)).toFixed(1)}`,
+  `\n${rows.length} rigs | folded: ${rows.filter((r) => r.tris > 0).length} | prop moved: ${rows.filter((r) => r.propPx > 0.01).length} | worst px ${Math.max(...rows.map((r) => r.worstPx)).toFixed(1)} | lap alive: ${rows.length - frozen.length}/${rows.length} | rigid ${Math.round((rows.reduce((s, r) => s + r.rootShare, 0) / rows.length) * 100)}%`,
 );
 if (bad.length) console.log(`needs work: ${bad.map((r) => r.art).join(' ')}`);
+if (frozen.length) console.log(`frozen lap: ${frozen.map((r) => r.art).join(' ')}`);

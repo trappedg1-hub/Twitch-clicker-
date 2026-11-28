@@ -125,6 +125,8 @@ export class LiveHeroine {
   /** Own clock, seconds of the last `update()` — the rig is not on Pixi's ticker. */
   private lastUpdateMs = 0;
   private energy = 0;
+  /** Everything the stage draws on top of the skeleton (currently: her blush). */
+  private readonly overlayLayer = new Container();
   /** How long the beat that started last is meant to last — the tap's interruption rule needs it. */
   private beatMs = 0;
   /** Set when the skeleton threw; the class then stays out of the way for the rest of the page. */
@@ -227,6 +229,9 @@ export class LiveHeroine {
       this.reactionUntil = 0;
       this.lastUpdateMs = 0;
       this.view.addChild(bone);
+      // Overlay is last so it draws over the skeleton, and re-added on every art change because
+      // `view` is rebuilt when the plate under it changes.
+      if (!this.overlayLayer.parent) this.view.addChild(this.overlayLayer);
       this.view.visible = true;
       bone.play('idle', true);
       this.current = 'idle';
@@ -367,6 +372,65 @@ export class LiveHeroine {
   }
 
   /** Does this document carry the animation? Some beats only exist where the art does. */
+  /**
+   * Where her cheeks are, in the rig's own coordinates — the blush renderer's one input.
+   *
+   * The numbers come out of the document, not out of a constant: the eye patch and the mouth patch
+   * are meshes weighted to the head bone, so their corners are the real eye box and mouth box on
+   * THIS plate, and the head bone's world matrix carries them wherever the animation has put her
+   * head. That is why the blush follows a nod instead of floating where the face used to be — and
+   * why it works on all 36 plates, at every stage of leaning toward the camera.
+   *
+   * Returns null when the document has no eyes or no mouth: a plate with no face art gets no blush
+   * rather than two pink dots on her neck.
+   */
+  public cheekAnchors(): { left: { x: number; y: number }; right: { x: number; y: number }; size: number } | null {
+    const skeleton = this.bone?.skeleton;
+    const doc = this.asset?.doc as
+      | { skeleton?: { skins?: { attachments?: Record<string, Record<string, { vertices?: number[] }>> }[] } }
+      | undefined;
+    if (!skeleton || !doc?.skeleton?.skins?.[0]?.attachments) return null;
+    const head = skeleton.findBone('bone_head');
+    if (!head) return null;
+    const attachments = doc.skeleton.skins[0]!.attachments!;
+    const eyes = attachments.slot_eyes?.eyes_closed?.vertices;
+    const mouth = attachments.slot_mouth?.mouth_open?.vertices ?? attachments.slot_mouth?.mouth_closed?.vertices;
+    if (!eyes || eyes.length < 8) return null;
+    const box = (v: number[]) => {
+      const xs = [v[0]!, v[2]!, v[4]!, v[6]!];
+      const ys = [v[1]!, v[3]!, v[5]!, v[7]!];
+      const x0 = Math.min(...xs);
+      const x1 = Math.max(...xs);
+      const y0 = Math.min(...ys);
+      const y1 = Math.max(...ys);
+      return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, w: x1 - x0, h: y1 - y0 };
+    };
+    const eye = box(eyes);
+    // Cheeks live below the eyes and above the mouth; without a mouth box, a fifth of the eye
+    // height below the eye line is the same place on every plate we have.
+    const cheekY = mouth && mouth.length >= 8
+      ? (eye.cy + eye.h / 2 + (box(mouth).cy - box(mouth).h / 2)) / 2
+      : eye.cy + eye.h * 1.05;
+    const dx = eye.w * 0.32;
+    const world = head.world;
+    const toRig = (x: number, y: number) => ({
+      x: world.a * x + world.c * y + world.x,
+      y: world.b * x + world.d * y + world.y,
+    });
+    const scale = Math.hypot(world.a, world.b) || 1;
+    return {
+      left: toRig(eye.cx - dx, cheekY),
+      right: toRig(eye.cx + dx, cheekY),
+      size: eye.w * 0.46 * scale,
+    };
+  }
+
+  /** Let the stage draw on top of the skeleton without owning its container. */
+  public attachOverlay(display: Container): void {
+    this.overlayLayer.removeChildren().forEach((child) => child.destroy());
+    this.overlayLayer.addChild(display);
+  }
+
   /**
    * What is actually playing, for QA. The clip name is the only honest answer to "did that tap reach
    * her": a callout, a sound and a chat line can all fire while the skeleton sits in `idle`.
