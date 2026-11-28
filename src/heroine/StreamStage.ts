@@ -15,7 +15,7 @@ import type {
 } from '../domain/types.ts';
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
-import { LiveHeroine, type QuirkKind } from './LiveHeroine.ts';
+import { LiveHeroine, type LiveReaction, type QuirkKind } from './LiveHeroine.ts';
 import { pickBeat, type BeatName } from './reactionDirector.ts';
 import { pickAttention, type AttentionBeat, type AttentionKind } from './attention.ts';
 import { BlushLayer } from './blushLayer.ts';
@@ -700,7 +700,7 @@ export class StreamStage {
   }
 
   /** One-shot secondary motion on the live skeleton, if one is up. */
-  public playLiveReaction(kind: 'shake' | 'turn' | 'sway' = 'shake'): void {
+  public playLiveReaction(kind: LiveReaction = 'shake'): void {
     this.live.react(kind);
   }
 

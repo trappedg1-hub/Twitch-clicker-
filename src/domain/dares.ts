@@ -164,6 +164,82 @@ export function dareClock(state: DareState, nowMs: number): DareState {
 }
 
 /**
+ * Who is asking.
+ *
+ * For the first hour of play the chat asks and she answers, which is the genre's oldest loop. What
+ * the best of this genre does is then *flip* it: at some point she stops being the one who is dared
+ * and starts daring you. It costs no new art and no new input — the same window, the same bar, the
+ * same answer — but it changes who owns the scene, and it is the single hottest switch available
+ * here.
+ *
+ * Rules, so it reads as her and not as a random label:
+ *
+ *  * **never the first one** — the chat has to establish the verb before she can take it over;
+ *  * **only when there is heat** — a bold girl (55+) or a player who is already on a streak;
+ *  * **never twice in a row** — a heroine who only ever initiates is as scripted as one who never does;
+ *  * **it gets likelier as the streak grows** — the reward for being good is her attention.
+ */
+export type DareOrigin = 'chat' | 'her';
+
+/** She pays more when she is the one asking — and she knows it. */
+export const HER_DARE_BONUS = 1.5;
+
+export interface DareOriginContext {
+  /** 1-based counter of dares this session. */
+  seq: number;
+  streak: number;
+  boldness: number;
+  lastOrigin: DareOrigin | null;
+  random: () => number;
+}
+
+/** Chance she takes over, given the room. Pure, so the ramp is testable. */
+export function herDareChance(streak: number, boldness: number): number {
+  const s = Number.isFinite(streak) ? Math.max(0, Math.floor(streak)) : 0;
+  const b = Number.isFinite(boldness) ? boldness : 0;
+  if (s < 1 && b < 55) return 0;
+  const base = 0.3 + 0.12 * s + (b >= 80 ? 0.12 : b >= 55 ? 0.05 : 0);
+  return Math.min(0.7, base);
+}
+
+export function pickDareOrigin(ctx: DareOriginContext): DareOrigin {
+  if (ctx.seq < 2) return 'chat';
+  if (ctx.lastOrigin === 'her') return 'chat';
+  const chance = herDareChance(ctx.streak, ctx.boldness);
+  if (chance <= 0) return 'chat';
+  const r = Number.isFinite(ctx.random()) ? Math.abs(ctx.random()) : 1;
+  return r < chance ? 'her' : 'chat';
+}
+
+/** What she says when she is the one asking. Two registers: the tease and the dare. */
+export const HER_DARE_LINES: Record<'ask' | 'won' | 'lost', readonly string[]> = {
+  ask: [
+    'Так, чат, тихо. Теперь я. Смотри мне в глаза и не смей отвлекаться.',
+    'Я хочу кое-что проверить. Сможешь — я запомню. Не сможешь — тоже.',
+    'Моё задание. И оно сложнее, чем кажется: слушайся.',
+    'Знаешь, что мне нравится больше всего? Когда ты делаешь, что я прошу.',
+  ],
+  won: [
+    'Видишь, что со мной делает твоё внимание? Вот и не отвлекайся.',
+    'Хороший. Я запомнила это — и запомню ещё раз.',
+    'Теперь ты понимаешь, почему я согласилась на этот стрим.',
+    'Всё, я довольна. Пока довольна.',
+  ],
+  lost: [
+    'Не справился. А я так старалась придумать.',
+    'Хм. Я запомню, что ты сдался.',
+    'Ну и кто из нас теперь слабо? Ладно, в следующий раз.',
+  ],
+} as const;
+
+/** The chat's reaction when she takes the wheel: the audience is always a step behind her. */
+export const HER_DARE_CHAT = [
+  'она сама попросила. ЧАТ, ОНА САМА :AWOOGA:',
+  'это уже не челлендж чата, это её челлендж :Pog:',
+  'она диктует условия. я тут вообще зачем :Nosebleed:',
+] as const;
+
+/**
  * Which dare the chat asks for next. Boldness gates the loud ones — a shy girl's chat does not ask
  * her to hold eye contact — and the previous dare is banned so two in a row never feel scripted.
  */

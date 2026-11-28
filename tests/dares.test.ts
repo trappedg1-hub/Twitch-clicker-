@@ -4,6 +4,9 @@ import test from 'node:test';
 import {
   DARES,
   DARE_LINES,
+  HER_DARE_BONUS,
+  herDareChance,
+  pickDareOrigin,
   dareStreakMultiplier,
   dareClock,
   dareEvent,
@@ -97,4 +100,36 @@ test('a streak pays more, and a miss resets it', () => {
   assert.equal(dareStreakMultiplier(9), 2);
   assert.equal(dareStreakMultiplier(-3), 1);
   assert.equal(dareStreakMultiplier(Number.NaN), 1);
+});
+
+test('she only takes the wheel once the chat has taught the verb', () => {
+  // First dare of a session is always the chat's, no matter how bold the room is.
+  for (const r of [0, 0.5, 0.99]) {
+    assert.equal(pickDareOrigin({ seq: 1, streak: 3, boldness: 90, lastOrigin: null, random: () => r }), 'chat');
+  }
+  // And a cold, unproven room never gets a dare from her at all.
+  assert.equal(herDareChance(0, 40), 0);
+  assert.equal(pickDareOrigin({ seq: 9, streak: 0, boldness: 40, lastOrigin: null, random: () => 0 }), 'chat');
+});
+
+test('heat and streak raise her odds, and the ramp stops short of certainty', () => {
+  assert.ok(herDareChance(0, 60) > 0);
+  assert.ok(herDareChance(0, 85) > herDareChance(0, 60));
+  assert.ok(herDareChance(1, 40) > 0, 'a streak alone is enough');
+  assert.ok(herDareChance(3, 90) > herDareChance(1, 60));
+  assert.ok(herDareChance(20, 100) <= 0.7, 'never a sure thing');
+  // The same roll decides differently at different heats: that is the only reason to have a ramp.
+  const ctx = { seq: 4, streak: 2, lastOrigin: 'chat' as const, random: () => 0.42 };
+  assert.equal(pickDareOrigin({ ...ctx, boldness: 90 }), 'her');
+  assert.equal(pickDareOrigin({ ...ctx, boldness: 20, streak: 0 }), 'chat');
+});
+
+test('never two in a row, and the bonus is hers alone', () => {
+  assert.equal(pickDareOrigin({ seq: 5, streak: 5, boldness: 100, lastOrigin: 'her', random: () => 0 }), 'chat');
+  assert.ok(HER_DARE_BONUS > 1);
+  // A her-dare pays the streak multiplier *and* her bonus, and the two caps do not fight.
+  const paid = (reward: number, streak: number) => Math.round(reward * dareStreakMultiplier(streak) * HER_DARE_BONUS);
+  assert.equal(paid(50, 0), 75);
+  assert.equal(paid(50, 2), Math.round(50 * 1.5 * 1.5));
+  assert.ok(paid(70, 4) === Math.round(70 * 2 * HER_DARE_BONUS), 'streak still caps at double');
 });

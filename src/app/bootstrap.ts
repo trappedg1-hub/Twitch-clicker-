@@ -69,6 +69,10 @@ import {
   DARE_HEARD,
   DARE_SPEECH,
   dareStreakMultiplier,
+  pickDareOrigin,
+  HER_DARE_BONUS,
+  HER_DARE_LINES,
+  type DareOrigin,
   dareClock,
   dareEvent,
   dareProgressRatio,
@@ -142,7 +146,8 @@ declare global {
       dareDebug: () => { kind: string; status: string; progress: number; target: number } | null;
       lastDareDebug: () => { kind: string; won: boolean; reward: number; at: number } | null;
       setDareStreak: (n: number) => number;
-      startDare: (kind: string) => boolean;
+      startDare: (kind: string, origin?: string) => boolean;
+      dareOriginDebug: () => 'chat' | 'her';
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       gazeAimDebug: () => { x: number; y: number } | null;
       chatGlanceDebug: () => { glances: number; frames: number; totalFrames: number };
@@ -406,7 +411,7 @@ export async function bootstrapApp(): Promise<void> {
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
     announce(latest.removedItemLabel, true, latest.stage);
-    ui.showSpeech(latest.unlockLine);
+    ui.showSpeech(latest.unlockLine, 2600);
     ui.showDonationAlert(
       `★ SUB GOAL ${latest.subsRequired} САБОВ ПРОБИТ!`,
       `${latest.removedItemLabel} • Доход вырос до x${latest.incomeMultiplier.toFixed(2)}!`,
@@ -481,7 +486,7 @@ export async function bootstrapApp(): Promise<void> {
     const lines = WELCOME_BACK_LINES[welcomeBackBand(heat)];
     const line = lines[Math.floor(Math.random() * lines.length)]!;
     lastPlayerInteractionMs = performance.now();
-    ui.showSpeech(line);
+    ui.showSpeech(line, 2600);
     stage.playLiveTalk(Math.min(3200, 900 + line.length * 26));
     stage.rig.triggerEmotion(welcomeBackBand(heat) === 'bold' ? 'bold' : 'shy', 2000);
     if (!announceMuted) {
@@ -522,6 +527,20 @@ export async function bootstrapApp(): Promise<void> {
   };
 
   let lastDareKind: DareState['kind'] | null = null;
+  /** Who set the dare that is on the chip right now, and who set the one before it. */
+  let dareOrigin: DareOrigin = 'chat';
+  let lastDareOrigin: DareOrigin | null = null;
+
+  /** The payout multiplier of the dare on screen: the streak always, her bonus only when she asked. */
+  const dareMultiplier = (origin: DareOrigin): number =>
+    dareStreakMultiplier(dareStreak) * (origin === 'her' ? HER_DARE_BONUS : 1);
+
+  const showDareChip = (origin: DareOrigin): void => {
+    const def = DARES[dare!.kind];
+    const mult = dareMultiplier(origin);
+    const streakLabel = dareStreak > 0 || origin === 'her' ? `×${Number(mult.toFixed(2))}` : '';
+    ui.showDare(def.hint, dareLabel(dare!), streakLabel, origin === 'her');
+  };
 
   const serveDare = (nowMs: number): void => {
     if (dare) return;
@@ -530,27 +549,51 @@ export async function bootstrapApp(): Promise<void> {
     // Banning the previous kind is what keeps two dares from reading as a script.
     const kind = pickDare(lastDareKind, stats.boldness, Math.random, state.streamDay);
     lastDareKind = kind;
+    // Who asks. The chat teaches the verb; once there is heat and a streak, she takes it over.
+    dareOrigin = pickDareOrigin({
+      seq: dareSeq,
+      streak: dareStreak,
+      boldness: stats.boldness,
+      lastOrigin: lastDareOrigin,
+      random: Math.random,
+    });
+    lastDareOrigin = dareOrigin;
     dare = startDare(kind, nowMs);
     const def = DARES[kind];
-    ui.showDare(def.hint, dareLabel(dare), dareStreak > 0 ? `×${dareStreakMultiplier(dareStreak)}` : '');
-    // She *hears* the chat. Without this the dare is a HUD timer; with it, it is a request she
-    // answered out loud — and her answer is the thing that makes the chip make sense.
+    showDareChip(dareOrigin);
     sfx.dareAsk();
-    stage.playLiveReaction(state.streamDay >= 2 || dareStreak > 0 ? 'turn' : 'sway');
-    stage.playLiveTalk(1500);
-    ui.showSpeech(DARE_HEARD[Math.floor(Math.random() * DARE_HEARD.length)]!);
-    if (!announceMuted) ui.pushChatMessage(createDareMessage('started', dareSeq + state.totalTaps, state.streamDay, def.ask));
+    if (dareOrigin === 'her') {
+      // Her own dare is the one beat where she is not answering anybody: no "what?" face, no
+      // sideways glance at the chat — she looks at the player and stays looking.
+      stage.playLiveReaction('lean_in');
+      stage.rig.triggerEmotion('tease', 2200);
+      stage.playLiveTalk(1900);
+      ui.showSpeech(HER_DARE_LINES.ask[Math.floor(Math.random() * HER_DARE_LINES.ask.length)]!, 2200);
+    } else {
+      // She *hears* the chat. Without this the dare is a HUD timer; with it, it is a request she
+      // answered out loud — and her answer is the thing that makes the chip make sense.
+      stage.playLiveReaction(state.streamDay >= 2 || dareStreak > 0 ? 'turn' : 'sway');
+      stage.playLiveTalk(1500);
+      ui.showSpeech(DARE_HEARD[Math.floor(Math.random() * DARE_HEARD.length)]!, 2000);
+    }
+    if (!announceMuted) {
+      ui.pushChatMessage(
+        createDareMessage('started', dareSeq + state.totalTaps, state.streamDay, def.ask, dareOrigin),
+      );
+    }
   };
 
-  let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number } | null = null;
+  let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number; origin?: DareOrigin } | null =
+    null;
   // How many dares in a row the player has served. The chat remembers; missing one resets it.
   let dareStreak = 0;
 
   const settleDare = (nowMs: number, won: boolean): void => {
     const def = DARES[dare!.kind];
-    const multiplier = won ? dareStreakMultiplier(dareStreak) : 1;
+    const origin = dareOrigin;
+    const multiplier = won ? dareMultiplier(origin) : 1;
     const paid = Math.round(def.reward * multiplier);
-    lastDareOutcome = { kind: def.kind, won, reward: won ? paid : 0, at: nowMs };
+    lastDareOutcome = { kind: def.kind, won, reward: won ? paid : 0, at: nowMs, origin };
     dareStreak = won ? dareStreak + 1 : 0;
     ui.hideDare(won ? 'Готово' : 'Провалено');
     dare = null;
@@ -560,14 +603,22 @@ export async function bootstrapApp(): Promise<void> {
         ...state,
         balance: state.balance + paid,
         totalEarned: state.totalEarned + paid,
-        hype: Math.min(100, state.hype + 6),
+        hype: Math.min(100, state.hype + (origin === 'her' ? 10 : 6)),
       };
       // Her answer is a beat, not a toast: the milestone path is the one that presents her.
       sfx.dareServed();
       stage.playLiveMilestone();
-      ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!);
+      if (origin === 'her') {
+        // Serving *her* dare is the one payout she reacts to with heat rather than with a joke.
+        stage.rig.triggerEmotion('fluster', 2400);
+        ui.showSpeech(HER_DARE_LINES.won[Math.floor(Math.random() * HER_DARE_LINES.won.length)]!, 2400);
+      } else {
+        ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!, 2400);
+      }
       announce(
-        `♥ ЧЕЛЛЕНДЖ ЧАТА${multiplier > 1 ? ` ×${multiplier.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : ''}: +${paid} ₽`,
+        `♥ ${origin === 'her' ? 'ЕЁ ЗАДАНИЕ' : 'ЧЕЛЛЕНДЖ ЧАТА'}${
+          multiplier > 1 ? ` ×${multiplier.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : ''
+        }: +${paid} ₽`,
         true,
         state.totalTaps,
       );
@@ -575,7 +626,12 @@ export async function bootstrapApp(): Promise<void> {
     } else {
       sfx.dareMissed();
       stage.playLiveReaction('sway');
-      ui.showSpeech(DARE_SPEECH.lost[Math.floor(Math.random() * DARE_SPEECH.lost.length)]!);
+      ui.showSpeech(
+        origin === 'her'
+          ? HER_DARE_LINES.lost[Math.floor(Math.random() * HER_DARE_LINES.lost.length)]!
+          : DARE_SPEECH.lost[Math.floor(Math.random() * DARE_SPEECH.lost.length)]!,
+        2000,
+      );
     }
     if (!announceMuted) {
       ui.pushChatMessage(createDareMessage(won ? 'done' : 'expired', state.totalTaps + dareSeq, state.streamDay));
@@ -1466,13 +1522,16 @@ export async function bootstrapApp(): Promise<void> {
         dareStreak = Math.max(0, Math.min(99, Math.floor(n)));
         return dareStreak;
       },
-      startDare: (kind) => {
+      startDare: (kind, origin) => {
         if (!(kind in DARES)) return false;
+        dareOrigin = origin === 'her' ? 'her' : 'chat';
+        lastDareOrigin = dareOrigin;
         dare = startDare(kind as DareState['kind'], performance.now());
         lastDareKind = dare.kind;
-        ui.showDare(DARES[dare.kind].hint, dareLabel(dare), dareStreak > 0 ? `×${dareStreakMultiplier(dareStreak)}` : '');
+        showDareChip(dareOrigin);
         return true;
       },
+      dareOriginDebug: () => dareOrigin,
       attentionDebug: () => stage.attentionDebug,
       gazeAimDebug: () => stage.gazeAimDebug,
       chatGlanceDebug: () => stage.chatGlanceDebug,

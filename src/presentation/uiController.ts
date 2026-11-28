@@ -89,6 +89,9 @@ export class UiController {
   private readonly dareCountEl = document.getElementById('chat-dare-count') as HTMLElement | null;
 
   private readonly dareStreakEl = document.getElementById('chat-dare-streak');
+  private readonly dareKickerEl = document.querySelector<HTMLElement>('.chat-dare-kicker');
+  /** Wall clock until which ordinary speech lines are ignored (a payout or a milestone is up). */
+  private speechLockUntil = 0;
   private readonly speechSubEl = document.getElementById('speech-subtitle')!;
   private readonly speechTextEl = document.getElementById('speech-text')!;
 
@@ -773,8 +776,13 @@ export class UiController {
   }
 
   /** A dare just arrived from the chat. */
-  public showDare(hint: string, label: string, streakLabel = ''): void {
+  public showDare(hint: string, label: string, streakLabel = '', fromHer = false): void {
     if (!this.dareEl) return;
+    // Who is asking changes the whole chip. The chat's dare is pink and public; hers is warmer,
+    // quieter and addressed to one person, and the kicker is the only thing that has to change for
+    // the player to feel the difference.
+    this.dareEl.classList.toggle('from-her', fromHer);
+    if (this.dareKickerEl) this.dareKickerEl.textContent = fromHer ? 'МИЯ ПРОСИТ' : 'ЧАТ ПРОСИТ';
     // The streak is the reason to say yes to the second dare, so it belongs on the chip and not
     // only in the payout line the player reads after the fact.
     if (this.dareStreakEl) {
@@ -814,7 +822,18 @@ export class UiController {
     document.body.classList.remove('dare-live');
   }
 
-  public showSpeech(line: string): void {
+  /**
+   * Her voice line, under the desk.
+   *
+   * `lockMs` is the difference between a beat and a flash: a tap that lands on the same frame as a
+   * dare payout would otherwise replace the payout line immediately, and the line the player was
+   * *paid* for is the one they never read. A lock swallows ordinary lines for its duration; the
+   * important beats call it, taps do not.
+   */
+  public showSpeech(line: string, lockMs = 0): void {
+    const now = performance.now();
+    if (now < this.speechLockUntil) return;
+    if (lockMs > 0) this.speechLockUntil = now + lockMs;
     this.speechTextEl.textContent = `«${line}»`;
     this.speechSubEl.classList.add('visible', 'pop');
     window.clearTimeout(this.speechPopTimer);

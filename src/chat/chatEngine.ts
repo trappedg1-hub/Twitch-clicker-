@@ -6,7 +6,7 @@ import type {
 } from '../domain/types.ts';
 import { contradictsWardrobe, getWardrobe } from '../domain/wardrobe.ts';
 import type { QuirkKind } from '../heroine/LiveHeroine.ts';
-import { DARE_LINES } from '../domain/dares.ts';
+import { DARE_LINES, HER_DARE_CHAT } from '../domain/dares.ts';
 
 export interface ChatMessage {
   id: string;
@@ -1185,8 +1185,14 @@ export function createDareMessage(
   seed = seqCounter,
   streamDay = 1,
   ask?: string,
+  /** When she is the one asking, the chat is not the one who spoke: it is the one reacting. */
+  origin: 'chat' | 'her' = 'chat',
 ): ChatMessage {
   const viewer = VIEWER_NICKS[(seed * 7 + 11) % VIEWER_NICKS.length]!;
+  if (origin === 'her' && kind === 'started') {
+    const line = HER_DARE_CHAT[Math.abs(seed) % HER_DARE_CHAT.length]!;
+    return { id: nextMsgId(), author: viewer.name, color: viewer.color, badge: viewer.badge, text: line };
+  }
   const pool = kind === 'started' ? null : DARE_LINES[kind];
   const text = kind === 'started' ? (ask ?? DARE_LINES.started[0]) : pool![Math.abs(seed) % pool!.length]!;
   return {
