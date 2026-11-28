@@ -831,6 +831,12 @@ export class UiController {
     }, 3000);
   }
 
+  /**
+   * Fired after every message actually drawn in the chat. The stage uses it to have her look at the
+   * chat — the one thing a streamer does that this game had no way of noticing.
+   */
+  public onChatPushed?: () => void;
+
   public pushChatMessage(msg: ChatMessage): void {
     const row = document.createElement('div');
     row.className = `chat-msg${msg.isSystemHighlight ? ' highlight' : ''}`;
@@ -856,5 +862,6 @@ export class UiController {
     while (this.chatMessagesEl.children.length > 7) {
       this.chatMessagesEl.removeChild(this.chatMessagesEl.firstChild!);
     }
+    this.onChatPushed?.();
   }
 }

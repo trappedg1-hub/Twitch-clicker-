@@ -21,7 +21,13 @@ import { pickAttention, type AttentionBeat, type AttentionKind } from './attenti
 import { BlushLayer } from './blushLayer.ts';
 import { HEAT } from './blush.ts';
 import { aimFromPointer, holdAtCamera } from './gaze.ts';
+import { askChatGlance, chatGlanceActive, CHAT_GLANCE_MS, IDLE_CHAT_GLANCE, type ChatGlanceState } from './chatGlance.ts';
 import { CAMERA, cameraPose, punchAdd, punchDecay, type CameraPose } from './camera.ts';
+
+/** Where the chat column is, in the gaze module's normalised space: right, a little below level. */
+const CHAT_AIM = { x: 0.62, y: 0.18 } as const;
+/** How far her head goes towards it. A glance, not a turn: `turn` is the authored 3.35°. */
+const CHAT_GLANCE_WEIGHT = 0.72;
 
 interface FloatingParticle {
   node: Container;
@@ -668,6 +674,18 @@ export class StreamStage {
 
   /** When she last did an attention beat of her own, and when any beat last started. */
   private lastAttentionAt = -1e9;
+  /**
+   * Reading the chat. A streamer's head goes to the chat column when it fills up, and this stage
+   * has the column on the right: `glareAtChat()` is called from the UI's own message push, so every
+   * line the player can see land is a line she turns to. Rate-limited, because a chat that never
+   * stops would otherwise pin her head to the right edge for the whole session.
+   */
+  private chatGlance: ChatGlanceState = IDLE_CHAT_GLANCE;
+  /** Counters for QA: how many glances started, and on how many frames one was live. */
+  private chatGlances = 0;
+  private chatGlanceFrames = 0;
+  /** What the gaze module was last told to look at, in its own normalised space (for QA). */
+  private lastGazeAim: { x: number; y: number } | null = null;
   private lastBeatAt = -1e9;
 
   /** Her own beat fired because of the player's attention, for the chat to react to. */
@@ -970,6 +988,23 @@ export class StreamStage {
     );
   }
 
+  /** Where her eyes were aimed on the last frame the gaze module ran (null once released). */
+  public get gazeAimDebug(): { x: number; y: number } | null {
+    return this.lastGazeAim;
+  }
+
+  /** How much of the stream she spends on the chat column, and how many glances that took. */
+  public get chatGlanceDebug(): { glances: number; frames: number; totalFrames: number } {
+    return { glances: this.chatGlances, frames: this.chatGlanceFrames, totalFrames: this.attentionDebug.frames ?? 0 };
+  }
+
+  /** The chat said something: she looks at it, briefly, a few times a minute at most. */
+  public glareAtChat(ms = CHAT_GLANCE_MS, force = false): void {
+    const next = askChatGlance(this.chatGlance, performance.now(), ms, force);
+    if (next !== this.chatGlance) this.chatGlances += 1;
+    this.chatGlance = next;
+  }
+
   /** Something landed: the frame leans in and comes back. Events only — the drift is free. */
   public punchCamera(amount: number): void {
     this.camPunch = punchAdd(this.camPunch, amount);
@@ -1070,14 +1105,25 @@ export class StreamStage {
     // can never stop the app's ticker (that is exactly how a rig bug becomes a black screen).
     // Where the player is pointing, every frame, before the skeleton is advanced: the head
     // follows the cursor with a spring, and the parallax below moves the room behind her.
-    if (this.pointerSeen && this.live.view.visible) {
-      // A warm heroine stops following the cursor and starts looking at the person behind it: the
-      // aim is pulled toward the lens by her own blush, so the hotter the stream gets, the more of
-      // the time she is looking at *you* instead of at your mouse. `holdAtCamera` is a pure lerp
-      // with a floor at her resting gaze, so it can never turn into a stare at a wall.
-      const aim = holdAtCamera(aimFromPointer(this.pointerNormX, this.pointerNormY), this.blush.debug().level);
-      this.live.look(aim.x, aim.y);
+    const glancing = chatGlanceActive(this.chatGlance, performance.now());
+    if (glancing) this.chatGlanceFrames += 1;
+    if (this.live.view.visible && (this.pointerSeen || glancing)) {
+      // Three claims on where she looks, in this order: the chat (a line just landed), the pointer,
+      // and her own blush. The chat wins because it is what a streamer actually does; the blush
+      // pulls the aim toward the lens, so the hotter the stream gets the more of the time she is
+      // looking at *you* instead of at your mouse. `holdAtCamera` is a pure lerp with a floor at
+      // her resting gaze, so it can never turn into a stare at a wall.
+      const base = this.pointerSeen
+        ? aimFromPointer(this.pointerNormX, this.pointerNormY)
+        : { x: 0, y: 0 };
+      const aim = glancing
+        ? { x: base.x + (CHAT_AIM.x - base.x) * CHAT_GLANCE_WEIGHT, y: base.y + (CHAT_AIM.y - base.y) * CHAT_GLANCE_WEIGHT }
+        : base;
+      const held = holdAtCamera(aim, this.blush.debug().level);
+      this.lastGazeAim = held;
+      this.live.look(held.x, held.y);
     } else {
+      this.lastGazeAim = null;
       this.live.releaseGaze();
     }
     // The camera first: the drift is a function of time only, so it costs one sine pair per frame

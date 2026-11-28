@@ -134,6 +134,10 @@ declare global {
       lastDareDebug: () => { kind: string; won: boolean; reward: number; at: number } | null;
       startDare: (kind: string) => boolean;
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
+      gazeAimDebug: () => { x: number; y: number } | null;
+      chatGlanceDebug: () => { glances: number; frames: number; totalFrames: number };
+      pushChatLine: (text: string) => number;
+      glareAtChat: () => { x: number; y: number } | null;
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
@@ -207,6 +211,14 @@ export async function bootstrapApp(): Promise<void> {
   const stage = new StreamStage();
   await stage.mount(stageHost);
   stage.setSubStage(state.displayedSubStage, false);
+  // She reads the chat. Every line the player can actually see land pulls her head to the column
+  // for a beat (rate-limited inside the stage), which is the cheapest possible way to make a fixed
+  // plate feel like a person sitting in front of a screen.
+  // ...but never over a challenge: those seconds are hers and the player's, and a chat line landing
+  // mid-eyeline would drag her gaze off the face the dare just asked the player to hold.
+  ui.onChatPushed = () => {
+    if (!document.body.classList.contains('dare-live')) stage.glareAtChat();
+  };
 
   // ---- The rig can only ever cost us the rig -------------------------------------------------
   // The skeleton draws inside the game's own Pixi stage, on the game's own clock. If anything about
@@ -1410,6 +1422,17 @@ export async function bootstrapApp(): Promise<void> {
         return true;
       },
       attentionDebug: () => stage.attentionDebug,
+      gazeAimDebug: () => stage.gazeAimDebug,
+      chatGlanceDebug: () => stage.chatGlanceDebug,
+      pushChatLine: (text) => {
+        ui.pushChatMessage({ id: `qa-${Date.now()}-${Math.random()}`, author: 'qa_viewer', color: '#ff75c3', text });
+        return stage.chatGlanceDebug.glances;
+      },
+      glareAtChat: () => {
+        stage.glareAtChat(1500, true);
+        stage.app.render();
+        return stage.gazeAimDebug;
+      },
       tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {
         state = {
