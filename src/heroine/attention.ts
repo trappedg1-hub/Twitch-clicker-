@@ -21,9 +21,31 @@
  * look glitchy, and every beat here is longer than the gate.
  */
 
+import type { TapZoneId } from '../domain/types.ts';
 import { BEAT_MS, type BeatName } from './reactionDirector.ts';
 
-export type AttentionKind = 'staring' | 'bored';
+export type AttentionKind = 'staring' | 'bored' | 'caught';
+
+/**
+ * The zones a stare is *allowed* to be caught on, and what each one earns.
+ *
+ * A cursor resting on her face is attention; a cursor resting on her chest is something else, and a
+ * streamer knows the difference instantly. That distinction is the whole point of this table — the
+ * same three seconds of stillness land as eye contact, as embarrassment, or as a tease depending on
+ * where the pointer is, which is exactly the fan-service the game was missing without adding a
+ * single new animation.
+ *
+ * Every answer is drawn from beats the plate actually carries (`available`), so a plate with no
+ * `arch` falls through to `tease`, and a plate with neither falls through to the generic stare list.
+ */
+export const CAUGHT_ANSWERS: Record<'chest' | 'legs' | 'feet', { bold: BeatName[]; shy: BeatName[] }> = {
+  // Caught on her chest: bold owns it (the tongue), shy hides behind her shoulder.
+  chest: { bold: ['tease', 'giggle', 'arch'], shy: ['shy_tuck', 'giggle', 'turn'] },
+  // Caught on her legs: bold shows them off — `arch` is the one beat that presents the silhouette.
+  legs: { bold: ['arch', 'tease', 'giggle'], shy: ['shy_tuck', 'settle', 'turn'] },
+  // Feet are the joke of the game and the one place a reaction can be a squeal.
+  feet: { bold: ['tickle', 'giggle', 'tease'], shy: ['tickle', 'shy_tuck', 'giggle'] },
+};
 
 /** All the tuning in one place, in milliseconds, because this is a timing problem. */
 export const ATTENTION = {
@@ -38,6 +60,14 @@ export const ATTENTION = {
   boredCooldownMs: 26000,
   /** Never step on the tail of another beat. */
   beatBusyMs: 1200,
+  /**
+   * Being caught looking somewhere specific takes the longest to register: two seconds of a cursor
+   * parked on her chest is a decision, one second is a mouse passing through. The cooldown is longer
+   * than the generic stare's because this beat is much louder.
+   */
+  caughtDwellMs: 2100,
+  caughtQuietMs: 900,
+  caughtCooldownMs: 30000,
 } as const;
 
 export interface AttentionContext {
@@ -53,6 +83,8 @@ export interface AttentionContext {
   boldness: number;
   /** What the current plate actually carries. */
   available: ReadonlySet<string>;
+  /** Which part of her the pointer is resting on, when it is resting on one. */
+  zone?: TapZoneId | null;
   random: () => number;
 }
 
@@ -60,6 +92,8 @@ export interface AttentionBeat {
   kind: AttentionKind;
   anim: BeatName;
   ms: number;
+  /** Set for `caught`: which zone she caught the player looking at. The chat line uses it. */
+  zone?: 'chest' | 'legs' | 'feet' | null;
 }
 
 /** The first beat she has the art for, in preference order, or null. */
@@ -70,10 +104,11 @@ function first(available: ReadonlySet<string>, order: BeatName[]): BeatName | nu
   return null;
 }
 
-const beat = (kind: AttentionKind, anim: BeatName): AttentionBeat => ({
+const beat = (kind: AttentionKind, anim: BeatName, zone?: AttentionBeat['zone']): AttentionBeat => ({
   kind,
   anim,
   ms: BEAT_MS[anim] ?? 1200,
+  ...(zone ? { zone } : {}),
 });
 
 /** Boldness at which she stops being embarrassed about being looked at. Matches the rig's own 68. */
@@ -81,6 +116,22 @@ export const BOLD_STARE = 55;
 
 export function pickAttention(ctx: AttentionContext): AttentionBeat | null {
   if (ctx.msSinceBeat < ATTENTION.beatBusyMs) return null;
+
+  // Caught: the pointer has been parked on one part of her for a beat and a half of quiet. This is
+  // checked before the generic stare, because it is the more specific reading of the same input —
+  // and the longer cooldown means it can never become the loop.
+  const zone = ctx.zone ?? null;
+  const caughtZone = zone === 'chest' || zone === 'legs' || zone === 'feet' ? zone : null;
+  if (
+    caughtZone &&
+    ctx.hoverMs >= ATTENTION.caughtDwellMs &&
+    ctx.msSinceTap >= ATTENTION.caughtQuietMs &&
+    ctx.msSinceAttention >= ATTENTION.caughtCooldownMs
+  ) {
+    const table = CAUGHT_ANSWERS[caughtZone];
+    const name = first(ctx.available, ctx.boldness >= BOLD_STARE ? table.bold : table.shy);
+    if (name) return beat('caught', name, caughtZone);
+  }
 
   const staring =
     ctx.hoverMs >= ATTENTION.stareDwellMs &&

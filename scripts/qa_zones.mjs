@@ -185,6 +185,22 @@ const blush = await page.evaluate(() => window.__qaScene.blushDebug());
 if (!blush.at) problems.push('the blush never drew: no anchor on her face');
 if (!(blush.level > 0 && blush.level <= 1)) problems.push(`blush level ${blush.level}`);
 
+// --- 4b. the camera: alive, bounded, and it does not move the hit zones off her ---------------
+const cam = await page.evaluate(() => window.__qaScene.cameraDebug());
+if (!(Math.abs(cam.zoom) <= 0.018)) problems.push(`camera zoom ${cam.zoom.toFixed(4)} is outside its budget`);
+if (!(cam.punch >= 0)) problems.push(`camera punch ${cam.punch}`);
+if (cam.reduced) problems.push('reduced motion is on in the QA browser: the drift was never measured');
+const camMoved = Math.abs(cam.x) + Math.abs(cam.y) + Math.abs(cam.zoom) * 1000;
+if (!(camMoved > 0)) problems.push('the camera never moved: the frame is a screenshot again');
+
+// Parked on her chest: she must register *which* zone, whether or not the beat has cooled down.
+const chest = await page.evaluate(() => window.__qaScene.zoneCenter('chest'));
+if (chest) {
+  await page.mouse.move(chest.x, chest.y);
+  await page.waitForTimeout(2600);
+}
+const onChest = await page.evaluate(() => window.__qaScene.hoverDebug());
+
 const tick = await page.evaluate(() => window.__qaScene.tickDebug());
 if (tick.error) problems.push(`the stage's tick threw: ${tick.error.split('\n')[0]}`);
 await page.screenshot({ path: `${SHOTS}/zones.png` });
@@ -197,6 +213,10 @@ for (const round of rounds) {
   console.log(`  ${round.label.padEnd(6)}${String(round.boldness).padEnd(6)}${parts.join('  ')}`);
 }
 console.log(`  stare  →      ${stare && stare.length ? stare.join(', ') : '(nothing)'}`);
+console.log(
+  `  camera →      drift ${cam.x.toFixed(1)},${cam.y.toFixed(1)} px  zoom ${(cam.zoom * 100).toFixed(2)} %  punch ${(cam.punch * 100).toFixed(2)} %  t ${cam.t.toFixed(1)} s`,
+);
+console.log(`  on chest →    ${onChest.zone ?? '(none)'}`);
 
 if (problems.length) {
   console.log(`\n  ${problems.length} problem(s):`);

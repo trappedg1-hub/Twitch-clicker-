@@ -1115,7 +1115,7 @@ export function createMilestoneChatMessage(title: string): ChatMessage {
  * at. They also never claim a garment moved, which is the rule the whole chat obeys.
  */
 /** Quirk lines. `staring` and `bored` are not rig quirks: they are attention beats (attention.ts). */
-type QuirkLineKind = QuirkKind | 'staring' | 'bored';
+export type QuirkLineKind = QuirkKind | 'staring' | 'bored' | 'caught_chest' | 'caught_legs' | 'caught_feet';
 
 const SELF_QUIRK_LINES: Record<QuirkLineKind, string[]> = {
   giggle: [
@@ -1147,6 +1147,23 @@ const SELF_QUIRK_LINES: Record<QuirkLineKind, string[]> = {
     'кажется, она заметила, что мы на неё пялимся. и ей это нравится :AWOOGA:',
     'контакт глазами. я проиграл этот раунд :Nosebleed:',
     'она поймала мой курсор. я пойман. всё :Pog:',
+  ],
+  caught_chest: [
+    'она заметила, куда я смотрю. я не смотрю. я НЕ смотрю :Nosebleed:',
+    'поймала взгляд на груди и ухмыльнулась. всё, я в клипе :AWOOGA:',
+    'чат, она знала. она ВСЁ знала. и ей норм :peepoShy:',
+    'мне выписали штраф за внимание. я оплачу :LUL:',
+  ],
+  caught_legs: [
+    'поймала на ноги и вытянулась. это была демонстрация, а не растяжка :AWOOGA:',
+    'она посмотрела на меня так, будто это Я тут сижу в пижаме :peepoShy:',
+    'смотрит в камеру и не моргает. я сдаюсь первым :Nosebleed:',
+    'ноги, взгляд в камеру, пауза. кто-то в этой комнате умеет держать тишину :Pog:',
+  ],
+  caught_feet: [
+    'ногу дёрнула — значит, почувствовала, что я смотрю :LUL:',
+    'она шевельнула пальцами. чат, это была угроза :peepoShy:',
+    'заметили, куда смотрю? я не смотрел. но она знает :Nosebleed:',
   ],
   bored: [
     'она потянулась так, что я забыл, зачем пришёл. аплодирую :Nosebleed:',

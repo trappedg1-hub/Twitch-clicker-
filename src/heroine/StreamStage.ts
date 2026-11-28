@@ -17,10 +17,11 @@ import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE,
 import { HeroineRig } from './HeroineRig.ts';
 import { LiveHeroine, type QuirkKind } from './LiveHeroine.ts';
 import { pickBeat, type BeatName } from './reactionDirector.ts';
-import { pickAttention, type AttentionKind } from './attention.ts';
+import { pickAttention, type AttentionBeat, type AttentionKind } from './attention.ts';
 import { BlushLayer } from './blushLayer.ts';
 import { HEAT } from './blush.ts';
-import { aimFromPointer } from './gaze.ts';
+import { aimFromPointer, holdAtCamera } from './gaze.ts';
+import { CAMERA, cameraPose, punchAdd, punchDecay, type CameraPose } from './camera.ts';
 
 interface FloatingParticle {
   node: Container;
@@ -87,6 +88,17 @@ export class StreamStage {
   private pointerNormX = 0;
   private pointerNormY = 0;
   private lampLevel = 0;
+  /**
+   * The camera. Not the room and not the pointer parallax: the frame itself, drifting a couple of
+   * virtual pixels at a time and pushing in a fraction of a percent when something lands. See
+   * `camera.ts` for why a perfectly still frame is the loudest "this is a screenshot" in the scene.
+   */
+  private camT = 0;
+  private camPunch = 0;
+  private camPose: CameraPose = { x: 0, y: 0, zoom: 0 };
+  private camViewW = 0;
+  private camViewH = 0;
+  private reducedMotion = false;
   private hypeLevel = 0;
   private drawerOpen = false;
   private hostEl?: HTMLElement;
@@ -97,6 +109,12 @@ export class StreamStage {
 
   public async mount(hostEl: HTMLElement): Promise<void> {
     this.app = new Application();
+    // Read once: a player who asked for reduced motion gets a still frame, not a slower drift.
+    try {
+      this.reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      this.reducedMotion = false;
+    }
     await this.app.init({
       preference: 'webgl',
       backgroundAlpha: 0,
@@ -390,6 +408,7 @@ export class StreamStage {
             ? HEAT.tap * 0.4
             : HEAT.tap;
     this.blush.bump(heat);
+    this.punchCamera(beat.anim === 'tease' || beat.anim === 'arch' ? CAMERA.teasePunch : CAMERA.tapPunch);
     this.lastTapDebug = { zone, beat: beat.anim, streak, available: (this.live?.animationSet() ?? new Set()).size };
       const res = this.onHeroineTap?.(zone);
     if (res) {
@@ -635,7 +654,7 @@ export class StreamStage {
   private readonly blush = new BlushLayer();
 
   /** Pointer is resting on her body: when it started, and which zone. */
-  private hoverZone: string | null = null;
+  private hoverZone: TapZoneId | null = null;
   private hoverSince = 0;
   private lastBlushMs = 0;
   /** The beat the director chose for the last tap — QA reads this, the game does not. */
@@ -652,7 +671,7 @@ export class StreamStage {
   private lastBeatAt = -1e9;
 
   /** Her own beat fired because of the player's attention, for the chat to react to. */
-  public onAttention?: (kind: AttentionKind) => void;
+  public onAttention?: (kind: AttentionKind, zone: AttentionBeat['zone']) => void;
 
   private tapStreak(now: number): number {
     this.tapTimes.push(now);
@@ -689,6 +708,8 @@ export class StreamStage {
     const lastTap = this.tapTimes.length > 0 ? this.tapTimes[this.tapTimes.length - 1]! : -1e9;
     const pick = pickAttention({
       hoverMs: this.hoverZone && this.hoverSince > 0 ? now - this.hoverSince : 0,
+      // Which part of her the pointer is on, not merely that it is on her: see `CAUGHT_ANSWERS`.
+      zone: this.hoverZone,
       msSinceTap: now - lastTap,
       msSinceAttention: now - this.lastAttentionAt,
       msSinceBeat: now - this.lastBeatAt,
@@ -702,9 +723,12 @@ export class StreamStage {
     this.lastAttentionAt = now;
     this.lastBeatAt = now;
     live.react(pick.anim, pick.ms);
-    // Being caught looking is the most embarrassing thing in the game, so it is the hottest.
-    this.blush.bump(pick.kind === 'staring' ? HEAT.stare : HEAT.tap);
-    this.onAttention?.(pick.kind);
+    // Being caught looking is the most embarrassing thing in the game, so it is the hottest —
+    // and being caught looking *somewhere specific* is hotter still.
+    this.blush.bump(pick.kind === 'caught' ? HEAT.stare * 1.35 : pick.kind === 'staring' ? HEAT.stare : HEAT.tap);
+    // Caught is an event, so the frame leans in on it. Quieter than a donation, louder than a tap.
+    if (pick.kind === 'caught') this.punchCamera(CAMERA.teasePunch);
+    this.onAttention?.(pick.kind, pick.zone ?? null);
   }
 
   public playLiveDonation(): void {
@@ -718,6 +742,7 @@ export class StreamStage {
     const bold = (this.reactionInput?.().boldness ?? 0) >= 55;
     const follow = bold && live.hasAnimation('lean_in') ? 'lean_in' : live.hasAnimation('giggle') ? 'giggle' : null;
     this.blush.bump(HEAT.donation);
+    this.punchCamera(CAMERA.donationPunch);
     if (!follow) return;
     window.setTimeout(() => {
       if (this.live === live) live.react(follow, follow === 'lean_in' ? 2000 : 1150);
@@ -734,6 +759,7 @@ export class StreamStage {
     if (!live) return;
     live.react(live.hasAnimation('arch') ? 'arch' : 'giggle', 1700);
     this.blush.bump(HEAT.milestone);
+    this.punchCamera(CAMERA.milestonePunch);
   }
 
   /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
@@ -904,19 +930,54 @@ export class StreamStage {
     this.app.render();
   }
 
-  private updateRootTransform(w: number, h: number): void {
+  /** The fitted scale for a viewport — shared so the camera can re-derive it every frame. */
+  private fitScaleFor(w: number, h: number): number {
     const fitScale = Math.min(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
     const maxSafeScale = h / 736;
     const coverScale = Math.max(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
-    const scale = Math.min(coverScale, Math.max(fitScale, maxSafeScale));
+    return Math.min(coverScale, Math.max(fitScale, maxSafeScale));
+  }
 
-    this.root.scale.set(scale);
-    const baseY = (h - StreamStage.VIRTUAL_H * scale) * 0.5;
-    const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
-    this.root.position.set((w - StreamStage.VIRTUAL_W * scale) * 0.5, baseY + drawerShift);
+  private updateRootTransform(w: number, h: number): void {
+    this.camViewW = w;
+    this.camViewH = h;
+    this.applyCamera();
     if (this.deskMicSprite) {
       this.micHolder.x = this.micAnchorX();
     }
+  }
+
+  /**
+   * The camera's one write per frame: the fitted transform plus the drift and the push.
+   *
+   * Zooming is about the *centre of the screen*, not about the stage's origin — the naive version
+   * (scale the root and leave its position) grows the frame towards the bottom-right corner, which
+   * at 1.8 % is a visible slide of the whole picture. Re-deriving the position from the zoomed
+   * scale costs two multiplies and keeps the push centred on her.
+   */
+  private applyCamera(): void {
+    const w = this.camViewW;
+    const h = this.camViewH;
+    if (w <= 0 || h <= 0) return;
+    const pose = cameraPose(this.camT, this.camPunch, this.reducedMotion);
+    this.camPose = pose;
+    const scale = this.fitScaleFor(w, h) * (1 + pose.zoom);
+    const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
+    this.root.scale.set(scale);
+    this.root.position.set(
+      (w - StreamStage.VIRTUAL_W * scale) * 0.5 + pose.x,
+      (h - StreamStage.VIRTUAL_H * scale) * 0.5 + drawerShift + pose.y,
+    );
+  }
+
+  /** Something landed: the frame leans in and comes back. Events only — the drift is free. */
+  public punchCamera(amount: number): void {
+    this.camPunch = punchAdd(this.camPunch, amount);
+  }
+
+  /** QA: where the camera is right now, and how much of the push is still ringing. */
+  public getCameraDebug(): { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean } {
+    return { x: this.camPose.x, y: this.camPose.y, zoom: this.camPose.zoom, punch: this.camPunch, t: this.camT, reduced: this.reducedMotion };
   }
 
   public spawnTapBurst(
@@ -1010,11 +1071,20 @@ export class StreamStage {
     // Where the player is pointing, every frame, before the skeleton is advanced: the head
     // follows the cursor with a spring, and the parallax below moves the room behind her.
     if (this.pointerSeen && this.live.view.visible) {
-      const aim = aimFromPointer(this.pointerNormX, this.pointerNormY);
+      // A warm heroine stops following the cursor and starts looking at the person behind it: the
+      // aim is pulled toward the lens by her own blush, so the hotter the stream gets, the more of
+      // the time she is looking at *you* instead of at your mouse. `holdAtCamera` is a pure lerp
+      // with a floor at her resting gaze, so it can never turn into a stare at a wall.
+      const aim = holdAtCamera(aimFromPointer(this.pointerNormX, this.pointerNormY), this.blush.debug().level);
       this.live.look(aim.x, aim.y);
     } else {
       this.live.releaseGaze();
     }
+    // The camera first: the drift is a function of time only, so it costs one sine pair per frame
+    // and never accumulates.
+    this.camT += dt;
+    this.camPunch = punchDecay(this.camPunch, dt);
+    this.applyCamera();
     const nowMs = performance.now();
     // Blush: the one hot channel the rigged plates were missing, driven by the numbers the game
     // already has. Anchors are null on a plate without measurable face art — then it fades out.

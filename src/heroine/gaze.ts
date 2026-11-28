@@ -130,6 +130,35 @@ export function aimFromPointer(pointerX: number, pointerY: number): GazePoint {
   return { x: Math.sign(x) * Math.cbrt(Math.abs(x)), y: clamp(y * 0.6, -1, 1) };
 }
 
+/**
+ * Where she is looking once she is warm enough to stop tracking the cursor.
+ *
+ * The pointer is a mouse. A person who is being watched by someone they like does not follow the
+ * mouse — they look at the lens. So above a threshold of her own blush the aim is pulled toward the
+ * viewer: at `HEAT_HOLD.from` she still follows the pointer, at `HEAT_HOLD.full` she is holding eye
+ * contact no matter where it is, and the transition between the two is a lerp of the target, which
+ * the existing spring then animates. Nothing here writes the skeleton, so the glance still has its
+ * lag and its overshoot.
+ *
+ * The target is not exactly (0, 0). A head aimed at dead centre reads as a mannequin staring out of
+ * the glass; a few degrees off-centre reads as a person looking at the other person's face. The
+ * offset is small on purpose: 0.10 is 0.3° of head, under two plate pixels.
+ */
+export const HEAT_HOLD = { from: 0.42, full: 0.86, targetX: 0.10, targetY: -0.05 } as const;
+
+export function holdAtCamera(aim: GazePoint, heat: number): GazePoint {
+  const h = Number.isFinite(heat) ? clamp(heat, 0, 1) : 0;
+  const span = HEAT_HOLD.full - HEAT_HOLD.from;
+  const t = span <= 0 ? (h >= HEAT_HOLD.full ? 1 : 0) : clamp((h - HEAT_HOLD.from) / span, 0, 1);
+  if (t <= 0) return aim;
+  // Smoothstep, not linear: the moment she "decides" to look at you should not have a corner in it.
+  const w = t * t * (3 - 2 * t);
+  return {
+    x: aim.x + (HEAT_HOLD.targetX - aim.x) * w,
+    y: aim.y + (HEAT_HOLD.targetY - aim.y) * w,
+  };
+}
+
 /** Split a gaze position into joint angles. */
 export function gazeDegrees(point: GazePoint, limits = GAZE_LIMITS): GazeDegrees {
   return {

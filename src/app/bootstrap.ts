@@ -10,6 +10,7 @@ import {
   createUpgradeChatMessage,
   createViralClipChatMessage,
   createSelfQuirkMessage,
+  type QuirkLineKind,
   createZoneBurstMessage,
 } from '../chat/chatEngine.ts';
 import {
@@ -114,6 +115,7 @@ declare global {
       lastTapDebug: () => { zone: string; beat: string; streak: number; available: number } | null;
       hoverDebug: () => { zone: string | null; since: number };
       blushDebug: () => { level: number; heat: number; at: { x: number; y: number } | null };
+      cameraDebug: () => { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean };
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
@@ -409,12 +411,22 @@ export async function bootstrapApp(): Promise<void> {
 
   // She noticed the player staring, or noticed nobody is here. Either way the chat has something
   // to say — this is the cheapest fan-service in the game and the one that never stops working.
-  stage.onAttention = (kind) => {
+  stage.onAttention = (kind, zone) => {
     if (announceMuted) return;
     const now = performance.now();
     if (now - lastQuirkChatMs < 15000) return;
     lastQuirkChatMs = now;
-    ui.pushChatMessage(createSelfQuirkMessage(kind, state.totalTaps + Math.floor(now / 1000), state.streamDay));
+    // "Caught" has three voices, one per zone: the chat noticing the same thing the player was
+    // doing is what makes the reaction feel observed rather than scripted.
+    const line: QuirkLineKind =
+      kind !== 'caught'
+        ? kind
+        : zone === 'legs'
+          ? 'caught_legs'
+          : zone === 'feet'
+            ? 'caught_feet'
+            : 'caught_chest';
+    ui.pushChatMessage(createSelfQuirkMessage(line, state.totalTaps + Math.floor(now / 1000), state.streamDay));
   };
 
   stage.onHeroineTap = (zone: TapZoneId) => {
@@ -1266,6 +1278,7 @@ export async function bootstrapApp(): Promise<void> {
       lastTapDebug: () => stage.lastTapDebug,
       hoverDebug: () => stage.getHoverDebug(),
       blushDebug: () => stage.getBlushDebug(),
+      cameraDebug: () => stage.getCameraDebug(),
       attentionDebug: () => stage.attentionDebug,
       tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {
