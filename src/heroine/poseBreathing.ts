@@ -1,6 +1,16 @@
 import type { SubGoalStageIndex, TapZoneId } from '../domain/types.ts';
 import { anatomyFor, POSE_ANATOMY, type MotionRegion } from './poseAnatomy.ts';
 
+// One clock for her chest, shared with the room: `audio/roomPlan.ts` imports this, so the breath
+// that is heard is the breath that is seen. Retuning her chest moves both or neither.
+export const BREATH_PERIOD_SEC = 3.6;
+
+/** Where in the breath cycle a session clock is, 0..1. The room reads this to stay in phase. */
+export function breathPhase(elapsedSec: number): number {
+  const p = (elapsedSec / BREATH_PERIOD_SEC) % 1;
+  return p < 0 ? p + 1 : p;
+}
+
 // A damped oscillator approximates secondary motion, with gentler reactions at the start.
 // Repeated taps restart rather than accumulating energy. These are art-directed 2D
 // approximations, not an anatomical simulation or separately rigged body parts.

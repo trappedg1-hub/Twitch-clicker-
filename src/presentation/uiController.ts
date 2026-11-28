@@ -833,7 +833,13 @@ export class UiController {
   public showSpeech(line: string, lockMs = 0): void {
     const now = performance.now();
     if (now < this.speechLockUntil) return;
-    if (lockMs > 0) this.speechLockUntil = now + lockMs;
+    if (lockMs > 0) {
+      this.speechLockUntil = now + lockMs;
+      // A line she means (a dare, an unlock, a milestone) drops the room under her voice for as
+      // long as the line is locked. Tap chatter does not: the fever line and the room are the same
+      // moment, and ducking a room twelve times a second is a pump, not a performance.
+      sfx.duck(Math.max(1000, lockMs));
+    }
     this.speechTextEl.textContent = `«${line}»`;
     this.speechSubEl.classList.add('visible', 'pop');
     window.clearTimeout(this.speechPopTimer);

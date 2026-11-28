@@ -37,12 +37,17 @@ for (const file of readdirSync(SRC).filter((f) => f.startsWith('miya_') && f.end
   writeFileSync(target, bytes);
   total += bytes.length;
   jsonTotal += text.length;
+  // The breath clip's length is published, not just its name: the room's ambience has to breathe at
+  // the tempo her chest was authored at, and `tests/roomPlan.test.ts` reads this number to check it.
+  // A retuned chest therefore moves the room in the same commit instead of drifting a beat behind it.
+  const breath = doc.animations.find((a) => a.name === 'breath');
   index[art] = {
     file: `${'/rigs/'}${art}.obonb`,
     plate: doc.images[0].src,
     animations: doc.animations.map((a) => a.name),
     hasMouth: doc.skeleton.slots.some((s) => s.id === 'slot_mouth'),
     bones: doc.skeleton.bones.length,
+    breathSec: breath ? Math.round(breath.duration * 100) / 100 : null,
     bytes: bytes.length,
   };
   console.log(`  ${art.padEnd(14)} ${String(Math.round(bytes.length / 1024)).padStart(5)} KB  ${doc.animations.length} animations`);

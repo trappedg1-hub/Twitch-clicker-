@@ -367,6 +367,8 @@ export async function bootstrapApp(): Promise<void> {
     stage.setMicTier(state.upgrades.desk_mic ?? 0);
     stage.rig.setBoldness(stats.boldness);
     stage.setWardrobeDay(wardrobeDayOf(state.streamDay));
+    // The night gets later: the room follows the day, once, without being retuned by hand.
+    sfx.setDay(state.streamDay);
     stage.setSubStage(state.displayedSubStage, false);
     ui.render(state, stats);
     // A closed day is an announcement, not a takeover: the finale card waits for the player's own
@@ -1491,6 +1493,8 @@ export async function bootstrapApp(): Promise<void> {
   if (isQa) {
     window.__pixiApp = stage.app;
     window.__heroineRig = stage.rig;
+    // A timer that fires in up to a minute is not something a headless run can wait for.
+    (window as unknown as { __stage?: unknown }).__stage = stage;
     // The audio graph is invisible by nature; QA reads its state instead of hearing it.
     (window as unknown as { __sfx?: unknown }).__sfx = sfx;
     window.__qaFreezeTicker = () => {

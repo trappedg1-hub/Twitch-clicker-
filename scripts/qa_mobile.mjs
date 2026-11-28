@@ -68,6 +68,9 @@ for (const view of VIEWPORTS) {
 
   await page.screenshot({ path: `${SHOTS}/${view.name}.png` });
 
+  // Filled in after the taps; the summary line prints it for both views.
+  let room = { bed: null, breaths: null, duck: 'n/a' };
+
   const sound = await page.evaluate(() => {
     const button = document.getElementById('btn-sound');
     if (!button) return { present: false };
@@ -153,7 +156,64 @@ for (const view of VIEWPORTS) {
     if (tapped.audio.context === 'suspended') problems.push(`${view.name}: audio context suspended`);
     if (tapped.audio.taps < 5) problems.push(`${view.name}: only ${tapped.audio.taps} of 5 taps made a sound`);
     if (tapped.audio.master <= 0) problems.push(`${view.name}: master gain is ${tapped.audio.master}`);
+    // The room: a bed nobody measures is a bed nobody has. It has to be up with the graph, it has
+    // to be breathing on the shared clock, and it has to be far enough under the game to survive.
+    if (tapped.audio.room !== 'running') problems.push(`${view.name}: room is ${tapped.audio.room}, not running`);
+    if (!(tapped.audio.bed > 0.02 && tapped.audio.bed < 0.06)) {
+      problems.push(`${view.name}: room bed is ${tapped.audio.bed}`);
+    }
+    if (tapped.audio.breaths < 1) problems.push(`${view.name}: the room never breathed`);
+    // Breathed at her authored tempo (the rig's `breath` clip is four seconds), not some number
+    // that happened to be in the file.
+    if (tapped.audio.period !== 4) problems.push(`${view.name}: the room breathes at ${tapped.audio.period}s`);
   }
+
+  // The breath keeps its own clock: two samples a beat apart must not be the same phase, or the
+  // "breathing room" is a static noise floor with a nice name.
+  const phaseA = await page.evaluate(() => window.__sfx.roomDebug().phase);
+  await page.waitForTimeout(900);
+  const phaseB = await page.evaluate(() => window.__sfx.roomDebug().phase);
+  if (Math.abs(phaseB - phaseA) < 1e-6) {
+    problems.push(`${view.name}: the room's breath phase did not advance (${phaseA})`);
+  }
+
+  // Her voice drops the room. Measured through the same pure envelope the graph is scheduled from,
+  // because nothing about this is audible in a headless browser.
+  const duck = await page.evaluate(async () => {
+    const before = window.__sfx.roomDebug().duck;
+    window.__sfx.duck(1000);
+    await new Promise((r) => setTimeout(r, 120));
+    const during = window.__sfx.roomDebug().duck;
+    await new Promise((r) => setTimeout(r, 1100));
+    const after = window.__sfx.roomDebug().duck;
+    return { before, during, after };
+  });
+  if (!(duck.before === 1 && duck.during < 0.75 && duck.after === 1)) {
+    problems.push(
+      `${view.name}: room did not duck under her voice (${duck.before} -> ${duck.during} -> ${duck.after})`,
+    );
+  }
+  // The rare voices fire on a minute-long timer, so they are asked for directly: a room whose creak
+  // throws is a room that is gone for the rest of the session, and nothing else would notice.
+  const events = await page.evaluate(() => {
+    const before = window.__sfx.roomDebug();
+    const okCreak = window.__sfx.roomEvent('creak');
+    const okCity = window.__sfx.roomEvent('city');
+    const after = window.__sfx.roomDebug();
+    return {
+      okCreak,
+      okCity,
+      creaks: after.creaks - before.creaks,
+      citySwells: after.citySwells - before.citySwells,
+    };
+  });
+  if (!events.okCreak || events.creaks !== 1) problems.push(`${view.name}: the chair never creaked`);
+  if (!events.okCity || events.citySwells !== 1) problems.push(`${view.name}: the street was silent`);
+  room = {
+    bed: tapped.audio?.bed ?? null,
+    breaths: tapped.audio?.breaths ?? null,
+    duck: `${duck.before}->${duck.during.toFixed(2)}->${duck.after}`,
+  };
 
   // The top row: the sub-goal card on the left against the status badges on the right. On a phone
   // they are supposed to stack, not sit on top of each other.
@@ -180,9 +240,54 @@ for (const view of VIEWPORTS) {
   console.log(
     `${view.name.padEnd(7)} ${view.width}x${view.height}  sound ${sound.present ? `${sound.width}x${sound.height} (target ${sound.target}) @${sound.x},${sound.y}` : 'MISSING'}  ` +
       `overlap ${overlap.skipped ? 'n/a' : overlap.ok ? 'none' : `${overlap.overlapX}x${overlap.overlapY}px`}  ` +
-      `taps ${tapped.taps}  audio ${tapped.audio ? `${tapped.audio.context}/${tapped.audio.taps}` : 'n/a'}`,
+      `taps ${tapped.taps}  audio ${tapped.audio ? `${tapped.audio.context}/${tapped.audio.taps}` : 'n/a'}  ` +
+      `room bed ${room.bed} breaths ${room.breaths} duck ${room.duck}`,
   );
 
+  await context.close();
+  await browser.close();
+}
+
+// A plate with no skeleton has to have moments of its own. That timer is 24–56 s, which no headless
+// run will wait for, so `fireFlatQuirkNow()` asks for one and this checks the two things the player
+// would see and hear: a line from the chat and a voice from the room. `?rig=0` is the honest way to
+// get a flat plate on purpose — it is the same path the four unrigged plates take every evening.
+{
+  const browser = await launch();
+  const context = await browser.newContext({ viewport: { width: 1366, height: 820 } });
+  const page = await context.newPage();
+  page.on('pageerror', (error) => problems.push(`flat: pageerror ${error.message}`));
+  await page.goto(`${BASE}/?qa&rig=0`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => Boolean(window.__qaScene && window.__stage), { timeout: 30000 });
+  await page.waitForTimeout(900);
+  // A first click anywhere is the gesture that is allowed to start audio.
+  await page.mouse.click(683, 369);
+  await page.waitForTimeout(300);
+  const flat = await page.evaluate(() => {
+    const lines = () => Array.from(document.querySelectorAll('#chat-messages > *')).map((n) => n.textContent ?? '');
+    const before = lines();
+    let after = before;
+    let fired = false;
+    // The chat only comments on roughly every other moment (and then holds an 18 s silence), which
+    // is right on stream and unhelpful in a two-second check: ask until it answers, then stop.
+    for (let tries = 0; tries < 10 && after.length <= before.length; tries += 1) {
+      fired = window.__stage.fireFlatQuirkNow() || fired;
+      after = lines();
+    }
+    const debug = window.__stage.getFlatQuirkDebug();
+    return { fired, before, after, debug, plate: window.__qaScene.getActivePlateName() };
+  });
+  if (!flat.fired) problems.push('flat: the flat plate refused to have a moment');
+  if (flat.after.length <= flat.before.length) {
+    problems.push(`flat: no chat line for her moment (${flat.plate})`);
+  } else if (flat.after[flat.after.length - 1] === flat.before[flat.before.length - 1]) {
+    problems.push('flat: the chat said the same thing twice');
+  }
+  if (flat.debug.fires < 1) problems.push('flat: the timer never armed');
+  console.log(
+    `flat    ${flat.plate}  moments ${flat.debug.fires}  ` +
+      `chat ${flat.before.length} -> ${flat.after.length}  timer ${flat.debug.timerMs ? 'armed' : 'off'}`,
+  );
   await context.close();
   await browser.close();
 }

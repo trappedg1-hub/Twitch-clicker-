@@ -17,7 +17,14 @@ import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE,
 import { HeroineRig } from './HeroineRig.ts';
 import { LiveHeroine, type LiveReaction, type QuirkKind } from './LiveHeroine.ts';
 import { pickBeat, type BeatName } from './reactionDirector.ts';
-import { pickAttention, type AttentionBeat, type AttentionKind } from './attention.ts';
+import {
+  nextFlatQuirkDelay,
+  pickAttention,
+  pickFlatQuirk,
+  type AttentionBeat,
+  type AttentionKind,
+} from './attention.ts';
+import { sfx } from '../audio/sfx.ts';
 import { BlushLayer } from './blushLayer.ts';
 import { HEAT } from './blush.ts';
 import { aimFromPointer, holdAtCamera } from './gaze.ts';
@@ -318,6 +325,8 @@ export class StreamStage {
       this.rig?.setPlateVisible(true);
       this.onLiveFault?.(reason);
     };
+    // Her own moments, whether or not a skeleton ever arrives for this plate.
+    this.scheduleFlatQuirk();
     // `?rig=0` — the escape hatch that needs no deploy: flat plates, exactly as before the rig.
     this.liveEnabled = new URLSearchParams(window.location.search).get('rig') !== '0';
     void this.syncLiveHeroine();
@@ -646,6 +655,43 @@ export class StreamStage {
 
   /** Her own beats — the ones she does when the player is not doing anything. */
   public onLiveQuirk?: (kind: QuirkKind) => void;
+
+  private flatQuirkTimer = 0;
+  private flatQuirks = 0;
+  private destroyed = false;
+
+  /**
+   * Keep the flat plate alive on a timer.
+   *
+   * The skeleton has its own idle quirks; a drawn plate has nothing, so on four plates and on the
+   * day-5 finale she stands perfectly still for as long as the player stays. This gives her the same
+   * moments — a voice and a chat line, no invented animation — and it fires only while the flat layer
+   * is the one on screen, so a rig that is up never speaks twice.
+   */
+  private scheduleFlatQuirk(): void {
+    window.clearTimeout(this.flatQuirkTimer);
+    this.flatQuirkTimer = window.setTimeout(() => {
+      if (!this.destroyed && this.rig?.plateVisible) {
+        this.flatQuirks += 1;
+        sfx.quirk();
+        this.onLiveQuirk?.(pickFlatQuirk(Math.random));
+      }
+      this.scheduleFlatQuirk();
+    }, nextFlatQuirkDelay(Math.random));
+  }
+
+  /** QA reads this instead of waiting up to a minute for her to do something on her own. */
+  public fireFlatQuirkNow(): boolean {
+    if (!this.rig?.plateVisible) return false;
+    this.flatQuirks += 1;
+    sfx.quirk();
+    this.onLiveQuirk?.(pickFlatQuirk(Math.random));
+    return true;
+  }
+
+  public getFlatQuirkDebug(): { fires: number; timerMs: number } {
+    return { fires: this.flatQuirks, timerMs: this.flatQuirkTimer };
+  }
 
   /**
    * What the director is allowed to know about her mood. The stage does not own the game state, so
@@ -1222,6 +1268,8 @@ export class StreamStage {
   }
 
   public destroy(): void {
+    this.destroyed = true;
+    window.clearTimeout(this.flatQuirkTimer);
     this.resizeObserver?.disconnect();
     this.app.destroy(true, { children: true });
   }

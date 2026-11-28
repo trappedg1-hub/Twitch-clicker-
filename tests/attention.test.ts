@@ -1,7 +1,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ATTENTION, pickAttention, type AttentionContext } from '../src/heroine/attention.ts';
+import {
+  ATTENTION,
+  FLAT_QUIRK_KINDS,
+  FLAT_QUIRK_MIN_MS,
+  FLAT_QUIRK_SPAN_MS,
+  nextFlatQuirkDelay,
+  pickAttention,
+  pickFlatQuirk,
+  type AttentionContext,
+} from '../src/heroine/attention.ts';
 
 const available = new Set<string>([
   'tap', 'shake', 'turn', 'sway', 'giggle', 'tease', 'hair_flip', 'lean_in',
@@ -138,4 +147,30 @@ test('a plate without the beat still answers, with what it has', () => {
   );
   assert.equal(pick?.kind, 'caught');
   assert.equal(pick?.anim, 'giggle');
+});
+
+test('the plate with no skeleton gets moments of its own, off any rhythm', () => {
+  // 24–56 s, and the ends never reach each other: a player can feel a beat that repeats and cannot
+  // feel one that does not.
+  assert.equal(nextFlatQuirkDelay(() => 0), FLAT_QUIRK_MIN_MS);
+  assert.equal(nextFlatQuirkDelay(() => 1), FLAT_QUIRK_MIN_MS + FLAT_QUIRK_SPAN_MS);
+  assert.ok(nextFlatQuirkDelay(() => 0.5) > 38000 && nextFlatQuirkDelay(() => 0.5) < 42000);
+  // A broken rng parks inside the range instead of scheduling NaN, which would fire immediately and
+  // then never again.
+  for (const bad of [Number.NaN, -3, 9, Number.POSITIVE_INFINITY]) {
+    const ms = nextFlatQuirkDelay(() => bad);
+    assert.ok(Number.isFinite(ms) && ms >= FLAT_QUIRK_MIN_MS && ms <= FLAT_QUIRK_MIN_MS + FLAT_QUIRK_SPAN_MS);
+  }
+});
+
+test('only the beats a still drawing can honestly do', () => {
+  // No hair toss, no look around: a drawn plate cannot move its arm, and a chat line about a hair
+  // toss over a motionless arm is the exact tell that the game is faking.
+  assert.deepEqual([...FLAT_QUIRK_KINDS], ['giggle', 'lean_in', 'tease']);
+  assert.equal(pickFlatQuirk(() => 0), 'giggle');
+  assert.equal(pickFlatQuirk(() => 0.5), 'lean_in');
+  assert.equal(pickFlatQuirk(() => 1), FLAT_QUIRK_KINDS[FLAT_QUIRK_KINDS.length - 1]);
+  for (const bad of [Number.NaN, -1, 2]) {
+    assert.ok((FLAT_QUIRK_KINDS as readonly string[]).includes(pickFlatQuirk(() => bad)));
+  }
 });

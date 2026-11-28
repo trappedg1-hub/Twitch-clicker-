@@ -24,6 +24,44 @@
 import type { TapZoneId } from '../domain/types.ts';
 import { BEAT_MS, type BeatName } from './reactionDirector.ts';
 
+/**
+ * The plate that has no skeleton still has moments of its own.
+ *
+ * Four of the thirty plates never got a rig and one (`t5_s3`, the day-5 finale) never can: the pose
+ * is drawn from behind, so there is no line from the eyes to the hips to hang bones on. Those plates
+ * are drawn, not played — so `LiveHeroine` never runs, `onQuirk` never fires, and the woman is the
+ * only thing on screen that is completely still. The chat keeps talking about a girl who does
+ * nothing.
+ *
+ * This is the fix that needs no rig: on a timer, on the flat layer only, she is given the same kind
+ * of moment the skeleton gets — a small sound and a line in chat. What she does not get is a claim
+ * that she moved.
+ */
+export const FLAT_QUIRK_MIN_MS = 24000;
+export const FLAT_QUIRK_SPAN_MS = 32000;
+
+/** 24–56 s, so her own moments never land on a rhythm a player can count. */
+export function nextFlatQuirkDelay(rng: () => number): number {
+  const r = rng();
+  const safe = Number.isFinite(r) ? Math.min(1, Math.max(0, r)) : 0.5;
+  return FLAT_QUIRK_MIN_MS + safe * FLAT_QUIRK_SPAN_MS;
+}
+
+/**
+ * The beats that survive having no skeleton.
+ *
+ * A hair toss and a look around need an arm and a neck; a giggle and a tease need only the line the
+ * chat writes about them. Those two are what a back-view plate can honestly do.
+ */
+export const FLAT_QUIRK_KINDS = ['giggle', 'lean_in', 'tease'] as const;
+export type FlatQuirkKind = (typeof FLAT_QUIRK_KINDS)[number];
+
+export function pickFlatQuirk(rng: () => number): FlatQuirkKind {
+  const r = rng();
+  const safe = Number.isFinite(r) ? Math.min(0.999, Math.max(0, r)) : 0.5;
+  return FLAT_QUIRK_KINDS[Math.floor(safe * FLAT_QUIRK_KINDS.length)]!;
+}
+
 export type AttentionKind = 'staring' | 'bored' | 'caught';
 
 /**

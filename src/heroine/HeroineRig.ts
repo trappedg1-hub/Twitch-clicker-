@@ -9,7 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { poseBackSwayOffset, poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
+import { BREATH_PERIOD_SEC, poseBackSwayOffset, poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
 import { anatomyFor } from './poseAnatomy.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
@@ -673,7 +673,7 @@ export class HeroineRig {
       }
     }
 
-    const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
+    const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / BREATH_PERIOD_SEC));
     // A second, slower clock: the weight shift of the one rear-view pose has to be able to drift
     // against the breath, or the two lock into a single wobble and read as a machine.
     const swayWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 7.6) + 0.9);

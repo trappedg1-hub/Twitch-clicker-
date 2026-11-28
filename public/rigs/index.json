@@ -26,6 +26,7 @@
   ],
   "hasMouth": true,
   "bones": 16,
+  "breathSec": 4,
   "bytes": 361420
  },
  "t1_base": {
@@ -54,6 +55,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 351953
  },
  "t1_s1": {
@@ -82,6 +84,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 352674
  },
  "t1_s2": {
@@ -109,6 +112,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 348941
  },
  "t1_s4": {
@@ -136,6 +140,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 351184
  },
  "t1_s5": {
@@ -162,6 +167,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 357438
  },
  "t2_s0": {
@@ -189,6 +195,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 344802
  },
  "t2_s1": {
@@ -216,6 +223,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 343745
  },
  "t2_s2": {
@@ -242,6 +250,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 349608
  },
  "t2_s3": {
@@ -268,6 +277,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 353153
  },
  "t2_s4": {
@@ -294,6 +304,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 343337
  },
  "t3_flash": {
@@ -320,6 +331,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 358462
  },
  "t3_s0": {
@@ -344,6 +356,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 326899
  },
  "t3_s1": {
@@ -370,6 +383,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 338124
  },
  "t3_s2": {
@@ -394,6 +408,7 @@
   ],
   "hasMouth": false,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 336476
  },
  "t3_s3": {
@@ -420,6 +435,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 358444
  },
  "t3_s4": {
@@ -444,6 +460,7 @@
   ],
   "hasMouth": false,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 334815
  },
  "t4_flash": {
@@ -470,6 +487,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 340861
  },
  "t4_s0": {
@@ -494,6 +512,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 332043
  },
  "t4_s1": {
@@ -518,6 +537,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 325526
  },
  "t4_s2": {
@@ -542,6 +562,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 325413
  },
  "t4_s3": {
@@ -568,6 +589,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 340843
  },
  "t4_start": {
@@ -594,6 +616,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 334085
  },
  "t4_start_hq": {
@@ -620,6 +643,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 334590
  },
  "t5_s0": {
@@ -646,6 +670,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 332185
  },
  "t5_s1": {
@@ -672,6 +697,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 346357
  },
  "t5_s2": {
@@ -698,6 +724,7 @@
   ],
   "hasMouth": true,
   "bones": 14,
+  "breathSec": 4,
   "bytes": 339267
  },
  "t5_start": {
@@ -724,6 +751,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 334059
  },
  "t5_start_hq": {
@@ -750,6 +778,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 332755
  },
  "t5_start_hq2": {
@@ -776,6 +805,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 333419
  },
  "t6_s0": {
@@ -800,6 +830,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 329963
  },
  "t6_s1": {
@@ -824,6 +855,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 334740
  },
  "t6_s2": {
@@ -848,6 +880,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 332428
  },
  "t6_s3": {
@@ -872,6 +905,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 333099
  },
  "t6_start_hq": {
@@ -898,6 +932,7 @@
   ],
   "hasMouth": true,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 338719
  },
  "transparent_s0": {
@@ -922,6 +957,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 341483
  },
  "transparent_s1": {
@@ -946,6 +982,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 342448
  },
  "transparent_s2": {
@@ -970,6 +1007,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 341237
  },
  "transparent_s3": {
@@ -994,6 +1032,7 @@
   ],
   "hasMouth": false,
   "bones": 12,
+  "breathSec": 4,
   "bytes": 333754
  }
 }
