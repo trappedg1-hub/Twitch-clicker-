@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   DARES,
   DARE_LINES,
+  dareStreakMultiplier,
   dareClock,
   dareEvent,
   dareProgressRatio,
@@ -85,4 +86,15 @@ test('every dare in the table has copy for both endings', () => {
     assert.ok(DARES[kind as keyof typeof DARES].reward > 0);
   }
   assert.ok(DARE_LINES.done.length > 1 && DARE_LINES.expired.length > 1);
+});
+
+test('a streak pays more, and a miss resets it', () => {
+  assert.equal(dareStreakMultiplier(0), 1);
+  assert.equal(dareStreakMultiplier(1), 1.25);
+  assert.equal(dareStreakMultiplier(2), 1.5);
+  // Capped: the chat is generous, not infinite.
+  assert.equal(dareStreakMultiplier(4), 2);
+  assert.equal(dareStreakMultiplier(9), 2);
+  assert.equal(dareStreakMultiplier(-3), 1);
+  assert.equal(dareStreakMultiplier(Number.NaN), 1);
 });

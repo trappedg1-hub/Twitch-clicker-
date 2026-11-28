@@ -217,3 +217,24 @@ export const DARE_SPEECH = {
     'Ладно. Считаю это вашей виной, а не моей.',
   ],
 } as const;
+
+/** Her face when the chat asks for something. Half of the joke is that she heard it. */
+export const DARE_HEARD = [
+  'А? Что? ...ладно, ладно. Показываю.',
+  'Чат, вы серьёзно? ...Ну давайте.',
+  'Я всё слышала. И я это сделаю, вот увидите.',
+  'Опять ваши идеи. Ладно, только быстро.',
+] as const;
+
+/**
+ * A streak is what turns five little dares into a session: the chat remembers. Each one in a row
+ * is worth a quarter more, capped at double, and the multiplier resets the moment one is missed —
+ * which is also what makes missing one sting.
+ */
+export const DARE_STREAK_STEP = 0.25;
+export const DARE_STREAK_MAX = 4;
+
+export function dareStreakMultiplier(streak: number): number {
+  const s = Number.isFinite(streak) ? Math.max(0, Math.floor(streak)) : 0;
+  return 1 + DARE_STREAK_STEP * Math.min(s, DARE_STREAK_MAX);
+}

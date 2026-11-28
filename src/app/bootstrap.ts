@@ -57,7 +57,9 @@ import {
 } from '../domain/engine.ts';
 import {
   DARES,
+  DARE_HEARD,
   DARE_SPEECH,
+  dareStreakMultiplier,
   dareClock,
   dareEvent,
   dareProgressRatio,
@@ -471,30 +473,47 @@ export async function bootstrapApp(): Promise<void> {
     dare = startDare(kind, nowMs);
     const def = DARES[kind];
     ui.showDare(def.hint, dareLabel(dare));
+    // She *hears* the chat. Without this the dare is a HUD timer; with it, it is a request she
+    // answered out loud — and her answer is the thing that makes the chip make sense.
+    sfx.dareAsk();
+    stage.playLiveReaction(state.streamDay >= 2 || dareStreak > 0 ? 'turn' : 'sway');
+    stage.playLiveTalk(1500);
+    ui.showSpeech(DARE_HEARD[Math.floor(Math.random() * DARE_HEARD.length)]!);
     if (!announceMuted) ui.pushChatMessage(createDareMessage('started', dareSeq + state.totalTaps, state.streamDay, def.ask));
   };
 
   let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number } | null = null;
+  // How many dares in a row the player has served. The chat remembers; missing one resets it.
+  let dareStreak = 0;
 
   const settleDare = (nowMs: number, won: boolean): void => {
     const def = DARES[dare!.kind];
-    lastDareOutcome = { kind: def.kind, won, reward: won ? def.reward : 0, at: nowMs };
+    const multiplier = won ? dareStreakMultiplier(dareStreak) : 1;
+    const paid = Math.round(def.reward * multiplier);
+    lastDareOutcome = { kind: def.kind, won, reward: won ? paid : 0, at: nowMs };
+    dareStreak = won ? dareStreak + 1 : 0;
     ui.hideDare(won ? 'Готово' : 'Провалено');
     dare = null;
     nextDareAtMs = nowMs + (won ? 24000 : 18000);
     if (won) {
       state = {
         ...state,
-        balance: state.balance + def.reward,
-        totalEarned: state.totalEarned + def.reward,
+        balance: state.balance + paid,
+        totalEarned: state.totalEarned + paid,
         hype: Math.min(100, state.hype + 6),
       };
       // Her answer is a beat, not a toast: the milestone path is the one that presents her.
+      sfx.dareServed();
       stage.playLiveMilestone();
       ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!);
-      announce(`♥ ЧЕЛЛЕНДЖ ЧАТА: +${def.reward} ₽`, true, state.totalTaps);
+      announce(
+        `♥ ЧЕЛЛЕНДЖ ЧАТА${multiplier > 1 ? ` ×${multiplier.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : ''}: +${paid} ₽`,
+        true,
+        state.totalTaps,
+      );
       syncAll();
     } else {
+      sfx.dareMissed();
       stage.playLiveReaction('sway');
       ui.showSpeech(DARE_SPEECH.lost[Math.floor(Math.random() * DARE_SPEECH.lost.length)]!);
     }

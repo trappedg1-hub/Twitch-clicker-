@@ -214,6 +214,37 @@ export class Sfx {
     this.tone(ctx, { at: now + 0.26, freq: 1046.5, dur: 0.9, gain: 0.1 });
   }
 
+  /** The chat asks for something: two soft blips, a notification rather than a fanfare. */
+  public dareAsk(): void {
+    const ctx = this.ensure();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    this.tone(ctx, { at: now, freq: 880, dur: 0.07, gain: 0.12, type: 'triangle' });
+    this.tone(ctx, { at: now + 0.1, freq: 1174.7, dur: 0.1, gain: 0.1, type: 'triangle' });
+  }
+
+  /** Served: a rising fifth that resolves, so the ear hears "done" and not just "beep". */
+  public dareServed(): void {
+    const ctx = this.ensure();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    this.tone(ctx, { at: now, freq: 659.25, dur: 0.16, gain: 0.2, type: 'triangle' });
+    this.tone(ctx, { at: now + 0.11, freq: 987.77, dur: 0.34, gain: 0.18, type: 'triangle' });
+    this.tick(ctx, now + 0.11, 0.1, 4200);
+  }
+
+  /**
+   * Missed: a small falling pair, quiet on purpose. The chat mocking the player is the joke; the
+   * game is not allowed to punish them with a noise.
+   */
+  public dareMissed(): void {
+    const ctx = this.ensure();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    this.tone(ctx, { at: now, freq: 440, dur: 0.12, gain: 0.09, type: 'sine' });
+    this.tone(ctx, { at: now + 0.12, freq: 392, dur: 0.22, gain: 0.075, type: 'sine' });
+  }
+
   /**
    * Her own little moments — a giggle, a hair toss. Barely there on purpose: the player should
    * notice that the room has a voice, not that the game has a sound effect for idling.
