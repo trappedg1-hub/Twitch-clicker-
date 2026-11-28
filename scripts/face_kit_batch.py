@@ -76,6 +76,12 @@ def build_one(plate: Path, art_key: str, state: str, boxes: dict, gen: Path) -> 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default=None)
+    ap.add_argument(
+        "--states",
+        default=None,
+        help="comma list of states to build (default: all); e.g. eyes_closed for an art whose "
+        "canon mouth is already open, where a mouth patch would animate nothing",
+    )
     args = ap.parse_args(argv)
 
     if not MANIFEST.exists():
@@ -83,6 +89,7 @@ def main(argv: list[str]) -> int:
     manifest = json.loads(MANIFEST.read_text())
 
     only = set(args.only.split(",")) if args.only else None
+    wanted = set(args.states.split(",")) if args.states else None
     missing: list[tuple[str, str]] = []
     skipped: list[str] = []
     built = 0
@@ -106,7 +113,15 @@ def main(argv: list[str]) -> int:
         # Frames where the mouth is busy (food held to the lips, mid-bite) keep the canon mouth:
         # only the blink is animated there, a swapped mouth would fight the prop.
         mouth_fixed = bool(boxes.get("mouth_fixed"))
+        identity = bool(boxes.get("identity_face"))
         for state, spec in STATES.items():
+            if wanted is not None and state not in wanted:
+                continue
+            # `identity_face_patch.py` wrote a patch that is the plate's own pixels: there is no
+            # generated variant to rebuild it from, and overwriting it would delete the only
+            # reason the art has a document.
+            if identity and state in (boxes.get("patches") or {}):
+                continue
             if mouth_fixed and state.startswith("mouth"):
                 (OUTDIR / f"{art}_{state}.webp").unlink(missing_ok=True)
                 (boxes.get("patches") or {}).pop(state, None)

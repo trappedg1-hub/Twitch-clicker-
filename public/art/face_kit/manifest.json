@@ -566,23 +566,23 @@
  "heroine_t3_s0": {
   "eyes": [
    [
-    439,
-    256,
-    473,
-    283
+    453,
+    260,
+    482,
+    280
    ],
    [
-    550,
-    235,
-    565,
-    250
+    544,
+    260,
+    573,
+    280
    ]
   ],
   "face": [
-   427,
-   240,
-   577,
-   377
+   430,
+   235,
+   585,
+   375
   ],
   "mouth": [
    454,
@@ -590,7 +590,16 @@
    580,
    365
   ],
-  "skip": "stylised scare frame — generated lids break the face"
+  "identity_face": true,
+  "manual": true,
+  "patches": {
+   "eyes_closed": {
+    "cx": 513.5,
+    "cy": 270.0,
+    "w": 155,
+    "h": 118
+   }
+  }
  },
  "heroine_t3_s1": {
   "eyes": [
@@ -795,52 +804,60 @@
  "heroine_t4_s0": {
   "eyes": [
    [
-    374,
-    135,
-    423,
-    196
+    432,
+    368,
+    477,
+    406
    ],
    [
-    517,
-    127,
-    540,
-    146
+    526,
+    370,
+    568,
+    396
    ]
   ],
   "face": [
-   362,
-   119,
-   552,
-   301
+   420,
+   345,
+   595,
+   490
   ],
   "mouth": [
-   396,
-   225,
-   556,
-   289
+   477,
+   425,
+   530,
+   462
   ],
-  "skip": "detected window lands on a hand — lying pose, face not where the iris detector expects it"
+  "manual": true,
+  "patches": {
+   "eyes_closed": {
+    "w": 187,
+    "h": 90,
+    "cx": 500.5,
+    "cy": 387.0
+   }
+  }
  },
  "heroine_t4_s1": {
   "eyes": [
    [
-    435,
-    217,
-    489,
-    247
+    450,
+    222,
+    479,
+    242
    ],
    [
-    574,
-    211,
-    601,
-    298
+    541,
+    222,
+    570,
+    242
    ]
   ],
   "face": [
    423,
    201,
-   613,
-   387
+   593,
+   348
   ],
   "mouth": [
    460,
@@ -848,7 +865,16 @@
    614,
    375
   ],
-  "skip": "source art declined by the generation content filter"
+  "identity_face": true,
+  "manual": true,
+  "patches": {
+   "eyes_closed": {
+    "cx": 509.5,
+    "cy": 232.0,
+    "w": 155,
+    "h": 118
+   }
+  }
  },
  "heroine_t4_s2": {
   "eyes": [
@@ -1166,7 +1192,7 @@
    842,
    953
   ],
-  "skip": "back view — her face is turned away from camera, there is no face to animate"
+  "skip": "back view \u2014 her face is turned away from camera, there is no face to animate"
  },
  "heroine_t5_start": {
   "eyes": [
