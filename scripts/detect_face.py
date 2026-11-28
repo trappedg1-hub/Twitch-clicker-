@@ -188,6 +188,12 @@ def main(argv: list[str]) -> int:
     sheet_rows = []
     for plate in plates:
         key = plate.stem
+        # A hand-placed anchor (`identity_face_patch.py` -> `manual`) is a measurement, not a
+        # guess, and the detector on these plates has already been wrong once (it put the eyes on
+        # her hands for `t4_s0`). Never overwrite one silently.
+        if (manifest.get(key) or {}).get("manual"):
+            print(f"{key}: manual anchor kept")
+            continue
         rgb = np.asarray(Image.open(plate).convert("RGB")).astype(np.float32)
         found = detect(rgb, args.verbose)
         if found is None:

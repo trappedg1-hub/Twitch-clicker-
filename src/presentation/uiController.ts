@@ -31,6 +31,7 @@ import type {
 } from '../domain/types.ts';
 import { getMicTier, getUpgradeCost, TIER1_MILESTONES, TIER1_UPGRADES } from '../domain/upgrades.ts';
 import { renderChatTextWithEmotes } from './twitchEmotes.ts';
+import { sfx } from '../audio/sfx.ts';
 
 function formatMoney(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M ₽`;
@@ -79,6 +80,18 @@ export class UiController {
   private readonly hypeMultEl = document.getElementById('stat-hype-mult')!;
   private readonly hypeFillEl = document.getElementById('stat-hype-fill')!;
 
+  // The chat's dare: one chip, shown while a dare is live. Read defensively — an older build of
+  // the markup (or the lab pages) simply has no chip and the game runs without it.
+  private readonly dareEl = document.getElementById('chat-dare') as HTMLElement | null;
+  private readonly dareHintEl = document.getElementById('chat-dare-hint') as HTMLElement | null;
+  private readonly dareTimerEl = document.getElementById('chat-dare-timer') as HTMLElement | null;
+  private readonly dareFillEl = document.getElementById('chat-dare-fill') as HTMLElement | null;
+  private readonly dareCountEl = document.getElementById('chat-dare-count') as HTMLElement | null;
+
+  private readonly dareStreakEl = document.getElementById('chat-dare-streak');
+  private readonly dareKickerEl = document.querySelector<HTMLElement>('.chat-dare-kicker');
+  /** Wall clock until which ordinary speech lines are ignored (a payout or a milestone is up). */
+  private speechLockUntil = 0;
   private readonly speechSubEl = document.getElementById('speech-subtitle')!;
   private readonly speechTextEl = document.getElementById('speech-text')!;
 
@@ -107,6 +120,8 @@ export class UiController {
   private readonly finaleOverlayEl = document.getElementById('day-finale-overlay')!;
   private readonly finaleOpenBtnEl = document.getElementById('btn-finale-open')!;
   private readonly finaleCloseBtnEl = document.getElementById('btn-finale-close')!;
+  /** Optional on purpose: the game runs headless in tests, where there is no HUD to toggle. */
+  private readonly soundBtnEl = document.getElementById('btn-sound') as HTMLButtonElement | null;
   /**
    * The finale card is player-invoked. `false` means "the day is closed, but the stream is still
    * hers": taps, gifts and her commentary keep running, and nothing is covered by the modal.
@@ -134,6 +149,13 @@ export class UiController {
   private outfitCards = new Map<SubGoalStageIndex, HTMLElement>();
   private challengeButtons = new Map<ChallengeId, HTMLButtonElement>();
 
+  private syncSoundButton(): void {
+    if (!this.soundBtnEl) return;
+    const on = sfx.isEnabled;
+    this.soundBtnEl.setAttribute('aria-pressed', on ? 'true' : 'false');
+    this.soundBtnEl.title = on ? 'Звук: вкл (M)' : 'Звук: выкл (M)';
+  }
+
   public onBuyUpgrade?: (id: UpgradeId) => void;
   public onGiftSubs?: (count: number) => void;
   public onSelectSubStage?: (stage: SubGoalStageIndex) => void;
@@ -151,6 +173,21 @@ export class UiController {
     this.buildChallengeCards();
     this.startDay2BtnEl.addEventListener('click', () => this.onStartDay2?.());
     this.finaleOpenBtnEl.addEventListener('click', () => this.openFinaleCard());
+    this.syncSoundButton();
+    this.soundBtnEl?.addEventListener('click', () => {
+      sfx.toggle();
+      this.syncSoundButton();
+    });
+    // `M` for mute, because a clicker is played with one hand on the mouse and the other on the
+    // keyboard, and reaching for a 26 px button in a corner is a way to lose a combo.
+    window.addEventListener('keydown', (event) => {
+      if (event.key !== 'm' && event.key !== 'M' && event.key !== 'ь' && event.key !== 'Ь') return;
+      const target = event.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      event.preventDefault();
+      sfx.toggle();
+      this.syncSoundButton();
+    });
     this.finaleCloseBtnEl.addEventListener('click', () => this.closeFinaleCard());
     this.skipFarewellBtnEl.addEventListener('click', () => this.finishFarewell());
 
@@ -738,7 +775,65 @@ export class UiController {
     }
   }
 
-  public showSpeech(line: string): void {
+  /** A dare just arrived from the chat. */
+  public showDare(hint: string, label: string, streakLabel = '', fromHer = false): void {
+    if (!this.dareEl) return;
+    // Who is asking changes the whole chip. The chat's dare is pink and public; hers is warmer,
+    // quieter and addressed to one person, and the kicker is the only thing that has to change for
+    // the player to feel the difference.
+    this.dareEl.classList.toggle('from-her', fromHer);
+    if (this.dareKickerEl) this.dareKickerEl.textContent = fromHer ? 'МИЯ ПРОСИТ' : 'ЧАТ ПРОСИТ';
+    // The streak is the reason to say yes to the second dare, so it belongs on the chip and not
+    // only in the payout line the player reads after the fact.
+    if (this.dareStreakEl) {
+      this.dareStreakEl.hidden = streakLabel === '';
+      this.dareStreakEl.textContent = streakLabel;
+    }
+    this.dareEl.hidden = false;
+    // The phone layout has one top slot, and it is the dare's while the timer runs.
+    document.body.classList.add('dare-live');
+    this.dareEl.classList.remove('urgent');
+    if (this.dareHintEl) this.dareHintEl.textContent = hint;
+    if (this.dareCountEl) this.dareCountEl.textContent = label;
+    if (this.dareFillEl) this.dareFillEl.style.width = '0%';
+  }
+
+  /**
+   * One frame of a live dare. The timer is written as seconds with a tenth only in the last two
+   * seconds — a tenth all the way down reads as a bomb, and this is a dare.
+   */
+  public updateDare(ratio: number, remainingMs: number, label: string): void {
+    if (!this.dareEl || this.dareEl.hidden) return;
+    const pct = Math.max(0, Math.min(1, ratio)) * 100;
+    if (this.dareFillEl) this.dareFillEl.style.width = `${pct.toFixed(1)}%`;
+    if (this.dareCountEl) this.dareCountEl.textContent = label;
+    if (this.dareTimerEl) {
+      const left = Math.max(0, remainingMs) / 1000;
+      this.dareTimerEl.textContent = left < 2 ? `${left.toFixed(1)} с` : `0:0${Math.ceil(left)}`;
+    }
+    this.dareEl.classList.toggle('urgent', remainingMs > 0 && remainingMs < 2000);
+  }
+
+  /** Served, or out of time: the chip goes away and the chat says what it thinks. */
+  public hideDare(finalLabel?: string): void {
+    if (!this.dareEl) return;
+    if (finalLabel && this.dareCountEl) this.dareCountEl.textContent = finalLabel;
+    this.dareEl.hidden = true;
+    document.body.classList.remove('dare-live');
+  }
+
+  /**
+   * Her voice line, under the desk.
+   *
+   * `lockMs` is the difference between a beat and a flash: a tap that lands on the same frame as a
+   * dare payout would otherwise replace the payout line immediately, and the line the player was
+   * *paid* for is the one they never read. A lock swallows ordinary lines for its duration; the
+   * important beats call it, taps do not.
+   */
+  public showSpeech(line: string, lockMs = 0): void {
+    const now = performance.now();
+    if (now < this.speechLockUntil) return;
+    if (lockMs > 0) this.speechLockUntil = now + lockMs;
     this.speechTextEl.textContent = `«${line}»`;
     this.speechSubEl.classList.add('visible', 'pop');
     window.clearTimeout(this.speechPopTimer);
@@ -761,6 +856,12 @@ export class UiController {
       this.alertBoxEl.classList.add('hidden');
     }, 3000);
   }
+
+  /**
+   * Fired after every message actually drawn in the chat. The stage uses it to have her look at the
+   * chat — the one thing a streamer does that this game had no way of noticing.
+   */
+  public onChatPushed?: () => boolean;
 
   public pushChatMessage(msg: ChatMessage): void {
     const row = document.createElement('div');
@@ -787,5 +888,15 @@ export class UiController {
     while (this.chatMessagesEl.children.length > 7) {
       this.chatMessagesEl.removeChild(this.chatMessagesEl.firstChild!);
     }
+    // The line she turned to is the line that lights up. Unless the glance was rate-limited — then
+    // nothing flashes, because she genuinely did not read this one, and a flash would be a lie the
+    // player can see through in ten seconds of watching.
+    if (this.onChatPushed?.()) this.markRead(row);
+  }
+
+  /** A short warm flash on the row she looked at. Timer is unref'd: seven rows, never a leak. */
+  private markRead(row: HTMLElement): void {
+    row.classList.add('read');
+    window.setTimeout(() => row.classList.remove('read'), 1200);
   }
 }

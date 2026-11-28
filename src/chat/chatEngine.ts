@@ -5,6 +5,8 @@ import type {
   UpgradeId,
 } from '../domain/types.ts';
 import { contradictsWardrobe, getWardrobe } from '../domain/wardrobe.ts';
+import type { QuirkKind } from '../heroine/LiveHeroine.ts';
+import { DARE_LINES, HER_DARE_CHAT } from '../domain/dares.ts';
 
 export interface ChatMessage {
   id: string;
@@ -1103,5 +1105,122 @@ export function createMilestoneChatMessage(title: string): ChatMessage {
     badge: 'MOD',
     text: `★ РЕКОРД СТРИМА: ${title}! Чат кипит от фансервиса :Overheat: :Pog: :SubHype:`,
     isSystemHighlight: true,
+  };
+}
+
+/**
+ * Chat noticing that she is entertaining herself.
+ *
+ * These lines are deliberately day-agnostic: a giggle, a hair toss and a lean toward the camera are
+ * true on every plate of every day, so nothing here can contradict a wardrobe the player is looking
+ * at. They also never claim a garment moved, which is the rule the whole chat obeys.
+ */
+/** Quirk lines. `staring` and `bored` are not rig quirks: they are attention beats (attention.ts). */
+export type QuirkLineKind = QuirkKind | 'staring' | 'bored' | 'caught_chest' | 'caught_legs' | 'caught_feet';
+
+const SELF_QUIRK_LINES: Record<QuirkLineKind, string[]> = {
+  giggle: [
+    'она засмеялась САМА, никто ничего не написал, чат, вы это слышали :LUL:',
+    'смеётся над чем-то в своей голове. аниме-девочка в естественной среде обитания :peepoShy:',
+    'я готов поспорить, что она сейчас читает наши сообщения и ржёт :LUL: :Pog:',
+    'два всхлипа и прищур. я в клип это :ClipIt:',
+  ],
+  hair_flip: [
+    'поправила волосы просто так, без причины. и это сработало :AWOOGA:',
+    'волосы в одну сторону, голова в другую — как в аниме, только лучше :pepeDance:',
+    'это был театр. я аплодирую :Pog:',
+  ],
+  lean_in: [
+    'наклонилась к камере. я забыл, что хотел написать :peepoShy:',
+    'она приблизилась, и я приблизился к экрану. наука :Pog:',
+    'дыхание в микрофон, глаза в камеру. всё, я пропал :Nosebleed:',
+  ],
+  tease: [
+    'показала язык просто так. без повода. вот это характер :LUL:',
+    'ты видела? ВИДЕЛА? чат, она дразнится :AWOOGA:',
+  ],
+  turn: [
+    'оглянулась. кто-то вошёл в комнату? :peepoShy:',
+    'смотрит в сторону, будто там что-то есть. заговор :LUL:',
+  ],
+  staring: [
+    'она посмотрела ПРЯМО В КАМЕРУ. я не двигаю мышкой, я не дышу :peepoShy:',
+    'кажется, она заметила, что мы на неё пялимся. и ей это нравится :AWOOGA:',
+    'контакт глазами. я проиграл этот раунд :Nosebleed:',
+    'она поймала мой курсор. я пойман. всё :Pog:',
+  ],
+  caught_chest: [
+    'она заметила, куда я смотрю. я не смотрю. я НЕ смотрю :Nosebleed:',
+    'поймала взгляд на груди и ухмыльнулась. всё, я в клипе :AWOOGA:',
+    'чат, она знала. она ВСЁ знала. и ей норм :peepoShy:',
+    'мне выписали штраф за внимание. я оплачу :LUL:',
+  ],
+  caught_legs: [
+    'поймала на ноги и вытянулась. это была демонстрация, а не растяжка :AWOOGA:',
+    'она посмотрела на меня так, будто это Я тут сижу в пижаме :peepoShy:',
+    'смотрит в камеру и не моргает. я сдаюсь первым :Nosebleed:',
+    'ноги, взгляд в камеру, пауза. кто-то в этой комнате умеет держать тишину :Pog:',
+  ],
+  caught_feet: [
+    'ногу дёрнула — значит, почувствовала, что я смотрю :LUL:',
+    'она шевельнула пальцами. чат, это была угроза :peepoShy:',
+    'заметили, куда смотрю? я не смотрел. но она знает :Nosebleed:',
+  ],
+  bored: [
+    'она потянулась так, что я забыл, зачем пришёл. аплодирую :Nosebleed:',
+    'никто не кликает, и она решила, что можно расслабиться. лучший момент стрима :peepoShy:',
+    'она скучает и делает это красиво. чат, мы плохие зрители :LUL:',
+  ],
+};
+
+/**
+ * The chat's own voice for a dare: the ask, the verdict, and nothing else.
+ *
+ * It reuses the quirk path — a random viewer, the same badge and colour rules — because a dare is
+ * not a system notification, it is somebody typing in the chat. That is the whole difference
+ * between "задание: тапните 5 раз" and "@miya а слабо?".
+ */
+export function createDareMessage(
+  kind: 'started' | 'done' | 'expired',
+  seed = seqCounter,
+  streamDay = 1,
+  ask?: string,
+  /** When she is the one asking, the chat is not the one who spoke: it is the one reacting. */
+  origin: 'chat' | 'her' = 'chat',
+): ChatMessage {
+  const viewer = VIEWER_NICKS[(seed * 7 + 11) % VIEWER_NICKS.length]!;
+  if (origin === 'her' && kind === 'started') {
+    const line = HER_DARE_CHAT[Math.abs(seed) % HER_DARE_CHAT.length]!;
+    return { id: nextMsgId(), author: viewer.name, color: viewer.color, badge: viewer.badge, text: line };
+  }
+  const pool = kind === 'started' ? null : DARE_LINES[kind];
+  const text = kind === 'started' ? (ask ?? DARE_LINES.started[0]) : pool![Math.abs(seed) % pool!.length]!;
+  return {
+    id: nextMsgId(),
+    author: viewer.name,
+    color: viewer.color,
+    badge: viewer.badge,
+    text: streamDay === 5 && kind === 'done' ? `${text} (и это в купальнике, чат) :Nosebleed:` : text,
+  };
+}
+
+export function createSelfQuirkMessage(
+  kind: QuirkLineKind,
+  seed = seqCounter,
+  streamDay = 1,
+): ChatMessage {
+  const viewer = VIEWER_NICKS[(seed * 5 + 3) % VIEWER_NICKS.length]!;
+  const pool = SELF_QUIRK_LINES[kind] ?? SELF_QUIRK_LINES.turn;
+  const text = pool[Math.abs(seed) % pool.length]!;
+  // Ghost day: the sheet is the joke, so the one quirk line it gets is about the sheet.
+  return {
+    id: nextMsgId(),
+    author: viewer.name,
+    color: viewer.color,
+    badge: viewer.badge,
+    text:
+      streamDay === 3 && kind === 'lean_in'
+        ? 'простыня наклонилась вместе с ней. физика, сэр :LUL:'
+        : text,
   };
 }

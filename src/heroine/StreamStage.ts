@@ -15,7 +15,19 @@ import type {
 } from '../domain/types.ts';
 import { DAY3_FLASH_PLATE, DAY4_FLASH_PLATE, DAY5_FLASH_PLATE, DAY6_FLASH_PLATE, getSubGoalStagesForDay } from '../domain/subGoals.ts';
 import { HeroineRig } from './HeroineRig.ts';
-import { LiveHeroine } from './LiveHeroine.ts';
+import { LiveHeroine, type LiveReaction, type QuirkKind } from './LiveHeroine.ts';
+import { pickBeat, type BeatName } from './reactionDirector.ts';
+import { pickAttention, type AttentionBeat, type AttentionKind } from './attention.ts';
+import { BlushLayer } from './blushLayer.ts';
+import { HEAT } from './blush.ts';
+import { aimFromPointer, holdAtCamera } from './gaze.ts';
+import { askChatGlance, chatGlanceActive, CHAT_GLANCE_MS, IDLE_CHAT_GLANCE, type ChatGlanceState } from './chatGlance.ts';
+import { CAMERA, cameraPose, punchAdd, punchDecay, type CameraPose } from './camera.ts';
+
+/** Where the chat column is, in the gaze module's normalised space: right, a little below level. */
+const CHAT_AIM = { x: 0.62, y: 0.18 } as const;
+/** How far her head goes towards it. A glance, not a turn: `turn` is the authored 3.35°. */
+const CHAT_GLANCE_WEIGHT = 0.72;
 
 interface FloatingParticle {
   node: Container;
@@ -77,9 +89,22 @@ export class StreamStage {
   private readonly particles: FloatingParticle[] = [];
   private activeCalloutParticle?: FloatingParticle;
   private readonly motes: DustMote[] = [];
+  /** Has the pointer ever been over the stage? On a phone, never — she looks straight ahead. */
+  private pointerSeen = false;
   private pointerNormX = 0;
   private pointerNormY = 0;
   private lampLevel = 0;
+  /**
+   * The camera. Not the room and not the pointer parallax: the frame itself, drifting a couple of
+   * virtual pixels at a time and pushing in a fraction of a percent when something lands. See
+   * `camera.ts` for why a perfectly still frame is the loudest "this is a screenshot" in the scene.
+   */
+  private camT = 0;
+  private camPunch = 0;
+  private camPose: CameraPose = { x: 0, y: 0, zoom: 0 };
+  private camViewW = 0;
+  private camViewH = 0;
+  private reducedMotion = false;
   private hypeLevel = 0;
   private drawerOpen = false;
   private hostEl?: HTMLElement;
@@ -90,6 +115,12 @@ export class StreamStage {
 
   public async mount(hostEl: HTMLElement): Promise<void> {
     this.app = new Application();
+    // Read once: a player who asked for reduced motion gets a still frame, not a slower drift.
+    try {
+      this.reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      this.reducedMotion = false;
+    }
     await this.app.init({
       preference: 'webgl',
       backgroundAlpha: 0,
@@ -278,6 +309,17 @@ export class StreamStage {
     // Plate pixels, unit scale: the rig document is authored on the 1024x1526 canvas.
     this.live = new LiveHeroine();
     this.rig.view.addChild(this.live.view);
+    // A broken skeleton is a broken ornament, never a broken game: the moment it throws, the flat
+    // plate comes back and the console says why (see `onLiveFault` in bootstrap).
+    this.live.onQuirk = (kind) => this.onLiveQuirk?.(kind);
+    this.live.attachOverlay(this.blush.container);
+    this.live.onFault = (reason) => {
+      this.liveEnabled = false;
+      this.rig?.setPlateVisible(true);
+      this.onLiveFault?.(reason);
+    };
+    // `?rig=0` — the escape hatch that needs no deploy: flat plates, exactly as before the rig.
+    this.liveEnabled = new URLSearchParams(window.location.search).get('rig') !== '0';
     void this.syncLiveHeroine();
 
     // HUD safe zone: `?hudsafe=1` outlines the exact screen column the character owns, so a
@@ -332,18 +374,78 @@ export class StreamStage {
 
     this.rig.onZoneTap = (zone, globalPt) => {
       const localPt = this.root.toLocal(globalPt);
+      this.answerTapZone(zone, localPt.x, localPt.y);
+    };
+    this.wirePointer(hostEl);
+  }
+
+  /**
+   * A tap on her body, answered. The one function every path goes through — the pointer, the QA
+   * harness, and anything else that ever wants to tap her — so the director cannot be bypassed.
+   */
+  public answerTapZone(zone: TapZoneId, localX: number, localY: number): void {
+    // Her answer is chosen by the director, not by a chain of `if`s here: the same tap on the same
+    // cheek lands differently at boldness 20 and boldness 80, and a player who hammers her gets
+    // shaken rather than nodded at. See `reactionDirector.ts` for the table and the tests.
+    const streak = this.tapStreak(performance.now());
+    const mood = this.reactionInput?.() ?? { boldness: 40, hype: 0 };
+    const beat = pickBeat({
+      zone,
+      boldness: mood.boldness,
+      hype: mood.hype,
+      streak,
+      available: this.live?.animationSet() ?? new Set<string>(),
+      random: Math.random,
+    });
+    this.live?.react(beat.anim, beat.ms);
+    this.lastBeatAt = performance.now();
+    // What the director *chose*, which is not the same as what is playing: a tap that arrives
+    // mid-beat is dropped by the rig, so the clip name would report the previous answer.
+    this.lastTapBeat = beat.anim;
+    // A tap is warmth; hammering her is more. Twenty small bumps per second add up to a flush, and
+    // then it cools for the next five seconds while she catches her breath. Some beats are simply
+    // hotter than others: being tickled is more embarrassing than being nodded at.
+    const heat =
+      beat.anim === 'tickle'
+        ? HEAT.tickle
+        : beat.anim === 'tease' || beat.anim === 'giggle' || beat.anim === 'shy_tuck'
+          ? HEAT.tap * 1.6
+          : beat.anim === 'tap'
+            ? HEAT.tap * 0.4
+            : HEAT.tap;
+    this.blush.bump(heat);
+    this.punchCamera(beat.anim === 'tease' || beat.anim === 'arch' ? CAMERA.teasePunch : CAMERA.tapPunch);
+    this.lastTapDebug = { zone, beat: beat.anim, streak, available: (this.live?.animationSet() ?? new Set()).size };
       const res = this.onHeroineTap?.(zone);
-      if (res) {
-        this.spawnTapBurst(localPt.x, localPt.y, res.earned, res.alert, zone);
-      }
+    if (res) {
+      this.spawnTapBurst(localX, localY, res.earned, res.alert, zone);
+    }
+  }
+
+  private wirePointer(hostEl: HTMLElement): void {
+    this.rig.onZoneHover = (zone) => {
+      // The pointer resting on her is a form of attention, and she answers it a second and a half
+      // later — see `attention.ts`. Leaving her body resets the dwell, so passing over her on the
+      // way to the shop never counts as a stare.
+      this.hoverZone = zone;
+      if (!zone) this.hoverSince = 0;
+      else if (this.hoverSince === 0) this.hoverSince = performance.now();
     };
 
-    hostEl.addEventListener('pointermove', (e) => {
+    const trackPointer = (e: PointerEvent) => {
       const rect = hostEl.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         this.pointerNormX = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
         this.pointerNormY = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+        this.pointerSeen = true;
       }
+    };
+    hostEl.addEventListener('pointermove', trackPointer);
+    // A tap is also a pointer position, and on a phone it is the ONLY one there is: `pointerdown`
+    // arrives before the click, so she has already turned towards the finger by the time she nods.
+    hostEl.addEventListener('pointerdown', trackPointer);
+    hostEl.addEventListener('pointerleave', () => {
+      this.pointerSeen = false;
     });
 
     this.hostEl = hostEl;
@@ -487,16 +589,195 @@ export class StreamStage {
    * purpose. Either way this never throws: a missing rig is a normal outcome.
    */
   public async syncLiveHeroine(): Promise<void> {
+    if (!this.liveEnabled) {
+      // The admin console's A/B switch: compare the animated skeleton against the plate it was
+      // built from, on the same frame. Turning it off is a promise — nothing may re-show it until
+      // the switch is flipped back, so this line sits before every other path into `show()`.
+      this.live.hide();
+      this.rig?.setPlateVisible(true);
+      return;
+    }
     const plate = this.getActivePlateName();
     const art = plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
     if (!art) return;
+    // Ask the published index before the network: an art without a rig is a normal plate, not an
+    // error, and skipping it keeps the console (and the dev server's SPA fallback) quiet.
+    if (this.riggedArts && !this.riggedArts.has(art)) {
+      this.live.hide();
+      this.rig?.setPlateVisible(true);
+      return;
+    }
     const ok = await this.live.show(art);
     this.rig?.setPlateVisible(!ok);
   }
 
+  /** Whether plates may be replaced by their rigs. Off = the flat art, exactly as before the rig. */
+  public liveEnabled = true;
+
+  /** Art keys that ship a rig, from `/rigs/index.json`. Null until the index answers. */
+  public riggedArts: Set<string> | null = null;
+
+  /** Fired when the skeleton gave up after a throw, with the reason. */
+  public onLiveFault: ((reason: string) => void) | null = null;
+
+  /** Flip the live skeleton off/on and re-settle the current plate immediately. */
+  public setLiveEnabled(on: boolean): void {
+    this.liveEnabled = on;
+    void this.syncLiveHeroine().then(
+      () => this.app?.render(),
+      () => this.app?.render(),
+    );
+  }
+
+  /** QA: how pink she is right now, and where the glows are. */
+  public getBlushDebug(): { level: number; heat: number; at: { x: number; y: number } | null } {
+    return this.blush.debug();
+  }
+
+  /** QA: is the pointer resting on her body, and since when. */
+  public getHoverDebug(): { zone: string | null; since: number } {
+    return { zone: this.hoverZone, since: this.hoverSince };
+  }
+
+  /** QA: which clip the live skeleton is on, and what the plate carries. */
+  public getLiveDebug(): { current: string; animations: string[] } | null {
+    return this.live?.debugState() ?? null;
+  }
+
+  /** Her own beats — the ones she does when the player is not doing anything. */
+  public onLiveQuirk?: (kind: QuirkKind) => void;
+
+  /**
+   * What the director is allowed to know about her mood. The stage does not own the game state, so
+   * the game feeds it in; without it every tap is answered as if she were a stranger.
+   */
+  public reactionInput?: () => { boldness: number; hype: number };
+
+  /** Tap timestamps, for the "you are hammering her" rule. Kept short on purpose. */
+  private tapTimes: number[] = [];
+
+  /** Her blush, drawn over the skeleton and anchored to the document's own eye box. */
+  private readonly blush = new BlushLayer();
+
+  /** Pointer is resting on her body: when it started, and which zone. */
+  private hoverZone: TapZoneId | null = null;
+  private hoverSince = 0;
+  private lastBlushMs = 0;
+  /** The beat the director chose for the last tap — QA reads this, the game does not. */
+  public lastTapBeat: BeatName | null = null;
+  public lastTapDebug: { zone: string; beat: string; streak: number; available: number } | null = null;
+  /** QA: frames served, and the last exception the tick swallowed (null while healthy). */
+  public tickError: string | null = null;
+  public frameCount = 0;
+
+  public attentionDebug: { hoverMs: number; picks: number; last: string | null; reason: string; frames?: number; now?: number; error?: string } = { hoverMs: 0, picks: 0, last: null, reason: '' };
+
+  /** When she last did an attention beat of her own, and when any beat last started. */
+  private lastAttentionAt = -1e9;
+  /**
+   * Reading the chat. A streamer's head goes to the chat column when it fills up, and this stage
+   * has the column on the right: `glareAtChat()` is called from the UI's own message push, so every
+   * line the player can see land is a line she turns to. Rate-limited, because a chat that never
+   * stops would otherwise pin her head to the right edge for the whole session.
+   */
+  private chatGlance: ChatGlanceState = IDLE_CHAT_GLANCE;
+  /** Counters for QA: how many glances started, and on how many frames one was live. */
+  private chatGlances = 0;
+  private chatGlanceFrames = 0;
+  /** What the gaze module was last told to look at, in its own normalised space (for QA). */
+  private lastGazeAim: { x: number; y: number } | null = null;
+  private lastBeatAt = -1e9;
+
+  /** Her own beat fired because of the player's attention, for the chat to react to. */
+  public onAttention?: (kind: AttentionKind, zone: AttentionBeat['zone']) => void;
+
+  private tapStreak(now: number): number {
+    this.tapTimes.push(now);
+    // 1.2 s is a little longer than the longest beat it can interrupt, so the counter resets when
+    // the player slows down instead of carrying a stale burst into the next tap.
+    while (this.tapTimes.length > 0 && now - this.tapTimes[0]! > 1200) this.tapTimes.shift();
+    return this.tapTimes.length;
+  }
+
   /** One-shot secondary motion on the live skeleton, if one is up. */
-  public playLiveReaction(kind: 'shake' | 'turn' | 'sway' = 'shake'): void {
+  public playLiveReaction(kind: LiveReaction = 'shake'): void {
     this.live.react(kind);
+  }
+
+  /**
+   * The donation beat: a gasp where the money landed, then a giggle a beat later.
+   *
+   * Two reactions, sequenced, because one animation cannot say "oh!" and then "hee" — and a body
+   * that answers every donation with the same 0.9 s shake is a machine. The second call is guarded:
+   * if the plate or the rig changed in between, it is simply dropped.
+   */
+  /**
+   * Attention, once a frame. Two things only: how long the cursor has been on her, and how long
+   * since anything happened at all. Everything else is a table in `attention.ts`.
+   */
+  private pumpAttention(now: number): void {
+    this.attentionDebug = { ...this.attentionDebug, frames: (this.attentionDebug.frames ?? 0) + 1, now };
+    const live = this.live;
+    if (!live) return;
+    // Mid-beat is not a state to interrupt: the request would be dropped anyway, but it would also
+    // reset the dwell timer and she would never get round to reacting.
+    if (live.debugState().current !== 'idle' && live.debugState().current !== 'idle_talk') return;
+    const mood = this.reactionInput?.() ?? { boldness: 40, hype: 0 };
+    const lastTap = this.tapTimes.length > 0 ? this.tapTimes[this.tapTimes.length - 1]! : -1e9;
+    const pick = pickAttention({
+      hoverMs: this.hoverZone && this.hoverSince > 0 ? now - this.hoverSince : 0,
+      // Which part of her the pointer is on, not merely that it is on her: see `CAUGHT_ANSWERS`.
+      zone: this.hoverZone,
+      msSinceTap: now - lastTap,
+      msSinceAttention: now - this.lastAttentionAt,
+      msSinceBeat: now - this.lastBeatAt,
+      boldness: mood.boldness,
+      available: live.animationSet(),
+      random: Math.random,
+    });
+    this.attentionDebug = { ...this.attentionDebug, hoverMs: now - Math.max(this.hoverSince, now - 1e6), reason: pick ? pick.anim : 'none' };
+    if (!pick) return;
+    this.attentionDebug = { ...this.attentionDebug, picks: this.attentionDebug.picks + 1, last: pick.anim };
+    this.lastAttentionAt = now;
+    this.lastBeatAt = now;
+    live.react(pick.anim, pick.ms);
+    // Being caught looking is the most embarrassing thing in the game, so it is the hottest —
+    // and being caught looking *somewhere specific* is hotter still.
+    this.blush.bump(pick.kind === 'caught' ? HEAT.stare * 1.35 : pick.kind === 'staring' ? HEAT.stare : HEAT.tap);
+    // Caught is an event, so the frame leans in on it. Quieter than a donation, louder than a tap.
+    if (pick.kind === 'caught') this.punchCamera(CAMERA.teasePunch);
+    this.onAttention?.(pick.kind, pick.zone ?? null);
+  }
+
+  public playLiveDonation(): void {
+    const live = this.live;
+    if (!live) return;
+    if (live.hasAnimation('gasp')) live.react('gasp', 850);
+    else live.react('shake', 900);
+    // The follow-up is the part that knows who she is by now. Money landing on a shy streamer is a
+    // gasp; the same money on a bold one buys a lean toward the camera, and a giggle everywhere
+    // else. Same event, different woman — that is the whole point of the director.
+    const bold = (this.reactionInput?.().boldness ?? 0) >= 55;
+    const follow = bold && live.hasAnimation('lean_in') ? 'lean_in' : live.hasAnimation('giggle') ? 'giggle' : null;
+    this.blush.bump(HEAT.donation);
+    this.punchCamera(CAMERA.donationPunch);
+    if (!follow) return;
+    window.setTimeout(() => {
+      if (this.live === live) live.react(follow, follow === 'lean_in' ? 2000 : 1150);
+    }, 900);
+  }
+
+  /**
+   * A sub goal closed: the new outfit is on the plate and she briefly *presents* it. The arch is the
+   * only beat in the rig that shows off the silhouette on purpose, so it is the one a milestone gets
+   * — a nod would be the game saying "well done" instead of her saying "look".
+   */
+  public playLiveMilestone(): void {
+    const live = this.live;
+    if (!live) return;
+    live.react(live.hasAnimation('arch') ? 'arch' : 'giggle', 1700);
+    this.blush.bump(HEAT.milestone);
+    this.punchCamera(CAMERA.milestonePunch);
   }
 
   /** She speaks: the mouth pattern runs for a couple of seconds inside the idle loop. */
@@ -508,7 +789,10 @@ export class StreamStage {
     // She answers the chat: talk with the mouth, and a small head turn the hair has to catch up
     // with. Both are no-ops when the plate on screen has no rig.
     this.live?.talk(2400);
-    this.live?.react('shake', 1100);
+    // The chat beat answers with a small shake; a donation goes through `playLiveDonation` below,
+    // which is a gasp and a giggle instead.
+    if (isFever) this.playLiveDonation();
+    else this.live?.react('shake', 900);
     // Replace any existing reaction callout so rapid taps NEVER overlap two callout strings!
     if (this.activeCalloutParticle) {
       const idx = this.particles.indexOf(this.activeCalloutParticle);
@@ -664,19 +948,73 @@ export class StreamStage {
     this.app.render();
   }
 
-  private updateRootTransform(w: number, h: number): void {
+  /** The fitted scale for a viewport — shared so the camera can re-derive it every frame. */
+  private fitScaleFor(w: number, h: number): number {
     const fitScale = Math.min(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
     const maxSafeScale = h / 736;
     const coverScale = Math.max(w / StreamStage.VIRTUAL_W, h / StreamStage.VIRTUAL_H);
-    const scale = Math.min(coverScale, Math.max(fitScale, maxSafeScale));
+    return Math.min(coverScale, Math.max(fitScale, maxSafeScale));
+  }
 
-    this.root.scale.set(scale);
-    const baseY = (h - StreamStage.VIRTUAL_H * scale) * 0.5;
-    const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
-    this.root.position.set((w - StreamStage.VIRTUAL_W * scale) * 0.5, baseY + drawerShift);
+  private updateRootTransform(w: number, h: number): void {
+    this.camViewW = w;
+    this.camViewH = h;
+    this.applyCamera();
     if (this.deskMicSprite) {
       this.micHolder.x = this.micAnchorX();
     }
+  }
+
+  /**
+   * The camera's one write per frame: the fitted transform plus the drift and the push.
+   *
+   * Zooming is about the *centre of the screen*, not about the stage's origin — the naive version
+   * (scale the root and leave its position) grows the frame towards the bottom-right corner, which
+   * at 1.8 % is a visible slide of the whole picture. Re-deriving the position from the zoomed
+   * scale costs two multiplies and keeps the push centred on her.
+   */
+  private applyCamera(): void {
+    const w = this.camViewW;
+    const h = this.camViewH;
+    if (w <= 0 || h <= 0) return;
+    const pose = cameraPose(this.camT, this.camPunch, this.reducedMotion);
+    this.camPose = pose;
+    const scale = this.fitScaleFor(w, h) * (1 + pose.zoom);
+    const drawerShift = this.drawerOpen && w > 820 ? -42 : 0;
+    this.root.scale.set(scale);
+    this.root.position.set(
+      (w - StreamStage.VIRTUAL_W * scale) * 0.5 + pose.x,
+      (h - StreamStage.VIRTUAL_H * scale) * 0.5 + drawerShift + pose.y,
+    );
+  }
+
+  /** Where her eyes were aimed on the last frame the gaze module ran (null once released). */
+  public get gazeAimDebug(): { x: number; y: number } | null {
+    return this.lastGazeAim;
+  }
+
+  /** How much of the stream she spends on the chat column, and how many glances that took. */
+  public get chatGlanceDebug(): { glances: number; frames: number; totalFrames: number } {
+    return { glances: this.chatGlances, frames: this.chatGlanceFrames, totalFrames: this.attentionDebug.frames ?? 0 };
+  }
+
+  /** The chat said something: she looks at it, briefly, a few times a minute at most. */
+  public glareAtChat(ms = CHAT_GLANCE_MS, force = false): boolean {
+    const next = askChatGlance(this.chatGlance, performance.now(), ms, force);
+    const started = next !== this.chatGlance;
+    if (started) this.chatGlances += 1;
+    this.chatGlance = next;
+    return started;
+  }
+
+  /** Something landed: the frame leans in and comes back. Events only — the drift is free. */
+  public punchCamera(amount: number): void {
+    this.camPunch = punchAdd(this.camPunch, amount);
+  }
+
+  /** QA: where the camera is right now, and how much of the push is still ringing. */
+  public getCameraDebug(): { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean } {
+    return { x: this.camPose.x, y: this.camPose.y, zoom: this.camPose.zoom, punch: this.camPunch, t: this.camT, reduced: this.reducedMotion };
   }
 
   public spawnTapBurst(
@@ -742,13 +1080,86 @@ export class StreamStage {
     }
   }
 
+  /**
+   * The ticker's one listener, and the only place an exception is allowed to be caught and *kept*.
+   *
+   * A Pixi ticker has no supervision: a listener that throws stops the ticker rescheduling itself,
+   * and the app keeps rendering a frozen canvas with a live HUD on top. That is the worst failure
+   * mode this stage has, and it is invisible in a console that the player never opens — so the
+   * error is stored where QA can read it (`tickError`) instead of vanishing into a broken frame.
+   */
   private tick(dtMs: number): void {
+    this.frameCount = (this.frameCount ?? 0) + 1;
+    try {
+      this.frame(dtMs);
+    } catch (error) {
+      this.tickError = String((error as Error)?.stack ?? error).slice(0, 400);
+    }
+  }
+
+  private frame(dtMs: number): void {
     const safeDt = Math.min(60, Math.max(0, dtMs));
     const dt = safeDt / 1000;
     this.elapsedSec += dt;
 
     this.rig.update(safeDt);
-    this.live.update(performance.now());
+    // Guarded inside `LiveHeroine`: the skeleton ticks on the stage's clock, so an exception in it
+    // can never stop the app's ticker (that is exactly how a rig bug becomes a black screen).
+    // Where the player is pointing, every frame, before the skeleton is advanced: the head
+    // follows the cursor with a spring, and the parallax below moves the room behind her.
+    const glancing = chatGlanceActive(this.chatGlance, performance.now());
+    if (glancing) this.chatGlanceFrames += 1;
+    if (this.live.view.visible && (this.pointerSeen || glancing)) {
+      // Three claims on where she looks, in this order: the chat (a line just landed), the pointer,
+      // and her own blush. The chat wins because it is what a streamer actually does; the blush
+      // pulls the aim toward the lens, so the hotter the stream gets the more of the time she is
+      // looking at *you* instead of at your mouse. `holdAtCamera` is a pure lerp with a floor at
+      // her resting gaze, so it can never turn into a stare at a wall.
+      const base = this.pointerSeen
+        ? aimFromPointer(this.pointerNormX, this.pointerNormY)
+        : { x: 0, y: 0 };
+      const aim = glancing
+        ? { x: base.x + (CHAT_AIM.x - base.x) * CHAT_GLANCE_WEIGHT, y: base.y + (CHAT_AIM.y - base.y) * CHAT_GLANCE_WEIGHT }
+        : base;
+      const held = holdAtCamera(aim, this.blush.debug().level);
+      this.lastGazeAim = held;
+      this.live.look(held.x, held.y);
+    } else {
+      this.lastGazeAim = null;
+      this.live.releaseGaze();
+    }
+    // The camera first: the drift is a function of time only, so it costs one sine pair per frame
+    // and never accumulates.
+    this.camT += dt;
+    this.camPunch = punchDecay(this.camPunch, dt);
+    this.applyCamera();
+    const nowMs = performance.now();
+    // Blush: the one hot channel the rigged plates were missing, driven by the numbers the game
+    // already has. Anchors are null on a plate without measurable face art — then it fades out.
+    this.blush.update(nowMs - (this.lastBlushMs || nowMs), this.live.view.visible ? this.live.cheekAnchors() : null, {
+      boldness: this.reactionInput?.().boldness ?? 0,
+      hype: this.hypeLevel,
+    });
+    this.lastBlushMs = nowMs;
+    // Her pace: chat hype plus how far along she is with the player. Set before the update so the
+    // breath that is advancing this frame already carries it.
+    this.live.setEnergy(Math.max(this.hypeLevel / 100, (this.reactionInput?.().boldness ?? 0) / 140));
+    this.live.update(nowMs);
+    // Attention is the one part of the tick that reaches into the chat and the sound engine through
+    // a callback the game owns, so it is guarded on its own: a chat line that throws must cost one
+    // beat, not the whole stage. (An uncaught throw inside a Pixi ticker listener stops that ticker
+    // rescheduling — a black canvas with the HUD still on top of it.)
+    try {
+      this.pumpAttention(nowMs);
+    } catch (error) {
+      this.attentionDebug = { ...this.attentionDebug, error: String((error as Error)?.message ?? error) };
+    }
+
+    // One invariant instead of a dozen call sites: while the skeleton is on screen the flat plate
+    // underneath is hidden. Every path that can raise the plate — a flash beat, a stage change, a
+    // load failure, a re-shown patch layer — has to be right anyway, but if one of them is not, the
+    // player sees a doubled heroine ("ghosting") for a frame. This is that frame, deleted.
+    if (this.live.view.visible && this.rig.plateVisible) this.rig.setPlateVisible(false);
 
     // Subtle 3D webcam parallax between room back wall, heroine, and foreground desk!
     this.bgSprite.x = -12 - this.pointerNormX * 5.5;

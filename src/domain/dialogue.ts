@@ -21,6 +21,24 @@ export type DialogueBand = 1 | 2 | 3 | 4;
  * Day 2 goodbye: the ladder is done, and she leaks tomorrow's plan - a cosplay stream, without
  * saying what exactly (the surprise stays until Day 3 ships).
  */
+/**
+ * She noticed you were gone. Two registers, because the same absence lands differently on a shy girl
+ * and on a bold one — and because the bold lines are the cheapest fan-service in the game: nothing
+ * is asked of the player, she just says the thing.
+ */
+export const WELCOME_BACK_LINES: Record<'shy' | 'bold', readonly string[]> = {
+  shy: [
+    'Ой... ты вернулся. Я уже думала, что эфир можно закрывать.',
+    'Я тут... ждала. Не то чтобы ждала. Ладно, ждала.',
+    'Ты пропал, а я не знала, что делать с руками. Вот, поправляла наушники.',
+  ],
+  bold: [
+    'Ты куда исчез? Я уже начала скучать... и не только скучать.',
+    'Я всё это время смотрела в чат и представляла, что это ты пишешь.',
+    'Вернулся. Хорошо. Я как раз думала, что мне сегодня не хватает одного зрителя — тебя.',
+  ],
+};
+
 export const DAY2_FAREWELL_LINES: readonly string[] = [
   'Так... пять тысяч сабов. Второй день закрыт, и я до сих пор не понимаю, как вы так быстро всё считаете.',
   'Спасибо каждому, кто был сегодня. Я видела и клипы, и ваши «не надо», и всё равно дошла до финала. Это мы вместе сделали.',

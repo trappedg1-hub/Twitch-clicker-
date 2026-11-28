@@ -1,4 +1,5 @@
 import type { Application } from 'pixi.js';
+import { sfx } from '../audio/sfx.ts';
 import {
   createAmbientChatMessage,
   createDay2ProvocationChatMessage,
@@ -8,6 +9,9 @@ import {
   createSubNotificationMessage,
   createUpgradeChatMessage,
   createViralClipChatMessage,
+  createDareMessage,
+  createSelfQuirkMessage,
+  type QuirkLineKind,
   createZoneBurstMessage,
 } from '../chat/chatEngine.ts';
 import {
@@ -31,7 +35,16 @@ import {
   pickIdleTeaseLine,
   pickReactionCalloutTag,
   UPGRADE_REACTION_LINES,
+  WELCOME_BACK_LINES,
 } from '../domain/dialogue.ts';
+import {
+  IDLE_RETURN,
+  markHidden,
+  welcomeBack,
+  welcomeBackBand,
+  welcomeBackChatLine,
+  type ReturnState,
+} from '../domain/returnBeat.ts';
 import {
   applyTap,
   buyGiftSubs,
@@ -51,6 +64,25 @@ import {
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
+import {
+  DARES,
+  DARE_HEARD,
+  DARE_SPEECH,
+  dareStreakMultiplier,
+  pickDareOrigin,
+  HER_DARE_BONUS,
+  HER_DARE_LINES,
+  HER_DARE_AFTERGLOW,
+  HER_HINTS,
+  type DareOrigin,
+  dareClock,
+  dareEvent,
+  dareProgressRatio,
+  dareRemainingMs,
+  pickDare,
+  startDare,
+  type DareState,
+} from '../domain/dares.ts';
 import {
   dayFinaleSubs,
   getSubGoalStagesForDay,
@@ -78,7 +110,16 @@ import type {
 } from '../domain/types.ts';
 import type { HeroineRig } from '../heroine/HeroineRig.ts';
 import { StreamStage } from '../heroine/StreamStage.ts';
-import { AdminPanel, type AdminPanelApi } from '../presentation/adminPanel.ts';
+import { AdminPanel, type AdminPanelApi, type AdminRigApi } from '../presentation/adminPanel.ts';
+import {
+  constraintLabel,
+  diffTuning,
+  displayValue,
+  formatTuningReport,
+  mergeTuning,
+  parseStoredTuning,
+  type RigTuning,
+} from '../heroine/rigTuning.ts';
 import { UiController } from '../presentation/uiController.ts';
 
 declare global {
@@ -98,6 +139,27 @@ declare global {
       isWearingDay2Outfit: () => boolean;
       getStats: () => ReturnType<typeof computeStats>;
       tapZone: (zone: TapZoneId) => void;
+      zoneCenter: (zone: TapZoneId) => { x: number; y: number } | null;
+      lastTapBeat: () => string | null;
+      lastTapDebug: () => { zone: string; beat: string; streak: number; available: number } | null;
+      hoverDebug: () => { zone: string | null; since: number };
+      blushDebug: () => { level: number; heat: number; at: { x: number; y: number } | null };
+      cameraDebug: () => { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean };
+      dareDebug: () => { kind: string; status: string; progress: number; target: number } | null;
+      lastDareDebug: () => { kind: string; won: boolean; reward: number; at: number } | null;
+      setDareStreak: (n: number) => number;
+      startDare: (kind: string, origin?: string) => boolean;
+      dareOriginDebug: () => 'chat' | 'her';
+      herAfterglowDebug: () => number;
+      attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
+      gazeAimDebug: () => { x: number; y: number } | null;
+      chatGlanceDebug: () => { glances: number; frames: number; totalFrames: number };
+      pushChatLine: (text: string) => number;
+      glareAtChat: () => { x: number; y: number } | null;
+      /** Whether the last pushed line actually earned a glance (the QA of the flash). */
+      lastChatReadDebug: () => boolean;
+      returnBeatDebug: (awayMs?: number) => { greeted: boolean; awayMs: number };
+      tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
       giftSubs: (count: number) => boolean;
@@ -109,6 +171,22 @@ declare global {
       startDay5: () => boolean;
       startDay6: () => boolean;
       isDay6Unlocked: () => boolean;
+      say: (text: string) => void;
+      talk: (ms: number) => void;
+      muteChat: (on: boolean) => void;
+      plate: () => string;
+      liveDebug: () => {
+        animation: string;
+        animations: string[];
+        art: string | null;
+        fault: string | null;
+        enabled: boolean;
+        talkUntil: number;
+        reactionUntil: number;
+        lastUpdate: number;
+        visible: boolean;
+        now: number;
+      };
       isDay5Unlocked: () => boolean;
       bikiniInfo: () => { unlocked: boolean; plates: boolean; flashLive: boolean; day: number };
       isDay3Unlocked: () => boolean;
@@ -154,6 +232,120 @@ export async function bootstrapApp(): Promise<void> {
   const stage = new StreamStage();
   await stage.mount(stageHost);
   stage.setSubStage(state.displayedSubStage, false);
+  // She reads the chat. Every line the player can actually see land pulls her head to the column
+  // for a beat (rate-limited inside the stage), which is the cheapest possible way to make a fixed
+  // plate feel like a person sitting in front of a screen.
+  // ...but never over a challenge: those seconds are hers and the player's, and a chat line landing
+  // mid-eyeline would drag her gaze off the face the dare just asked the player to hold.
+  ui.onChatPushed = () => {
+    if (document.body.classList.contains('dare-live')) return false;
+    return stage.glareAtChat();
+  };
+
+  // ---- The rig can only ever cost us the rig -------------------------------------------------
+  // The skeleton draws inside the game's own Pixi stage, on the game's own clock. If anything about
+  // it throws while a frame is being drawn — a texture that is not decoded yet, a mesh rebuild on a
+  // slow phone — Pixi's ticker stops rescheduling itself and the player gets a black canvas with the
+  // HUD still on top of it. Nobody can read a console on a phone, so this page heals itself: drop
+  // the rig, restart the loop, repaint, and say why on screen.
+  const RIG_OFF_KEY = 'mt_rig_off_v2';
+  const readFlag = (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null; // private mode / blocked storage: a missing flag, not a crash
+    }
+  };
+  const writeFlag = (key: string, value: string | null): void => {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch {
+      /* storage is a convenience here, never a requirement */
+    }
+  };
+
+  const rigFaults: string[] = [];
+  const rigBanner = document.createElement('div');
+  rigBanner.id = 'rig-fault';
+  rigBanner.className = 'rig-fault hidden';
+  rigBanner.innerHTML =
+    '<b>живой риг отключён — игра на плоских артах</b><span data-reason></span>' +
+    '<button type="button" aria-label="Скрыть">✕</button>';
+  stageHost.append(rigBanner);
+  let rigBannerTimer = 0;
+  rigBanner.querySelector('button')?.addEventListener('click', () => rigBanner.classList.add('hidden'));
+
+  const reportRigFault = (reason: string): void => {
+    rigFaults.push(reason);
+    // Remember it: a device that could not draw the skeleton should not re-learn that on every
+    // reload. `?rig=1` is the deliberate exception.
+    writeFlag(RIG_OFF_KEY, '1');
+    const line = rigBanner.querySelector<HTMLElement>('[data-reason]');
+    if (line) line.textContent = reason;
+    rigBanner.classList.remove('hidden');
+    window.clearTimeout(rigBannerTimer);
+    rigBannerTimer = window.setTimeout(() => rigBanner.classList.add('hidden'), 15_000);
+  };
+  stage.onLiveFault = reportRigFault;
+
+  /**
+   * Is the render loop dead? Pixi's ticker re-requests the next frame AFTER running the callbacks,
+   * so an exception leaves `started === true` with no frame pending — the exact state of a black
+   * canvas that no `started` check would notice.
+   */
+  const tickerStalled = (): boolean => {
+    const ticker = stage.app.ticker as unknown as { started: boolean; _requestId: number | null };
+    return document.visibilityState === 'visible' && ticker.started && ticker._requestId === null;
+  };
+  const restartLoop = (): void => {
+    // `start()` is a no-op while `started` is true, so the ticker has to be cycled.
+    stage.app.ticker.stop();
+    stage.app.ticker.start();
+    stage.app.render();
+  };
+  const recoverRig = (where: string, error: unknown): void => {
+    // Only a stalled loop is a black screen. Anything else — an image that failed, a rejected
+    // promise from audio — must NOT cost the player her animated heroine.
+    if (!tickerStalled()) return;
+    const message = error instanceof Error ? error.message : String(error);
+    const culprit = stage.liveEnabled && stage.live.currentArt !== null;
+    if (stage.liveEnabled) stage.setLiveEnabled(false);
+    restartLoop();
+    if (culprit) reportRigFault(`${where}: ${message}`);
+  };
+  if (!isQa) {
+    window.addEventListener('error', (e) => recoverRig('ошибка', e.error ?? e.message));
+    window.addEventListener('unhandledrejection', (e) => recoverRig('промис', e.reason));
+    // The swallowed case: something killed the loop without reaching a listener at all.
+    window.setInterval(() => {
+      if (!tickerStalled()) return;
+      if (stage.liveEnabled) stage.setLiveEnabled(false);
+      restartLoop();
+    }, 1500);
+  }
+
+  // `?rig=0` forces flat plates, `?rig=1` forces the skeleton back on a device that gave up on it.
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('rig') === '0') stage.setLiveEnabled(false);
+  else if (urlParams.get('rig') === '1') writeFlag(RIG_OFF_KEY, null);
+  else if (readFlag(RIG_OFF_KEY) === '1') stage.setLiveEnabled(false);
+
+  // Which arts actually have a rig — asked once, from the same index the game could use.
+  let riggedArts: Set<string> | null = null;
+  void fetch('/rigs/index.json')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((json: unknown) => {
+      if (json && typeof json === 'object') {
+        riggedArts = new Set(Object.keys(json as object));
+        // Hand the list to the stage as well, so a plate without a rig never even asks for one.
+        stage.riggedArts = riggedArts;
+        void stage.syncLiveHeroine();
+      }
+    })
+    .catch(() => undefined);
+
+  const artOfPlate = (plate: string) => plate.replace(/^heroine_/, '').replace(/\.webp$/, '');
 
   ui.onTabChange = (tab: BottomTabId) => {
     lastPlayerInteractionMs = performance.now();
@@ -205,16 +397,24 @@ export async function bootstrapApp(): Promise<void> {
     if (!isQa && !adminSaveSuppressed) {
       localStorage.setItem(SAVE_STORAGE_KEY, serializeState(state));
     }
-    adminPanel?.refresh();
+    // The console is a tool, not a load-bearing part of the game: a bug in it must not be able to
+    // stop a frame from being drawn.
+    try {
+      adminPanel?.refresh();
+    } catch (error) {
+      console.warn('[admin] refresh failed (ignored)', error);
+    }
   };
 
   const celebrateSubGoalUnlocks = (unlockedStages: SubGoalStageDef[]) => {
     if (unlockedStages.length === 0) return;
     lastCelebrationMs = performance.now();
+    sfx.milestone();
+    stage.playLiveMilestone();
     const latest = unlockedStages[unlockedStages.length - 1]!;
     stage.setSubStage(latest.stage, true, latest.removedItemLabel, latest.unlockEmotion);
-    stage.spawnReactionCallout(latest.removedItemLabel, true, latest.stage);
-    ui.showSpeech(latest.unlockLine);
+    announce(latest.removedItemLabel, true, latest.stage);
+    ui.showSpeech(latest.unlockLine, 2600);
     ui.showDonationAlert(
       `★ SUB GOAL ${latest.subsRequired} САБОВ ПРОБИТ!`,
       `${latest.removedItemLabel} • Доход вырос до x${latest.incomeMultiplier.toFixed(2)}!`,
@@ -232,8 +432,255 @@ export async function bootstrapApp(): Promise<void> {
     });
   };
 
+  // Every reaction callout the *game* makes goes through here, so QA can silence the script's
+  // noise without silencing its own calls: the talk QA asks "does she answer a line", and it cannot
+  // answer that if the game is answering lines of its own at the same time.
+  let announceMuted = false;
+  const announce = (tag: string, isFever = false, seed = 0) => {
+    if (announceMuted) return;
+    stage.spawnReactionCallout(tag, isFever, seed);
+  };
+
+  // What the director knows about her mood. `boldness` is the same number the rig's blush uses, so
+  // the body and the face cannot disagree about how far along she is.
+  stage.reactionInput = () => ({
+    boldness: computeStats(state).boldness,
+    hype: state.hype,
+  });
+
+  // She entertains herself and the chat notices — but only sometimes, and only when the room is
+  // already talking: a chat that comments on every single head turn is a chat full of bots.
+  let lastQuirkChatMs = -Infinity;
+  stage.onLiveQuirk = (kind) => {
+    const now = performance.now();
+    if (now - lastQuirkChatMs < 18000) return;
+    if (announceMuted) return;
+    if (Math.random() > 0.45) return;
+    lastQuirkChatMs = now;
+    ui.pushChatMessage(createSelfQuirkMessage(kind, state.totalTaps + Math.floor(now / 1000), state.streamDay));
+  };
+
+  // She noticed the player staring, or noticed nobody is here. Either way the chat has something
+  // to say — this is the cheapest fan-service in the game and the one that never stops working.
+  stage.onAttention = (kind, zone) => {
+    if (announceMuted) return;
+    const now = performance.now();
+    if (now - lastQuirkChatMs < 15000) return;
+    lastQuirkChatMs = now;
+    // "Caught" has three voices, one per zone: the chat noticing the same thing the player was
+    // doing is what makes the reaction feel observed rather than scripted.
+    const line: QuirkLineKind =
+      kind !== 'caught'
+        ? kind
+        : zone === 'legs'
+          ? 'caught_legs'
+          : zone === 'feet'
+            ? 'caught_feet'
+            : 'caught_chest';
+    ui.pushChatMessage(createSelfQuirkMessage(line, state.totalTaps + Math.floor(now / 1000), state.streamDay));
+  };
+
+  // Coming back. A hidden page does not tick, so an absence is a wall clock, not a countdown: she
+  // notices a real one, says nothing about an alt-tab, and never greets twice inside the lockout.
+  // This is the beat that keeps the room from feeling paused when the player is the one who left.
+  let returnState: ReturnState = IDLE_RETURN;
+  const greetReturn = (awayMs: number) => {
+    const heat = stage.getBlushDebug().level;
+    const lines = WELCOME_BACK_LINES[welcomeBackBand(heat)];
+    const line = lines[Math.floor(Math.random() * lines.length)]!;
+    lastPlayerInteractionMs = performance.now();
+    ui.showSpeech(line, 2600);
+    stage.playLiveTalk(Math.min(3200, 900 + line.length * 26));
+    stage.rig.triggerEmotion(welcomeBackBand(heat) === 'bold' ? 'bold' : 'shy', 2000);
+    if (!announceMuted) {
+      ui.pushChatMessage({
+        id: `return_${Date.now()}`,
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: welcomeBackChatLine(awayMs),
+        isSystemHighlight: true,
+      });
+    }
+  };
+  document.addEventListener('visibilitychange', () => {
+    const now = performance.now();
+    if (document.visibilityState === 'hidden') {
+      returnState = markHidden(returnState, now);
+      return;
+    }
+    const beat = welcomeBack(returnState, now);
+    returnState = beat.state;
+    if (beat.greet) greetReturn(beat.awayMs);
+  });
+
+  // The chat's dare, if one is live. One at a time, a few seconds long; every tap is fed in here so
+  // the bar answers the click on the same frame, while the clock and the expiry are on the economy
+  // timer below.
+  let dare: DareState | null = null;
+  let nextDareAtMs = performance.now() + 14000;
+  let dareSeq = 0;
+
+  const dareLabel = (state: DareState): string => {
+    const def = DARES[state.kind];
+    const now = def.unit === 'мс';
+    const have = now ? (Math.min(state.progress, def.target) / 1000).toFixed(1) : String(state.progress);
+    const need = now ? (def.target / 1000).toFixed(1) : String(def.target);
+    return `${have} / ${need} ${now ? 'с' : 'тапов'}`;
+  };
+
+  let lastDareKind: DareState['kind'] | null = null;
+  /** Who set the dare that is on the chip right now, and who set the one before it. */
+  let dareOrigin: DareOrigin = 'chat';
+  let lastDareOrigin: DareOrigin | null = null;
+
+  /** The payout multiplier of the dare on screen: the streak always, her bonus only when she asked. */
+  const dareMultiplier = (origin: DareOrigin): number =>
+    dareStreakMultiplier(dareStreak) * (origin === 'her' ? HER_DARE_BONUS : 1);
+
+  const showDareChip = (origin: DareOrigin): void => {
+    const def = DARES[dare!.kind];
+    const mult = dareMultiplier(origin);
+    const streakLabel = dareStreak > 0 || origin === 'her' ? `×${Number(mult.toFixed(2))}` : '';
+    // Her dare is not the chat's task in another colour: the instruction itself is hers.
+    ui.showDare(origin === 'her' ? HER_HINTS[def.kind] : def.hint, dareLabel(dare!), streakLabel, origin === 'her');
+  };
+
+  const serveDare = (nowMs: number): void => {
+    if (dare) return;
+    dareSeq += 1;
+    const stats = computeStats(state);
+    // Banning the previous kind is what keeps two dares from reading as a script.
+    const kind = pickDare(lastDareKind, stats.boldness, Math.random, state.streamDay);
+    lastDareKind = kind;
+    // Who asks. The chat teaches the verb; once there is heat and a streak, she takes it over.
+    dareOrigin = pickDareOrigin({
+      seq: dareSeq,
+      streak: dareStreak,
+      boldness: stats.boldness,
+      lastOrigin: lastDareOrigin,
+      random: Math.random,
+    });
+    lastDareOrigin = dareOrigin;
+    dare = startDare(kind, nowMs);
+    const def = DARES[kind];
+    showDareChip(dareOrigin);
+    sfx.dareAsk();
+    if (dareOrigin === 'her') {
+      // Her own dare is the one beat where she is not answering anybody: no "what?" face, no
+      // sideways glance at the chat — she looks at the player and stays looking.
+      stage.playLiveReaction('lean_in');
+      stage.rig.triggerEmotion('tease', 2200);
+      stage.playLiveTalk(1900);
+      ui.showSpeech(HER_DARE_LINES.ask[Math.floor(Math.random() * HER_DARE_LINES.ask.length)]!, 2200);
+    } else {
+      // She *hears* the chat. Without this the dare is a HUD timer; with it, it is a request she
+      // answered out loud — and her answer is the thing that makes the chip make sense.
+      stage.playLiveReaction(state.streamDay >= 2 || dareStreak > 0 ? 'turn' : 'sway');
+      stage.playLiveTalk(1500);
+      ui.showSpeech(DARE_HEARD[Math.floor(Math.random() * DARE_HEARD.length)]!, 2000);
+    }
+    if (!announceMuted) {
+      ui.pushChatMessage(
+        createDareMessage('started', dareSeq + state.totalTaps, state.streamDay, def.ask, dareOrigin),
+      );
+    }
+  };
+
+  let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number; origin?: DareOrigin } | null =
+    null;
+  /** How many afterglow lines the chat actually got — QA reads this, the DOM evicts rows. */
+  let herAfterglowPushes = 0;
+  // How many dares in a row the player has served. The chat remembers; missing one resets it.
+  let dareStreak = 0;
+
+  const settleDare = (nowMs: number, won: boolean): void => {
+    const def = DARES[dare!.kind];
+    const origin = dareOrigin;
+    const multiplier = won ? dareMultiplier(origin) : 1;
+    const paid = Math.round(def.reward * multiplier);
+    lastDareOutcome = { kind: def.kind, won, reward: won ? paid : 0, at: nowMs, origin };
+    dareStreak = won ? dareStreak + 1 : 0;
+    ui.hideDare(won ? 'Готово' : 'Провалено');
+    dare = null;
+    nextDareAtMs = nowMs + (won ? 24000 : 18000);
+    if (won) {
+      state = {
+        ...state,
+        balance: state.balance + paid,
+        totalEarned: state.totalEarned + paid,
+        hype: Math.min(100, state.hype + (origin === 'her' ? 10 : 6)),
+      };
+      // Her answer is a beat, not a toast: the milestone path is the one that presents her.
+      sfx.dareServed();
+      stage.playLiveMilestone();
+      if (origin === 'her') {
+        // Serving *her* dare is the one payout she reacts to with heat rather than with a joke.
+        stage.rig.triggerEmotion('fluster', 2400);
+        ui.showSpeech(HER_DARE_LINES.won[Math.floor(Math.random() * HER_DARE_LINES.won.length)]!, 2400);
+      } else {
+        ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!, 2400);
+      }
+      // Winning her own dare is the moment the audience loses the plot: they are watching her win
+      // at her own game, and the chat says so twice instead of once. Flat timers, not a nested
+      // chain — both lines are independent beats and neither should depend on the other firing.
+      if (origin === 'her' && !announceMuted) {
+        const pick = Math.floor(Math.random() * HER_DARE_AFTERGLOW.length);
+        const lines = [
+          HER_DARE_AFTERGLOW[pick]!,
+          HER_DARE_AFTERGLOW[(pick + 1) % HER_DARE_AFTERGLOW.length]!,
+        ];
+        lines.forEach((text, i) => {
+          window.setTimeout(() => {
+            if (announceMuted) return;
+            herAfterglowPushes += 1;
+            ui.pushChatMessage({
+              id: `her_dare_${Date.now()}_${i}`,
+              author: 'StreamBot',
+              color: '#c084fc',
+              badge: 'MOD',
+              text,
+              isSystemHighlight: true,
+            });
+          }, 360 + i * 640);
+        });
+      }
+      announce(
+        `♥ ${origin === 'her' ? 'ЕЁ ЗАДАНИЕ' : 'ЧЕЛЛЕНДЖ ЧАТА'}${
+          multiplier > 1 ? ` ×${multiplier.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}` : ''
+        }: +${paid} ₽`,
+        true,
+        state.totalTaps,
+      );
+      syncAll();
+    } else {
+      sfx.dareMissed();
+      stage.playLiveReaction('sway');
+      ui.showSpeech(
+        origin === 'her'
+          ? HER_DARE_LINES.lost[Math.floor(Math.random() * HER_DARE_LINES.lost.length)]!
+          : DARE_SPEECH.lost[Math.floor(Math.random() * DARE_SPEECH.lost.length)]!,
+        2000,
+      );
+    }
+    if (!announceMuted) {
+      ui.pushChatMessage(createDareMessage(won ? 'done' : 'expired', state.totalTaps + dareSeq, state.streamDay));
+    }
+  };
+
   stage.onHeroineTap = (zone: TapZoneId) => {
     lastPlayerInteractionMs = performance.now();
+    // A tap is the dare's only input on the frame it happens: the bar must move under the finger.
+    if (dare && dare.status === 'active') {
+      const before = dare;
+      dare = dareEvent(dare, performance.now(), { type: 'tap', zone });
+      if (dare.status === 'done') settleDare(performance.now(), true);
+      else if (dare.status === 'expired') settleDare(performance.now(), false);
+      else if (dare !== before) ui.updateDare(dareProgressRatio(dare), dareRemainingMs(dare, performance.now()), dareLabel(dare));
+    }
+    // Sound first, before any of the bookkeeping: the click has to land on the frame the player
+    // clicked, and everything below this line can allocate.
+    sfx.tap(state.hype / 100);
     const outcome = applyTap(state, zone);
     state = outcome.state;
     const afterStats = computeStats(state);
@@ -252,11 +699,11 @@ export async function bootstrapApp(): Promise<void> {
       isBoo || isDone ? stage.triggerGhostBoo(state.hype >= 72 ? 700 : 480) : false;
     if (booFlashed && isDone) {
       ui.showSpeech(DAY4_DONE_LINES[state.totalTaps % DAY4_DONE_LINES.length]!);
-      stage.spawnReactionCallout('♥ ГОТОВО? ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      announce('♥ ГОТОВО? ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 4));
     } else if (booFlashed) {
       ui.showSpeech(GHOST_BOO_LINES[state.totalTaps % GHOST_BOO_LINES.length]!);
-      stage.spawnReactionCallout('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
+      announce('♥ БУ! ЧАТ В КЛИПАХ!', true, state.totalTaps);
       ui.pushChatMessage(createZoneBurstMessage(zone, state.displayedSubStage, state.totalTaps, 3));
     } else if (isFeverTrigger) {
       stage.rig.triggerArchStretch(afterStats.boldness >= 60 ? 'bold' : 'fluster');
@@ -269,7 +716,7 @@ export async function bootstrapApp(): Promise<void> {
     }
 
     if (state.totalTaps % 2 === 0 || isFeverTrigger) {
-      stage.spawnReactionCallout(
+      announce(
         pickReactionCalloutTag(zone, isFever, state.totalTaps),
         isFeverTrigger,
         state.totalTaps,
@@ -303,6 +750,8 @@ export async function bootstrapApp(): Promise<void> {
       }
 
       if (outcome.triggeredDonationAlert) {
+        sfx.donation();
+        stage.playLiveDonation();
         ui.showDonationAlert(
           `★ ГОРЯЧИЙ ДОНАТ +${outcome.earned} ₽`,
           '«Не прикрывайся, ты сводишь весь чат с ума! ♥»',
@@ -342,7 +791,7 @@ export async function bootstrapApp(): Promise<void> {
       const emo: Exclude<HeroineEmotion, 'neutral'> =
         afterStats.boldness < 50 ? 'shy' : afterStats.boldness < 78 ? 'fluster' : 'tease';
       stage.rig.triggerTapReaction('chest', emo);
-      stage.spawnReactionCallout(`+${count} САБ ♥`, count >= 5, state.subscribers);
+      announce(`+${count} САБ ♥`, count >= 5, state.subscribers);
       const shyLine = pickShySubGoalApproachLine(
         afterStats.nextSubGoalDef,
         state.subscribers + count,
@@ -410,7 +859,7 @@ export async function bootstrapApp(): Promise<void> {
     if (id === 'desk_mic') {
       const tier = getMicTier(state.upgrades.desk_mic ?? 0);
       ui.showSpeech(tier?.reactionLine ?? UPGRADE_REACTION_LINES[id]);
-      stage.spawnReactionCallout(
+      announce(
         tier ? `🎙 Тир ${tier.tier} ★` : '🎙 Микрофон ★',
         true,
         state.upgrades.desk_mic ?? 0,
@@ -448,7 +897,7 @@ export async function bootstrapApp(): Promise<void> {
       2300,
     );
     if (index === beats - 1) {
-      stage.spawnReactionCallout(
+      announce(
         state.streamDay === 4
           ? '♥ ЙОГА-ДЕНЬ ЗАКРЫТ!'
           : state.streamDay === 3
@@ -496,7 +945,7 @@ export async function bootstrapApp(): Promise<void> {
         ui.pushChatMessage(createDay2ProvocationChatMessage(i));
         stage.rig.triggerEmotion(i % 2 === 0 ? 'shy' : 'fluster', 2400);
         if (i === DAY2_SHAME_LINES.length - 1) {
-          stage.spawnReactionCallout('♥ ЧАТ ПОДНАИВАЕТ!', true, i);
+          announce('♥ ЧАТ ПОДНАИВАЕТ!', true, i);
         }
       }, 1500 + i * 4600);
     });
@@ -541,7 +990,7 @@ export async function bootstrapApp(): Promise<void> {
     window.setTimeout(() => {
       if (stage.triggerGhostBoo(760)) {
         ui.showSpeech(DAY4_DONE_LINES[0]!);
-        stage.spawnReactionCallout('♥ ГОТОВО? МЫ ТОЛЬКО НАЧАЛИ!', true, 0);
+        announce('♥ ГОТОВО? МЫ ТОЛЬКО НАЧАЛИ!', true, 0);
       }
     }, 900);
     ui.pushChatMessage({
@@ -612,7 +1061,7 @@ export async function bootstrapApp(): Promise<void> {
     window.setTimeout(() => {
       if (stage.triggerGhostBoo(760)) {
         ui.showSpeech(GHOST_BOO_LINES[0]!);
-        stage.spawnReactionCallout('♥ БУ! ПРИЗРАК НА СВЯЗИ!', true, 0);
+        announce('♥ БУ! ПРИЗРАК НА СВЯЗИ!', true, 0);
       }
     }, 900);
     ui.pushChatMessage({
@@ -645,7 +1094,7 @@ export async function bootstrapApp(): Promise<void> {
     }
 
     stage.spawnTapBurst(688, 320, res.reward, true, res.zoneFocus);
-    stage.spawnReactionCallout('ФАНСЕРВИС ★ ♥', true, Math.floor(res.reward));
+    announce('ФАНСЕРВИС ★ ♥', true, Math.floor(res.reward));
 
     ui.pushChatMessage({
       id: `ch_${Date.now()}`,
@@ -694,6 +1143,23 @@ export async function bootstrapApp(): Promise<void> {
     lastEconomyMs = nowPerf;
     const res = tickEconomy(state, elapsed);
     state = res.state;
+
+    // --- the chat's dare: clock, hover, next ask ---------------------------------------------
+    if (dare) {
+      if (dare.status === 'active') {
+        const hover = stage.getHoverDebug();
+        const hoverMs = hover.zone && hover.since > 0 ? nowPerf - hover.since : 0;
+        dare = dareEvent(dare, nowPerf, { type: 'hover', zone: (hover.zone as TapZoneId | null) ?? null, hoverMs });
+        dare = dareClock(dare, nowPerf);
+        if (dare.status === 'active') {
+          ui.updateDare(dareProgressRatio(dare), dareRemainingMs(dare, nowPerf), dareLabel(dare));
+        } else {
+          settleDare(nowPerf, dare.status === 'done');
+        }
+      }
+    } else if (!isQa && nowPerf >= nextDareAtMs) {
+      serveDare(nowPerf);
+    }
 
     // Nobody tapped for ~11s -> she notices the silence. Otherwise she still reacts to the live
     // numbers every ~19s: how close the next Sub Goal is, the hype bar, the mic tier, the crowd.
@@ -811,6 +1277,81 @@ export async function bootstrapApp(): Promise<void> {
     return res.note;
   };
 
+  // ---- Rig console ---------------------------------------------------------------------------
+  // Sliders write into the runtime's live constraint values (the same channel an animation timeline
+  // uses), so tuning is felt on the next breath. What survives a reload is kept in localStorage:
+  // tuning that vanishes when the phone locks is not tuning, it is a demo.
+  const RIG_TUNING_KEY = 'mt_admin_rig_tuning_v1';
+  let rigTuning: RigTuning = parseStoredTuning(readFlag(RIG_TUNING_KEY));
+  if (Object.keys(rigTuning).length > 0) stage.live.setDefaultTuning(rigTuning);
+  const saveRigTuning = (): void => writeFlag(RIG_TUNING_KEY, JSON.stringify(rigTuning));
+
+  /** Animations that are a beat, not a loop — the console should not leave her mid-shake. */
+  const ONESHOT = new Set([
+  'shake', 'blink', 'smile', 'talk', 'tease', 'tickle', 'gasp',
+  'giggle', 'lean_in', 'hair_flip', 'arch', 'shy_tuck', 'shiver', 'settle',
+]);
+
+  const rigApi: AdminRigApi = {
+    snapshot: () => {
+      const docTuning = stage.live.docTuning();
+      const current = stage.live.tuning();
+      const constraints = Object.keys(docTuning).map((id) => ({
+        id,
+        label: constraintLabel(id),
+        values: current[id] ?? {},
+        doc: docTuning[id] ?? {},
+      }));
+      const plate = stage.getActivePlateName();
+      const art = artOfPlate(plate);
+      const stats = stage.live.stats();
+      return {
+        enabled: stage.liveEnabled,
+        art: stage.live.currentArt,
+        plateHasRig: riggedArts?.has(art) ?? false,
+        animations: stage.live.animations,
+        current: stage.live.currentAnimation,
+        constraints,
+        stats: { ...stats, fps: stage.app.ticker.FPS },
+        plate,
+        changes: diffTuning(current, docTuning).map(
+          (c) => `${c.label} ${c.keyLabel} ${displayValue(c.key, c.from)} → ${displayValue(c.key, c.to)}`,
+        ),
+      };
+    },
+    setEnabled: (on) => {
+      stage.setLiveEnabled(on);
+      adminPanel?.refresh();
+    },
+    play: (name) => {
+      stage.live.playAnimation(name, !ONESHOT.has(name));
+      stage.app.render();
+      adminPanel?.refresh();
+    },
+    setParam: (id, key, value) => {
+      rigTuning = mergeTuning(rigTuning, { [id]: { [key]: value } });
+      stage.live.setDefaultTuning(rigTuning);
+      saveRigTuning();
+      adminPanel?.refresh();
+    },
+    resetConstraint: (id) => {
+      const docTuning = stage.live.docTuning();
+      stage.live.applyTuning({ [id]: docTuning[id] ?? {} });
+      const next = { ...rigTuning };
+      delete next[id];
+      rigTuning = next;
+      saveRigTuning();
+      adminPanel?.refresh();
+    },
+    resetAll: () => {
+      rigTuning = {};
+      writeFlag(RIG_TUNING_KEY, null);
+      stage.live.resetTuning();
+      adminPanel?.refresh();
+    },
+    report: () => formatTuningReport(stage.live.tuning(), stage.live.docTuning()),
+  };
+
   const adminApi: AdminPanelApi = {
     snapshot: () => {
       const stats = computeStats(state);
@@ -905,10 +1446,11 @@ export async function bootstrapApp(): Promise<void> {
       stage.rig.update(95);
       stage.app.render();
     },
+    // The admin console's version of a tap goes through the same door as the pointer's: a debug
+    // button that answers differently from the game is a debug button that lies.
     tapZone: (zone) => {
       stage.rig.triggerTapReaction(zone);
-      const res = stage.onHeroineTap?.(zone);
-      if (res) stage.spawnTapBurst(688, 340, res.earned, res.alert, zone);
+      stage.answerTapZone(zone, 688, 340);
     },
     setSaveSuppressed: (on) => {
       adminSaveSuppressed = on;
@@ -936,13 +1478,21 @@ export async function bootstrapApp(): Promise<void> {
       syncAll();
       ui.showSpeech('Сейв стёрт, День 1 начинается заново.');
     },
+    rig: rigApi,
   };
-  adminPanel = new AdminPanel(adminApi);
-  adminPanel.init({ hidden: isQa || new URLSearchParams(window.location.search).has('noadmin') });
+  try {
+    adminPanel = new AdminPanel(adminApi);
+    adminPanel.init({ hidden: isQa || new URLSearchParams(window.location.search).has('noadmin') });
+  } catch (error) {
+    adminPanel = null;
+    console.warn('[admin] panel failed to mount (game keeps running)', error);
+  }
 
   if (isQa) {
     window.__pixiApp = stage.app;
     window.__heroineRig = stage.rig;
+    // The audio graph is invisible by nature; QA reads its state instead of hearing it.
+    (window as unknown as { __sfx?: unknown }).__sfx = sfx;
     window.__qaFreezeTicker = () => {
       stage.app.ticker.stop();
       stage.app.render();
@@ -981,13 +1531,67 @@ export async function bootstrapApp(): Promise<void> {
               : DAY1_FAREWELL_LINES.length,
       isWearingDay2Outfit: () => stage.rig.isWearingDay2Outfit(),
       getStats: () => computeStats(state),
+      // The same path a real click takes — director, reaction, burst — so QA can assert on what
+      // she actually plays instead of on a parallel implementation that only QA uses.
       tapZone: (zone: TapZoneId) => {
         stage.rig.triggerTapReaction(zone);
-        const res = stage.onHeroineTap?.(zone);
-        if (res) {
-          stage.spawnTapBurst(688, 340, res.earned, res.alert, zone);
-        }
+        stage.answerTapZone(zone, 688, 340);
       },
+      zoneCenter: (zone: TapZoneId) => stage.rig.zoneCenterScreen(zone),
+      lastTapBeat: () => stage.lastTapBeat,
+      lastTapDebug: () => stage.lastTapDebug,
+      hoverDebug: () => stage.getHoverDebug(),
+      blushDebug: () => stage.getBlushDebug(),
+      cameraDebug: () => stage.getCameraDebug(),
+      dareDebug: () =>
+        dare
+          ? { kind: dare.kind, status: dare.status, progress: dare.progress, target: DARES[dare.kind].target }
+          : null,
+      lastDareDebug: () => lastDareOutcome,
+      setDareStreak: (n) => {
+        dareStreak = Math.max(0, Math.min(99, Math.floor(n)));
+        return dareStreak;
+      },
+      startDare: (kind, origin) => {
+        if (!(kind in DARES)) return false;
+        dareOrigin = origin === 'her' ? 'her' : 'chat';
+        lastDareOrigin = dareOrigin;
+        dare = startDare(kind as DareState['kind'], performance.now());
+        lastDareKind = dare.kind;
+        showDareChip(dareOrigin);
+        return true;
+      },
+      dareOriginDebug: () => dareOrigin,
+      herAfterglowDebug: () => herAfterglowPushes,
+      attentionDebug: () => stage.attentionDebug,
+      gazeAimDebug: () => stage.gazeAimDebug,
+      chatGlanceDebug: () => stage.chatGlanceDebug,
+      pushChatLine: (text) => {
+        ui.pushChatMessage({ id: `qa-${Date.now()}-${Math.random()}`, author: 'qa_viewer', color: '#ff75c3', text });
+        return stage.chatGlanceDebug.glances;
+      },
+      lastChatReadDebug: () => document.querySelectorAll('.chat-msg.read').length > 0,
+      /**
+       * QA cannot hide a tab on purpose, and the point of this beat is the *gate*, so the hook drives
+       * the same state machine a real `visibilitychange` would: hidden at t, back with a given gap.
+       */
+      returnBeatDebug: (awayMs = 120_000) => {
+        const now = performance.now();
+        const hidden = markHidden(returnState, now - awayMs);
+        const beat = welcomeBack(hidden, now);
+        const greeted = beat.greet;
+        if (greeted) {
+          returnState = beat.state;
+          greetReturn(beat.awayMs);
+        }
+        return { greeted, awayMs: beat.awayMs };
+      },
+      glareAtChat: () => {
+        stage.glareAtChat(1500, true);
+        stage.app.render();
+        return stage.gazeAimDebug;
+      },
+      tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {
         state = {
           ...state,
@@ -1021,6 +1625,28 @@ export async function bootstrapApp(): Promise<void> {
         ui.onBuyUpgrade?.(id);
         return state.upgrades[id] > prev;
       },
+      // QA only: the same call a chat line makes, so a script can prove she speaks on THIS plate.
+      // Straight to the stage, not through `announce`: a muted game must not mute the QA's own line.
+      say: (text: string) => stage.spawnReactionCallout(text, false, 0),
+      talk: (ms: number) => stage.playLiveTalk(ms),
+      muteChat: (on: boolean) => {
+        announceMuted = on;
+      },
+      // Which plate the stage is actually showing — the rig's own art name goes STALE the moment a
+      // non-rigged plate hides it, so QA must never judge by that.
+      plate: () => stage.getActivePlateName(),
+      liveDebug: () => ({
+        animation: stage.live.currentAnimation,
+        animations: stage.live.animations,
+        art: stage.live.currentArt,
+        fault: stage.live.faultReason,
+        enabled: stage.liveEnabled,
+        talkUntil: stage.live.talkDebug.until,
+        reactionUntil: stage.live.talkDebug.reactionUntil,
+        lastUpdate: stage.live.talkDebug.lastUpdate,
+        visible: stage.live.talkDebug.visible,
+        now: performance.now(),
+      }),
       isDay3Unlocked: () => isDay3Unlocked(),
       isDay4Unlocked: () => isDay4Unlocked(),
       isDay5Unlocked: () => isDay5Unlocked(),

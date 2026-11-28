@@ -72,6 +72,158 @@ body,
   pointer-events: none;
 }
 
+/* The chat's dare. Sits in the empty top strip between the sub goal and the badges, so it never
+   competes with the economy HUD for the same corner; on a phone it drops below both. */
+.chat-dare {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  width: 268px;
+  padding: 8px 11px 9px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(38, 20, 54, 0.94), rgba(20, 16, 30, 0.94));
+  border: 1px solid rgba(255, 117, 195, 0.45);
+  border-left: 3px solid #ff4da6;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 77, 166, 0.12) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+  animation: chat-dare-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.chat-dare[hidden] {
+  display: none;
+}
+
+/* Her dare. The chat's is pink and public; this one is warmer and quieter, and the border breathes
+   instead of ticking — the difference between an audience asking and one person asking. */
+.chat-dare.from-her {
+  border-color: rgba(255, 138, 191, 0.55);
+  border-left-color: #ff4d8d;
+  background: linear-gradient(160deg, rgba(58, 16, 34, 0.94), rgba(24, 10, 20, 0.92));
+  animation: chat-dare-in 260ms cubic-bezier(0.2, 0.9, 0.2, 1), chat-dare-her 2600ms ease-in-out infinite;
+}
+
+.chat-dare.from-her .chat-dare-kicker {
+  color: #ff5f9e;
+  text-shadow: 0 0 10px rgba(255, 77, 141, 0.55);
+}
+
+@keyframes chat-dare-her {
+  0%,
+  100% {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 rgba(255, 77, 141, 0);
+  }
+  50% {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 16px rgba(255, 77, 141, 0.28);
+  }
+}
+
+.chat-dare.urgent {
+  border-color: rgba(255, 213, 79, 0.6);
+  border-left-color: #ffd54f;
+}
+
+/* The entrance moves `translate`, never `transform`: on the desktop the chip is centred with
+   `transform: translateX(-50%)`, and on a phone that transform is off — an entrance that re-declared
+   it slid the phone chip in from half a width to the left, off the screen edge, for its first
+   quarter-second. Two properties, two jobs. */
+@keyframes chat-dare-in {
+  from {
+    opacity: 0;
+    translate: 0 -6px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.chat-dare-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-dare-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ff9ad0;
+  margin-right: auto;
+}
+
+/* The payout multiplier, only while a streak is alive. Gold, because everything else on this chip
+   is pink (the ask) or white (the clock) — and because it is the only thing here that is *earned*. */
+.chat-dare-streak {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: #2a1500;
+  background: linear-gradient(180deg, #ffe082, #ffb300);
+  box-shadow: 0 0 10px rgba(255, 179, 0, 0.55);
+  animation: chat-dare-streak-pop 320ms cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.chat-dare-streak[hidden] {
+  display: none;
+}
+
+@keyframes chat-dare-streak-pop {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.chat-dare-timer {
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f4e9ff;
+}
+
+.chat-dare-hint {
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.chat-dare-bar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.13);
+  overflow: hidden;
+}
+
+.chat-dare-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff4da6, #ffd54f);
+  transition: width 90ms linear;
+}
+
+.chat-dare-count {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(244, 233, 255, 0.66);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Authentic Top-Left Twitch / StreamElements Creator Sub Goal Overlay */
 .obs-subgoal {
   position: relative;
@@ -355,6 +507,29 @@ body,
     0 0 8px rgba(0, 0, 0, 0.85),
     0 0 2px rgba(0, 0, 0, 1);
   animation: chatFloatUp 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.chat-msg.read {
+  animation: chatRead 1200ms ease-out;
+  border-radius: 4px;
+}
+
+/* The row she turned to. Pink on the text, warm wash behind it, and it is gone in about a second —
+   long enough to connect with the head turn, short enough not to look like a selection. */
+@keyframes chatRead {
+  0% {
+    background: rgba(255, 138, 191, 0.24);
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0.85);
+    color: #ffe9f4;
+  }
+  55% {
+    background: rgba(255, 138, 191, 0.1);
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0.45);
+  }
+  100% {
+    background: transparent;
+    box-shadow: inset 2px 0 0 rgba(255, 138, 191, 0);
+  }
 }
 
 .chat-msg.highlight {
@@ -1622,6 +1797,44 @@ body.drawer-open .obs-chat-overlay {
   }
 }
 
+/* Between a phone and a desktop the top strip has no free middle: the dare moves under the badges,
+   which is the one corner with room at this width. */
+@media (max-width: 1120px) {
+  .chat-dare {
+    top: 58px;
+    right: 14px;
+    left: auto;
+    width: 252px;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* On a phone there is exactly one free slot at the top, so the dare and the sub goal take turns
+   in it: while a dare is live the sub goal card steps aside. The dare is the thing with a timer. */
+@media (max-width: 820px) {
+  .chat-dare {
+    top: 8px;
+    /* The badges live in the right-hand column on a phone and must keep it: the dare takes the
+       sub goal's slot and nothing else. */
+    left: 8px;
+    right: 124px;
+    width: auto;
+    transform: none;
+    padding: 6px 9px 7px;
+  }
+
+  .chat-dare-hint {
+    font-size: 11px;
+  }
+
+  /* Hidden, not removed: the sub goal is a flex item, and taking it out of the row would drag the
+     status badges over to the left, under the dare. It keeps its box and gives up its pixels. */
+  body.dare-live .obs-subgoal {
+    visibility: hidden;
+  }
+}
+
 @media (max-width: 680px) {
   .stage-top-hud {
     top: 8px;
@@ -2163,7 +2376,7 @@ body.drawer-open .obs-chat-overlay {
   top: 10px;
   right: 10px;
   z-index: 61;
-  width: min(348px, calc(100vw - 20px));
+  width: min(376px, calc(100vw - 20px));
   max-height: calc(100dvh - 20px);
   display: flex;
   flex-direction: column;
@@ -2388,6 +2601,235 @@ body.drawer-open .obs-chat-overlay {
   user-select: text;
 }
 
+/* Tabs: the console answers four questions, and the reason it grew a tab bar instead of a longer
+   scroll is that a slider must never move because you scrolled past a button. */
+.admin-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.admin-tab {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  padding: 6px 2px 5px;
+  cursor: pointer;
+  transition: color 0.14s ease, border-color 0.14s ease;
+}
+
+.admin-tab:hover {
+  color: #d7c6ff;
+}
+
+.admin-tab.is-on {
+  color: #bf94ff;
+  border-bottom-color: #9147ff;
+}
+
+.admin-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-pane.hidden {
+  display: none;
+}
+
+.admin-pane.is-dim {
+  opacity: 0.5;
+}
+
+/* Rig console */
+.admin-rig-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 9px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.admin-rig-stat span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7ee787;
+}
+
+.admin-rig-stat code {
+  font-size: 9px;
+}
+
+.admin-note-line {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.admin-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2bff9e;
+  box-shadow: 0 0 6px rgba(43, 255, 158, 0.7);
+}
+
+.admin-rig-constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-rig-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.admin-rig-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 1px;
+}
+
+.admin-rig-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #ffd54f;
+}
+
+.admin-rig-head code {
+  font-size: 8.5px;
+  color: var(--text-muted);
+}
+
+.admin-btn-tiny {
+  margin-left: auto;
+  padding: 1px 6px;
+  font-size: 8.5px;
+  font-weight: 700;
+}
+
+.admin-range-rig {
+  grid-template-columns: 62px 1fr 32px;
+  font-size: 9.5px;
+}
+
+.admin-range-rig b {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #bf94ff;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-range input[type='range'] {
+  width: 100%;
+  accent-color: #9147ff;
+}
+
+/* A moved value is the whole point of the panel: it has to be visible without reading numbers. */
+.admin-range-rig input.is-moved {
+  accent-color: #ffd54f;
+}
+
+.admin-anim {
+  padding: 3px 7px;
+  font-size: 9.5px;
+}
+
+.admin-note {
+  font-size: 9px;
+  font-style: normal;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.admin-note code {
+  color: #7ee787;
+}
+
+.admin-label-note {
+  margin-left: 6px;
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #bf94ff;
+}
+
+.admin-check em {
+  font-style: normal;
+  opacity: 0.72;
+}
+
+/* The rig gave up: said once, on screen, in the player's language — not in a console they cannot
+   open. Sits inside the stage frame so it never covers the footer controls. */
+.rig-fault {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, 92vw);
+  padding: 6px 10px;
+  border-radius: 9px;
+  border: 1px solid rgba(235, 4, 0, 0.45);
+  background: rgba(32, 13, 15, 0.94);
+  color: #ffd7d5;
+  font-size: 10px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55);
+}
+
+.rig-fault.hidden {
+  display: none;
+}
+
+.rig-fault b {
+  flex: none;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ff7a75;
+}
+
+.rig-fault span {
+  flex: 1;
+  overflow-wrap: anywhere;
+  opacity: 0.85;
+}
+
+.rig-fault button {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: #ff9b97;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 @media (max-width: 760px) {
   .admin-panel {
     top: auto;
@@ -2470,4 +2912,74 @@ body.drawer-open .obs-chat-overlay {
     padding: 6px 8px;
     font-size: 10px;
   }
+}
+
+/* Sound toggle: the same size, radius and weight as the quality badge beside it, because it lives
+   in that row and is the only control in the HUD the player can actually press. */
+.tw-sound-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: rgb(0 0 0 / 55%);
+  color: #f1f1f4;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.tw-sound-btn:hover,
+.tw-sound-btn:focus-visible {
+  background: rgb(169 112 255 / 75%);
+  outline: none;
+}
+
+/* A 26 px badge is the right size in this row and the wrong size for a thumb. The visible button
+   stays as it is; the hit area grows 7 px on every side through a pseudo-element, which is the only
+   way to enlarge a target without moving the layout around it. */
+.tw-sound-btn::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+}
+
+.tw-sound-btn {
+  position: relative;
+  /* The top HUD is a pass-through layer (`pointer-events: none`) so taps reach the canvas under
+     it. The one control in that row has to opt back in, or it is a picture of a button. */
+  pointer-events: auto;
+}
+
+/* On a phone the badge row stacks vertically and there is room, so the control grows into a real
+   thumb target instead of borrowing reach from a pseudo-element that the row would clip. */
+@media (max-width: 680px) {
+  .tw-sound-btn {
+    width: 32px;
+    height: 30px;
+  }
+
+  .tw-sound-btn .tw-sound-icon {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+.tw-sound-btn .tw-sound-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.tw-sound-btn[aria-pressed='true'] .tw-sound-off {
+  display: none;
+}
+
+.tw-sound-btn[aria-pressed='false'] .tw-sound-on {
+  display: none;
+}
+
+.tw-sound-btn[aria-pressed='false'] {
+  color: #b6b6c2;
 }

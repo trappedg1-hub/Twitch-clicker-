@@ -131,6 +131,8 @@ export class HeroineRig {
   private faceBox: FaceAnchor = CANONICAL_FACE;
   /** Day 3: while a costume layer covers her face, the blush/blink/emotion patches stay off. */
   private facePatchesHidden = false;
+  /** False while the authored skeleton owns the picture — see `setPlateVisible`. */
+  private _plateVisible = true;
   private readonly emotionTextures: Record<Exclude<HeroineEmotion, 'neutral'>, Texture>;
   private readonly uprightBlinkTex: Texture;
 
@@ -147,14 +149,31 @@ export class HeroineRig {
    * the old renderer keeps ticking underneath so that switching back — a plate with no rig, a
    * flash frame, a load failure — is instant and never shows a half-built heroine.
    */
+  /** True while the flat plate is drawn. The stage uses this as an invariant, see `StreamStage.tick`. */
+  public get plateVisible(): boolean {
+    return this._plateVisible;
+  }
+
   public setPlateVisible(visible: boolean): void {
     // Only the PICTURE goes away. `hitLayer` lives in the same container and carries the tap
     // zones — hiding the container would make the whole clicker stop responding to taps on her,
     // which is the one thing this screen must do.
+    this._plateVisible = visible;
     this.mesh.visible = visible;
     this.boldRestSprite.visible = visible;
     this.emotionSprite.visible = visible;
     this.blinkSprite.visible = visible;
+    if (!visible) {
+      // `visible` is not enough on its own: this class keeps writing these three every frame —
+      // the procedural blink fires on its own countdown, the blush follows boldness — and
+      // `applyPosePatchGeometry` sets `boldRestSprite.visible = true` again on a plate swap. A
+      // pasted blush or a plate-era blink drawn over the authored skeleton is exactly the "red
+      // square" and the "blinking over her eyebrows" a player sees. So the flag is checked in
+      // the writers, not just here.
+      this.boldRestSprite.alpha = 0;
+      this.emotionSprite.alpha = 0;
+      this.blinkSprite.alpha = 0;
+    }
   }
 
   public static readonly PLATE_W = 1024;
@@ -197,6 +216,12 @@ export class HeroineRig {
     releaseMs: 320,
     value: 0,
   };
+
+  /**
+   * Pointer is resting on her body (or has left it). Sent from the same hit zones that take the
+   * taps, so "on her" means the same thing to the gaze, the cursor and the click.
+   */
+  public onZoneHover?: (zone: TapZoneId | null) => void;
 
   public onZoneTap?: (
     zone: TapZoneId,
@@ -284,7 +309,7 @@ export class HeroineRig {
     apply(this.emotionSprite, this.emotionTextures[this.activeEmotion]);
     apply(this.blinkSprite, this.uprightBlinkTex);
     apply(this.boldRestSprite, this.emotionTextures.bold);
-    this.boldRestSprite.visible = true;
+    this.boldRestSprite.visible = this._plateVisible;
   }
 
   /**
@@ -322,6 +347,18 @@ export class HeroineRig {
     return this.facePatchesHidden;
   }
 
+  /**
+   * QA: the centre of a hit zone in canvas pixels. The zones are the same rectangles the player's
+   * finger hits, so a script that moves a real mouse to this point is testing the real hit test —
+   * which is the only way to prove that "cursor resting on her" fires where a player would try it.
+   */
+  public zoneCenterScreen(zone: TapZoneId): { x: number; y: number } | null {
+    const g = this.hitLayer.children.find((c) => c.label === zone);
+    if (!g) return null;
+    const b = g.getBounds();
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  }
+
   /** QA/debug: the patch box currently in use (plate pixels). */
   public getFaceAnchorDebug(): FaceAnchor {
     return { ...this.faceBox };
@@ -338,11 +375,25 @@ export class HeroineRig {
       { id: 'feet', x: 230, y: 1090, w: 565, h: 350 },
     ];
 
+    // Zones overlap slightly at their seams; count them instead of trusting a single `pointerout`,
+    // or crossing the shoulder line would read as "left her body" for one frame.
+    const hovered = new Set<TapZoneId>();
+    const markHover = (id: TapZoneId, on: boolean) => {
+      const was = hovered.size > 0;
+      if (on) hovered.add(id);
+      else hovered.delete(id);
+      const now = hovered.size > 0;
+      if (now !== was) this.onZoneHover?.(now ? (zones.find((z) => hovered.has(z.id))?.id ?? null) : null);
+    };
+
     for (const z of zones) {
       const g = new Graphics();
       g.rect(z.x, z.y, z.w, z.h).fill({ color: 0xffffff, alpha: 0.001 });
+      g.label = z.id;
       g.eventMode = 'static';
       g.cursor = 'pointer';
+      g.on('pointerover', () => markHover(z.id, true));
+      g.on('pointerout', () => markHover(z.id, false));
       g.on('pointerdown', (ev: FederatedPointerEvent) => {
         ev.stopPropagation();
         this.triggerTapReaction(z.id);
@@ -563,7 +614,9 @@ export class HeroineRig {
       this.boldnessLevel >= 68
         ? Math.min(0.96, (this.boldnessLevel - 68) / 26)
         : 0;
-    const patchGate = this.facePatchesHidden ? 0 : 1;
+    // The live skeleton draws its own blink and its own blush. Anything this class paints on her
+    // face would land on top of it at a plate-era position, so the gate is closed for both reasons.
+    const patchGate = this.facePatchesHidden || !this._plateVisible ? 0 : 1;
     this.boldRestSprite.alpha = targetBoldRest * (1 - emoAlpha) * patchGate;
     this.emotionSprite.alpha = emoAlpha * patchGate;
     this.blinkSprite.alpha =

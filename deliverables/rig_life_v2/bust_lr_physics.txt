@@ -1,0 +1,14 @@
+t1_s0: 79 verts left, 92 verts right
+t=0.00s  left 0.83 px   right 0.33 px   diff 0.50
+t=0.05s  left 3.89 px   right 1.68 px   diff 2.21
+t=0.10s  left 4.54 px   right 2.62 px   diff 1.93
+t=0.15s  left 2.23 px   right 3.14 px   diff 0.91
+t=0.20s  left 2.62 px   right 3.69 px   diff 1.07
+t=0.25s  left 3.39 px   right 3.39 px   diff 0.00
+t=0.30s  left 3.14 px   right 2.57 px   diff 0.57
+t=0.35s  left 1.65 px   right 1.43 px   diff 0.23
+t=0.40s  left 0.42 px   right 1.30 px   diff 0.88
+t=0.45s  left 2.09 px   right 2.09 px   diff 0.01
+t=0.50s  left 2.78 px   right 2.34 px   diff 0.44
+t=0.55s  left 2.37 px   right 1.82 px   diff 0.55
+peak left 4.56 px @ 0.08s | peak right 3.69 px @ 0.20s | phase gap 117 ms
