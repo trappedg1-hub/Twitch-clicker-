@@ -72,6 +72,100 @@ body,
   pointer-events: none;
 }
 
+/* The chat's dare. Sits in the empty top strip between the sub goal and the badges, so it never
+   competes with the economy HUD for the same corner; on a phone it drops below both. */
+.chat-dare {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 11;
+  width: 268px;
+  padding: 8px 11px 9px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(38, 20, 54, 0.94), rgba(20, 16, 30, 0.94));
+  border: 1px solid rgba(255, 117, 195, 0.45);
+  border-left: 3px solid #ff4da6;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 77, 166, 0.12) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  pointer-events: none;
+  animation: chat-dare-in 220ms cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.chat-dare[hidden] {
+  display: none;
+}
+
+.chat-dare.urgent {
+  border-color: rgba(255, 213, 79, 0.6);
+  border-left-color: #ffd54f;
+}
+
+@keyframes chat-dare-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.chat-dare-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat-dare-kicker {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #ff9ad0;
+}
+
+.chat-dare-timer {
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: #f4e9ff;
+}
+
+.chat-dare-hint {
+  font-size: 12px;
+  line-height: 1.25;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.chat-dare-bar {
+  position: relative;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.13);
+  overflow: hidden;
+}
+
+.chat-dare-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #ff4da6, #ffd54f);
+  transition: width 90ms linear;
+}
+
+.chat-dare-count {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(244, 233, 255, 0.66);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Authentic Top-Left Twitch / StreamElements Creator Sub Goal Overlay */
 .obs-subgoal {
   position: relative;
@@ -1619,6 +1713,44 @@ body.drawer-open .obs-chat-overlay {
 
   body.drawer-open .obs-chat-overlay {
     bottom: 30px;
+  }
+}
+
+/* Between a phone and a desktop the top strip has no free middle: the dare moves under the badges,
+   which is the one corner with room at this width. */
+@media (max-width: 1120px) {
+  .chat-dare {
+    top: 58px;
+    right: 14px;
+    left: auto;
+    width: 252px;
+    transform: none;
+    animation: none;
+  }
+}
+
+/* On a phone there is exactly one free slot at the top, so the dare and the sub goal take turns
+   in it: while a dare is live the sub goal card steps aside. The dare is the thing with a timer. */
+@media (max-width: 820px) {
+  .chat-dare {
+    top: 8px;
+    /* The badges live in the right-hand column on a phone and must keep it: the dare takes the
+       sub goal's slot and nothing else. */
+    left: 8px;
+    right: 124px;
+    width: auto;
+    transform: none;
+    padding: 6px 9px 7px;
+  }
+
+  .chat-dare-hint {
+    font-size: 11px;
+  }
+
+  /* Hidden, not removed: the sub goal is a flex item, and taking it out of the row would drag the
+     status badges over to the left, under the dare. It keeps its box and gives up its pixels. */
+  body.dare-live .obs-subgoal {
+    visibility: hidden;
   }
 }
 

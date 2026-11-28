@@ -80,6 +80,14 @@ export class UiController {
   private readonly hypeMultEl = document.getElementById('stat-hype-mult')!;
   private readonly hypeFillEl = document.getElementById('stat-hype-fill')!;
 
+  // The chat's dare: one chip, shown while a dare is live. Read defensively — an older build of
+  // the markup (or the lab pages) simply has no chip and the game runs without it.
+  private readonly dareEl = document.getElementById('chat-dare') as HTMLElement | null;
+  private readonly dareHintEl = document.getElementById('chat-dare-hint') as HTMLElement | null;
+  private readonly dareTimerEl = document.getElementById('chat-dare-timer') as HTMLElement | null;
+  private readonly dareFillEl = document.getElementById('chat-dare-fill') as HTMLElement | null;
+  private readonly dareCountEl = document.getElementById('chat-dare-count') as HTMLElement | null;
+
   private readonly speechSubEl = document.getElementById('speech-subtitle')!;
   private readonly speechTextEl = document.getElementById('speech-text')!;
 
@@ -761,6 +769,42 @@ export class UiController {
         btn.innerHTML = nextChHtml;
       }
     }
+  }
+
+  /** A dare just arrived from the chat. */
+  public showDare(hint: string, label: string): void {
+    if (!this.dareEl) return;
+    this.dareEl.hidden = false;
+    // The phone layout has one top slot, and it is the dare's while the timer runs.
+    document.body.classList.add('dare-live');
+    this.dareEl.classList.remove('urgent');
+    if (this.dareHintEl) this.dareHintEl.textContent = hint;
+    if (this.dareCountEl) this.dareCountEl.textContent = label;
+    if (this.dareFillEl) this.dareFillEl.style.width = '0%';
+  }
+
+  /**
+   * One frame of a live dare. The timer is written as seconds with a tenth only in the last two
+   * seconds — a tenth all the way down reads as a bomb, and this is a dare.
+   */
+  public updateDare(ratio: number, remainingMs: number, label: string): void {
+    if (!this.dareEl || this.dareEl.hidden) return;
+    const pct = Math.max(0, Math.min(1, ratio)) * 100;
+    if (this.dareFillEl) this.dareFillEl.style.width = `${pct.toFixed(1)}%`;
+    if (this.dareCountEl) this.dareCountEl.textContent = label;
+    if (this.dareTimerEl) {
+      const left = Math.max(0, remainingMs) / 1000;
+      this.dareTimerEl.textContent = left < 2 ? `${left.toFixed(1)} с` : `0:0${Math.ceil(left)}`;
+    }
+    this.dareEl.classList.toggle('urgent', remainingMs > 0 && remainingMs < 2000);
+  }
+
+  /** Served, or out of time: the chip goes away and the chat says what it thinks. */
+  public hideDare(finalLabel?: string): void {
+    if (!this.dareEl) return;
+    if (finalLabel && this.dareCountEl) this.dareCountEl.textContent = finalLabel;
+    this.dareEl.hidden = true;
+    document.body.classList.remove('dare-live');
   }
 
   public showSpeech(line: string): void {

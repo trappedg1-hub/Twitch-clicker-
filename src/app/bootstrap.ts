@@ -9,6 +9,7 @@ import {
   createSubNotificationMessage,
   createUpgradeChatMessage,
   createViralClipChatMessage,
+  createDareMessage,
   createSelfQuirkMessage,
   type QuirkLineKind,
   createZoneBurstMessage,
@@ -54,6 +55,17 @@ import {
   tickEconomy,
   triggerStreamChallenge,
 } from '../domain/engine.ts';
+import {
+  DARES,
+  DARE_SPEECH,
+  dareClock,
+  dareEvent,
+  dareProgressRatio,
+  dareRemainingMs,
+  pickDare,
+  startDare,
+  type DareState,
+} from '../domain/dares.ts';
 import {
   dayFinaleSubs,
   getSubGoalStagesForDay,
@@ -116,6 +128,9 @@ declare global {
       hoverDebug: () => { zone: string | null; since: number };
       blushDebug: () => { level: number; heat: number; at: { x: number; y: number } | null };
       cameraDebug: () => { x: number; y: number; zoom: number; punch: number; t: number; reduced: boolean };
+      dareDebug: () => { kind: string; status: string; progress: number; target: number } | null;
+      lastDareDebug: () => { kind: string; won: boolean; reward: number; at: number } | null;
+      startDare: (kind: string) => boolean;
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
@@ -429,8 +444,75 @@ export async function bootstrapApp(): Promise<void> {
     ui.pushChatMessage(createSelfQuirkMessage(line, state.totalTaps + Math.floor(now / 1000), state.streamDay));
   };
 
+  // The chat's dare, if one is live. One at a time, a few seconds long; every tap is fed in here so
+  // the bar answers the click on the same frame, while the clock and the expiry are on the economy
+  // timer below.
+  let dare: DareState | null = null;
+  let nextDareAtMs = performance.now() + 14000;
+  let dareSeq = 0;
+
+  const dareLabel = (state: DareState): string => {
+    const def = DARES[state.kind];
+    const now = def.unit === 'мс';
+    const have = now ? (Math.min(state.progress, def.target) / 1000).toFixed(1) : String(state.progress);
+    const need = now ? (def.target / 1000).toFixed(1) : String(def.target);
+    return `${have} / ${need} ${now ? 'с' : 'тапов'}`;
+  };
+
+  let lastDareKind: DareState['kind'] | null = null;
+
+  const serveDare = (nowMs: number): void => {
+    if (dare) return;
+    dareSeq += 1;
+    const stats = computeStats(state);
+    // Banning the previous kind is what keeps two dares from reading as a script.
+    const kind = pickDare(lastDareKind, stats.boldness, Math.random, state.streamDay);
+    lastDareKind = kind;
+    dare = startDare(kind, nowMs);
+    const def = DARES[kind];
+    ui.showDare(def.hint, dareLabel(dare));
+    if (!announceMuted) ui.pushChatMessage(createDareMessage('started', dareSeq + state.totalTaps, state.streamDay, def.ask));
+  };
+
+  let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number } | null = null;
+
+  const settleDare = (nowMs: number, won: boolean): void => {
+    const def = DARES[dare!.kind];
+    lastDareOutcome = { kind: def.kind, won, reward: won ? def.reward : 0, at: nowMs };
+    ui.hideDare(won ? 'Готово' : 'Провалено');
+    dare = null;
+    nextDareAtMs = nowMs + (won ? 24000 : 18000);
+    if (won) {
+      state = {
+        ...state,
+        balance: state.balance + def.reward,
+        totalEarned: state.totalEarned + def.reward,
+        hype: Math.min(100, state.hype + 6),
+      };
+      // Her answer is a beat, not a toast: the milestone path is the one that presents her.
+      stage.playLiveMilestone();
+      ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!);
+      announce(`♥ ЧЕЛЛЕНДЖ ЧАТА: +${def.reward} ₽`, true, state.totalTaps);
+      syncAll();
+    } else {
+      stage.playLiveReaction('sway');
+      ui.showSpeech(DARE_SPEECH.lost[Math.floor(Math.random() * DARE_SPEECH.lost.length)]!);
+    }
+    if (!announceMuted) {
+      ui.pushChatMessage(createDareMessage(won ? 'done' : 'expired', state.totalTaps + dareSeq, state.streamDay));
+    }
+  };
+
   stage.onHeroineTap = (zone: TapZoneId) => {
     lastPlayerInteractionMs = performance.now();
+    // A tap is the dare's only input on the frame it happens: the bar must move under the finger.
+    if (dare && dare.status === 'active') {
+      const before = dare;
+      dare = dareEvent(dare, performance.now(), { type: 'tap', zone });
+      if (dare.status === 'done') settleDare(performance.now(), true);
+      else if (dare.status === 'expired') settleDare(performance.now(), false);
+      else if (dare !== before) ui.updateDare(dareProgressRatio(dare), dareRemainingMs(dare, performance.now()), dareLabel(dare));
+    }
     // Sound first, before any of the bookkeeping: the click has to land on the frame the player
     // clicked, and everything below this line can allocate.
     sfx.tap(state.hype / 100);
@@ -897,6 +979,23 @@ export async function bootstrapApp(): Promise<void> {
     const res = tickEconomy(state, elapsed);
     state = res.state;
 
+    // --- the chat's dare: clock, hover, next ask ---------------------------------------------
+    if (dare) {
+      if (dare.status === 'active') {
+        const hover = stage.getHoverDebug();
+        const hoverMs = hover.zone && hover.since > 0 ? nowPerf - hover.since : 0;
+        dare = dareEvent(dare, nowPerf, { type: 'hover', zone: (hover.zone as TapZoneId | null) ?? null, hoverMs });
+        dare = dareClock(dare, nowPerf);
+        if (dare.status === 'active') {
+          ui.updateDare(dareProgressRatio(dare), dareRemainingMs(dare, nowPerf), dareLabel(dare));
+        } else {
+          settleDare(nowPerf, dare.status === 'done');
+        }
+      }
+    } else if (!isQa && nowPerf >= nextDareAtMs) {
+      serveDare(nowPerf);
+    }
+
     // Nobody tapped for ~11s -> she notices the silence. Otherwise she still reacts to the live
     // numbers every ~19s: how close the next Sub Goal is, the hype bar, the mic tier, the crowd.
     const idleFor = nowPerf - lastPlayerInteractionMs;
@@ -1279,6 +1378,18 @@ export async function bootstrapApp(): Promise<void> {
       hoverDebug: () => stage.getHoverDebug(),
       blushDebug: () => stage.getBlushDebug(),
       cameraDebug: () => stage.getCameraDebug(),
+      dareDebug: () =>
+        dare
+          ? { kind: dare.kind, status: dare.status, progress: dare.progress, target: DARES[dare.kind].target }
+          : null,
+      lastDareDebug: () => lastDareOutcome,
+      startDare: (kind) => {
+        if (!(kind in DARES)) return false;
+        dare = startDare(kind as DareState['kind'], performance.now());
+        lastDareKind = dare.kind;
+        ui.showDare(DARES[dare.kind].hint, dareLabel(dare));
+        return true;
+      },
       attentionDebug: () => stage.attentionDebug,
       tickDebug: () => ({ frames: stage.frameCount, error: stage.tickError }),
       addFunds: (amount: number) => {

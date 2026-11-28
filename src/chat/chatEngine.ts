@@ -6,6 +6,7 @@ import type {
 } from '../domain/types.ts';
 import { contradictsWardrobe, getWardrobe } from '../domain/wardrobe.ts';
 import type { QuirkKind } from '../heroine/LiveHeroine.ts';
+import { DARE_LINES } from '../domain/dares.ts';
 
 export interface ChatMessage {
   id: string;
@@ -1171,6 +1172,31 @@ const SELF_QUIRK_LINES: Record<QuirkLineKind, string[]> = {
     'она скучает и делает это красиво. чат, мы плохие зрители :LUL:',
   ],
 };
+
+/**
+ * The chat's own voice for a dare: the ask, the verdict, and nothing else.
+ *
+ * It reuses the quirk path — a random viewer, the same badge and colour rules — because a dare is
+ * not a system notification, it is somebody typing in the chat. That is the whole difference
+ * between "задание: тапните 5 раз" and "@miya а слабо?".
+ */
+export function createDareMessage(
+  kind: 'started' | 'done' | 'expired',
+  seed = seqCounter,
+  streamDay = 1,
+  ask?: string,
+): ChatMessage {
+  const viewer = VIEWER_NICKS[(seed * 7 + 11) % VIEWER_NICKS.length]!;
+  const pool = kind === 'started' ? null : DARE_LINES[kind];
+  const text = kind === 'started' ? (ask ?? DARE_LINES.started[0]) : pool![Math.abs(seed) % pool!.length]!;
+  return {
+    id: nextMsgId(),
+    author: viewer.name,
+    color: viewer.color,
+    badge: viewer.badge,
+    text: streamDay === 5 && kind === 'done' ? `${text} (и это в купальнике, чат) :Nosebleed:` : text,
+  };
+}
 
 export function createSelfQuirkMessage(
   kind: QuirkLineKind,

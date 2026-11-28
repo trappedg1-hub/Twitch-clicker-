@@ -201,6 +201,29 @@ if (chest) {
 }
 const onChest = await page.evaluate(() => window.__qaScene.hoverDebug());
 
+// --- 4c. a chat dare: it appears, it fills from the taps it asked for, and it pays ------------
+const balanceBefore = await page.evaluate(() => window.__qaScene.getState().balance);
+const started = await page.evaluate(() => window.__qaScene.startDare('cheek'));
+if (!started) problems.push('the QA hook could not start a dare');
+const head = await page.evaluate(() => window.__qaScene.zoneCenter('head'));
+if (head) {
+  for (let i = 0; i < 5; i += 1) {
+    await page.mouse.click(head.x, head.y);
+    await page.waitForTimeout(160);
+  }
+}
+await pumpFrames(60);
+const afterDare = await page.evaluate(() => ({
+  dare: window.__qaScene.dareDebug(),
+  last: window.__qaScene.lastDareDebug(),
+  balance: window.__qaScene.getState().balance,
+}));
+// A served dare is *settled away*, so the live chip is gone and the outcome is what is left to read.
+if (afterDare.dare) problems.push(`the dare is still live (${afterDare.dare.status}) after five taps on her face`);
+if (!afterDare.last) problems.push('the dare never settled: no outcome was recorded');
+else if (!afterDare.last.won) problems.push(`the dare was lost, not served (${afterDare.last.kind})`);
+if (!(afterDare.balance > balanceBefore)) problems.push(`the dare paid nothing (${balanceBefore} → ${afterDare.balance})`);
+
 const tick = await page.evaluate(() => window.__qaScene.tickDebug());
 if (tick.error) problems.push(`the stage's tick threw: ${tick.error.split('\n')[0]}`);
 await page.screenshot({ path: `${SHOTS}/zones.png` });
@@ -217,6 +240,9 @@ console.log(
   `  camera →      drift ${cam.x.toFixed(1)},${cam.y.toFixed(1)} px  zoom ${(cam.zoom * 100).toFixed(2)} %  punch ${(cam.punch * 100).toFixed(2)} %  t ${cam.t.toFixed(1)} s`,
 );
 console.log(`  on chest →    ${onChest.zone ?? '(none)'}`);
+console.log(
+  `  dare →        ${afterDare.last ? `${afterDare.last.kind} ${afterDare.last.won ? 'done' : 'lost'} +${afterDare.last.reward} ₽` : '(none)'}  balance ${balanceBefore} → ${afterDare.balance}`,
+);
 
 if (problems.length) {
   console.log(`\n  ${problems.length} problem(s):`);
