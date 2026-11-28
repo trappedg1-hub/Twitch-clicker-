@@ -232,6 +232,27 @@ export const HER_DARE_LINES: Record<'ask' | 'won' | 'lost', readonly string[]> =
   ],
 } as const;
 
+/**
+ * The same instruction, in her voice. The chat's hint is a task ("Тапни по её лицу 5 раз"); hers is
+ * something she says to one person in the room ("Пять раз по щеке. Я считаю. Не заставляй меня
+ * ждать."). Same game, different owner — and the copy is where the player feels it.
+ */
+export const HER_HINTS: Record<DareKind, string> = {
+  cheek: 'Пять раз по щеке. Я считаю — не заставляй ждать.',
+  feet: 'Три раза по ступням. Мне щекотно, а тебе весело?',
+  restless: 'Двенадцать за шесть секунд. Покажи, на что ты способен.',
+  eye_contact: 'Смотри мне в глаза. Не отводи — я замечу.',
+  cold_hands: 'Восемь секунд не трогай меня. Только попробуй.',
+};
+
+/** What the chat does when she wins her own dare: the audience is always a step behind her. */
+export const HER_DARE_AFTERGLOW = [
+  'ОНА ВЫИГРАЛА СВОЁ ЖЕ ЗАДАНИЕ. чат, мы тут вообще нужны :Pog:',
+  'это был не челлендж, это был флирт :Nosebleed:',
+  'она довольна. вы видели, как она довольна? :AWOOGA:',
+  'записывайте: с этой минуты условия диктует она :ClipIt:',
+] as const;
+
 /** The chat's reaction when she takes the wheel: the audience is always a step behind her. */
 export const HER_DARE_CHAT = [
   'она сама попросила. ЧАТ, ОНА САМА :AWOOGA:',

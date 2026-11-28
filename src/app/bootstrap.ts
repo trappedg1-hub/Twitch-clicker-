@@ -72,6 +72,8 @@ import {
   pickDareOrigin,
   HER_DARE_BONUS,
   HER_DARE_LINES,
+  HER_DARE_AFTERGLOW,
+  HER_HINTS,
   type DareOrigin,
   dareClock,
   dareEvent,
@@ -148,6 +150,7 @@ declare global {
       setDareStreak: (n: number) => number;
       startDare: (kind: string, origin?: string) => boolean;
       dareOriginDebug: () => 'chat' | 'her';
+      herAfterglowDebug: () => number;
       attentionDebug: () => { hoverMs: number; picks: number; last: string | null; reason: string; error?: string };
       gazeAimDebug: () => { x: number; y: number } | null;
       chatGlanceDebug: () => { glances: number; frames: number; totalFrames: number };
@@ -539,7 +542,8 @@ export async function bootstrapApp(): Promise<void> {
     const def = DARES[dare!.kind];
     const mult = dareMultiplier(origin);
     const streakLabel = dareStreak > 0 || origin === 'her' ? `×${Number(mult.toFixed(2))}` : '';
-    ui.showDare(def.hint, dareLabel(dare!), streakLabel, origin === 'her');
+    // Her dare is not the chat's task in another colour: the instruction itself is hers.
+    ui.showDare(origin === 'her' ? HER_HINTS[def.kind] : def.hint, dareLabel(dare!), streakLabel, origin === 'her');
   };
 
   const serveDare = (nowMs: number): void => {
@@ -585,6 +589,8 @@ export async function bootstrapApp(): Promise<void> {
 
   let lastDareOutcome: { kind: string; won: boolean; reward: number; at: number; origin?: DareOrigin } | null =
     null;
+  /** How many afterglow lines the chat actually got — QA reads this, the DOM evicts rows. */
+  let herAfterglowPushes = 0;
   // How many dares in a row the player has served. The chat remembers; missing one resets it.
   let dareStreak = 0;
 
@@ -614,6 +620,30 @@ export async function bootstrapApp(): Promise<void> {
         ui.showSpeech(HER_DARE_LINES.won[Math.floor(Math.random() * HER_DARE_LINES.won.length)]!, 2400);
       } else {
         ui.showSpeech(DARE_SPEECH.won[Math.floor(Math.random() * DARE_SPEECH.won.length)]!, 2400);
+      }
+      // Winning her own dare is the moment the audience loses the plot: they are watching her win
+      // at her own game, and the chat says so twice instead of once. Flat timers, not a nested
+      // chain — both lines are independent beats and neither should depend on the other firing.
+      if (origin === 'her' && !announceMuted) {
+        const pick = Math.floor(Math.random() * HER_DARE_AFTERGLOW.length);
+        const lines = [
+          HER_DARE_AFTERGLOW[pick]!,
+          HER_DARE_AFTERGLOW[(pick + 1) % HER_DARE_AFTERGLOW.length]!,
+        ];
+        lines.forEach((text, i) => {
+          window.setTimeout(() => {
+            if (announceMuted) return;
+            herAfterglowPushes += 1;
+            ui.pushChatMessage({
+              id: `her_dare_${Date.now()}_${i}`,
+              author: 'StreamBot',
+              color: '#c084fc',
+              badge: 'MOD',
+              text,
+              isSystemHighlight: true,
+            });
+          }, 360 + i * 640);
+        });
       }
       announce(
         `♥ ${origin === 'her' ? 'ЕЁ ЗАДАНИЕ' : 'ЧЕЛЛЕНДЖ ЧАТА'}${
@@ -1532,6 +1562,7 @@ export async function bootstrapApp(): Promise<void> {
         return true;
       },
       dareOriginDebug: () => dareOrigin,
+      herAfterglowDebug: () => herAfterglowPushes,
       attentionDebug: () => stage.attentionDebug,
       gazeAimDebug: () => stage.gazeAimDebug,
       chatGlanceDebug: () => stage.chatGlanceDebug,
