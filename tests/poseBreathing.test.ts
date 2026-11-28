@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BREATH_REGIONS, poseBreathOffset, poseTapOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
+import { BREATH_REGIONS, poseBackSwayOffset, poseBreathOffset, poseTapOffset, tapReactionWave } from '../src/heroine/poseBreathing.ts';
 import { POSE_ANATOMY } from '../src/heroine/poseAnatomy.ts';
 import { createInitialState, deserializeState, serializeState } from '../src/domain/engine.ts';
 import type { SubGoalStageIndex } from '../src/domain/types.ts';
@@ -67,6 +67,38 @@ test('stronger chest tap is limited to front-facing chest, not idle, legs or cov
   assert.deepEqual(poseTapOffset(1, 0, 'chest', cx, cy, 1), poseTapOffset(1, 0, 'belly', cx, cy, 1));
   const [hx,hy] = POSE_ANATOMY[4]![3]!.torso;
   assert.deepEqual(poseTapOffset(5, 3, 'chest', hx, hy, 1), poseTapOffset(5, 3, 'belly', hx, hy, 1));
+});
+
+test('the rear-view finale shifts her weight, and only inside her own body', () => {
+  // Exactly one pose answers: the day-5 finale, the one plate that cannot carry the rig.
+  const [upper, hips] = [[655, 395], [520, 620]] as const;
+  for (let day = 1; day <= 6; day++) for (let stage = 0; stage < 5; stage++) {
+    const s = stage as SubGoalStageIndex;
+    const hit = day === 5 && stage === 4;
+    for (const [x, y] of [upper, hips]) {
+      const offset = poseBackSwayOffset(day, s, x, y, 1);
+      if (hit) assert.notDeepEqual(offset, {x: 0, y: 0}, `${day}/${stage}`);
+      else assert.deepEqual(offset, {x: 0, y: 0}, `${day}/${stage}`);
+    }
+  }
+  assert.deepEqual(poseBackSwayOffset(5, 4, upper[0], upper[1], 0), {x: 0, y: 0});
+  // Bounded: a sway, not a shove.
+  let max = 0;
+  for (let ix = 0; ix < 24; ix++) for (let iy = 0; iy < 32; iy++) {
+    const o = poseBackSwayOffset(5, 4, ix * 1024 / 23, iy * 1526 / 31, 1);
+    max = Math.max(max, Math.hypot(o.x, o.y));
+  }
+  assert.ok(max > 4, 'the sway has to read, not whisper');
+  assert.ok(max <= 12, `sway of ${max.toFixed(2)} px is a jump, not a shift`);
+  // The runtime's "the chair never moves" heuristic watches everything outside this band. The
+  // sway must not reach a single sample there, or the promise becomes a number nobody checks.
+  for (let ix = 0; ix < 24; ix++) for (let iy = 0; iy < 32; iy++) {
+    const x = ix * 1024 / 23;
+    const y = iy * 1526 / 31;
+    if (x < 300 || x > 760 || y > 900) {
+      assert.deepEqual(poseBackSwayOffset(5, 4, x, y, 1), {x: 0, y: 0}, `chair sample ${x},${y}`);
+    }
+  }
 });
 
 test('saved older late-day stage indices migrate without losing selected art', () => {

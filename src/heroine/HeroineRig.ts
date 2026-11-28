@@ -9,7 +9,7 @@ import {
   Sprite,
   Texture,
 } from 'pixi.js';
-import { poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
+import { poseBackSwayOffset, poseBreathOffset, poseTapOffset, tapReactionWave } from './poseBreathing.ts';
 import { anatomyFor } from './poseAnatomy.ts';
 import { pickEmotionForContext } from '../domain/dialogue.ts';
 import type {
@@ -674,6 +674,9 @@ export class HeroineRig {
     }
 
     const breathWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 3.6));
+    // A second, slower clock: the weight shift of the one rear-view pose has to be able to drift
+    // against the breath, or the two lock into a single wobble and read as a machine.
+    const swayWave = Math.sin(this.elapsedSec * ((Math.PI * 2) / 7.6) + 0.9);
     // Fixed plate transform: never move the chair, including during taps and unlocks.
     this.bodyContainer.position.set(0, 0);
     const posAttr = this.mesh.geometry.getAttribute('aPosition');
@@ -688,8 +691,9 @@ export class HeroineRig {
       const ry = this.restPositions[i + 1]!;
       const breath = poseBreathOffset(this.wardrobeDay, this.currentStage, rx, ry, motionOff ? 0 : breathWave);
       const tap = poseTapOffset(this.wardrobeDay, this.currentStage, this.tapReactionZone, rx, ry, tapWave);
-      data[i] = rx + breath.x + tap.x;
-      data[i + 1] = ry + breath.y + tap.y;
+      const sway = poseBackSwayOffset(this.wardrobeDay, this.currentStage, rx, ry, motionOff ? 0 : swayWave);
+      data[i] = rx + breath.x + tap.x + sway.x;
+      data[i + 1] = ry + breath.y + tap.y + sway.y;
     }
     posAttr.buffer.update();
   }
