@@ -35,7 +35,16 @@ import {
   pickIdleTeaseLine,
   pickReactionCalloutTag,
   UPGRADE_REACTION_LINES,
+  WELCOME_BACK_LINES,
 } from '../domain/dialogue.ts';
+import {
+  IDLE_RETURN,
+  markHidden,
+  welcomeBack,
+  welcomeBackBand,
+  welcomeBackChatLine,
+  type ReturnState,
+} from '../domain/returnBeat.ts';
 import {
   applyTap,
   buyGiftSubs,
@@ -140,6 +149,7 @@ declare global {
       glareAtChat: () => { x: number; y: number } | null;
       /** Whether the last pushed line actually earned a glance (the QA of the flash). */
       lastChatReadDebug: () => boolean;
+      returnBeatDebug: (awayMs?: number) => { greeted: boolean; awayMs: number };
       tickDebug: () => ({ frames: number; error: string | null });
       addFunds: (amount: number) => void;
       setSubscribers: (count: number) => number;
@@ -460,6 +470,40 @@ export async function bootstrapApp(): Promise<void> {
             : 'caught_chest';
     ui.pushChatMessage(createSelfQuirkMessage(line, state.totalTaps + Math.floor(now / 1000), state.streamDay));
   };
+
+  // Coming back. A hidden page does not tick, so an absence is a wall clock, not a countdown: she
+  // notices a real one, says nothing about an alt-tab, and never greets twice inside the lockout.
+  // This is the beat that keeps the room from feeling paused when the player is the one who left.
+  let returnState: ReturnState = IDLE_RETURN;
+  const greetReturn = (awayMs: number) => {
+    const heat = stage.getBlushDebug().level;
+    const lines = WELCOME_BACK_LINES[welcomeBackBand(heat)];
+    const line = lines[Math.floor(Math.random() * lines.length)]!;
+    lastPlayerInteractionMs = performance.now();
+    ui.showSpeech(line);
+    stage.playLiveTalk(Math.min(3200, 900 + line.length * 26));
+    stage.rig.triggerEmotion(welcomeBackBand(heat) === 'bold' ? 'bold' : 'shy', 2000);
+    if (!announceMuted) {
+      ui.pushChatMessage({
+        id: `return_${Date.now()}`,
+        author: 'StreamBot',
+        color: '#c084fc',
+        badge: 'MOD',
+        text: welcomeBackChatLine(awayMs),
+        isSystemHighlight: true,
+      });
+    }
+  };
+  document.addEventListener('visibilitychange', () => {
+    const now = performance.now();
+    if (document.visibilityState === 'hidden') {
+      returnState = markHidden(returnState, now);
+      return;
+    }
+    const beat = welcomeBack(returnState, now);
+    returnState = beat.state;
+    if (beat.greet) greetReturn(beat.awayMs);
+  });
 
   // The chat's dare, if one is live. One at a time, a few seconds long; every tap is fed in here so
   // the bar answers the click on the same frame, while the clock and the expiry are on the economy
@@ -1432,6 +1476,21 @@ export async function bootstrapApp(): Promise<void> {
         return stage.chatGlanceDebug.glances;
       },
       lastChatReadDebug: () => document.querySelectorAll('.chat-msg.read').length > 0,
+      /**
+       * QA cannot hide a tab on purpose, and the point of this beat is the *gate*, so the hook drives
+       * the same state machine a real `visibilitychange` would: hidden at t, back with a given gap.
+       */
+      returnBeatDebug: (awayMs = 120_000) => {
+        const now = performance.now();
+        const hidden = markHidden(returnState, now - awayMs);
+        const beat = welcomeBack(hidden, now);
+        const greeted = beat.greet;
+        if (greeted) {
+          returnState = beat.state;
+          greetReturn(beat.awayMs);
+        }
+        return { greeted, awayMs: beat.awayMs };
+      },
       glareAtChat: () => {
         stage.glareAtChat(1500, true);
         stage.app.render();
